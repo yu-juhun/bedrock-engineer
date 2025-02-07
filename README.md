@@ -2,7 +2,7 @@ Language: [English](./README.md) / [Japanese](./README-ja.md)
 
 # 🧙 Bedrock Engineer
 
-Bedrock Engineer is an AI assistant for software development tasks powered by [Amazon Bedrock](https://aws.amazon.com/bedrock/). This autonomous AI agent combines the capabilities of large language models with practical file system operations and web search functionality to support your development process.
+Bedrock Engineer is Autonomous software development agent apps using [Amazon Bedrock](https://aws.amazon.com/bedrock/), capable of customize to create/edit files, execute commands, search the web, use knowledge base, use multi-agents, generative images and more.
 
 ## 💻 Demo
 
@@ -10,7 +10,36 @@ https://github.com/user-attachments/assets/788583b6-148b-4e9d-9015-c24ad4be6162
 
 ## 🍎 Getting Started
 
-It is still under development and no packaged binaries have been created. Please build it locally and use it.
+Bedrock Engineer is a native app, you can download the app or build the source code to use it.
+
+### Download
+
+MacOS:
+
+[<img src="https://img.shields.io/badge/Download_FOR_MAC-Latest%20Release-blue?style=for-the-badge&logo=apple" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.0.0.dmg)
+
+Windows:
+
+[<img src="https://img.shields.io/badge/Download_FOR_Windows-Latest%20Release-blue?style=for-the-badge" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.0.0-setup.exe)
+
+<details>
+<summary>Tips for Installation</summary>
+
+### Installation
+
+1. Download the latest release
+2. Open the DMG file and drag the app to your Applications folder
+3. Launch the app and configure your AWS credentials
+4. Open System Preferences, click Security & Privacy, then put a checkmark to "Allow apps downloaded from anywhere" -> Click OK and enter your password
+
+### Opening the Application
+
+If you see "'Bedrock Engineer' can't be opened because Apple cannot check it for malicious software":
+
+1. Open System Preferences
+2. Click Privacy & Security
+3. Scroll down and click "Open Anyway" next to "Bedrock Engineer was blocked to protect your Mac."
+</details>
 
 ### Build
 
@@ -40,9 +69,7 @@ npm run build:linux
 
 Use the application stored in the `dist` directory.
 
-## ✨ Features
-
-### Agent Chat
+## Agent Chat
 
 The autonomous AI agent capable of development assists your development process. It provides functionality similar to AI assistants like [Cline](https://github.com/cline/cline), but with its own UI that doesn't depend on editors like VS Code. This enables richer diagramming and interactive experiences in Bedrock Engineer's agent chat feature. Additionally, with agent customization capabilities, you can utilize agents for use cases beyond development.
 
@@ -62,19 +89,19 @@ The autonomous AI agent capable of development assists your development process.
 | :----------------------------------------------------: | :--------------------------------------------------: |
 |             Code analysis and diagramming              |       Web search capabilities using Tavily API       |
 
-## Select an Agent
+### Select an Agent
 
 Choose an agent from the menu in the top left. By default, it includes a Software Developer specialized in general software development, a Programming Mentor that assists with programming learning, and a Product Designer that supports the conceptual stage of services and products.
 
 ![select-agents](./assets/select-agents.png)
 
-## Customize Agents
+### Customize Agents
 
 Click the ⚙️ icon in the top right to customize agent settings. Enter the agent's name, description, and system prompt. The system prompt is a crucial element that determines the agent's behavior. By clearly defining the agent's purpose, regulations, role, and when to use available tools, you can obtain more appropriate responses.
 
 ![custom-agents](./assets/custom-agents.png)
 
-## Select Tools / Customize Tools
+### Select Tools / Customize Tools
 
 Click the Tools icon in the bottom left to select the tools available to the agent.
 
@@ -82,7 +109,7 @@ Click the Tools icon in the bottom left to select the tools available to the age
 
 The supported tools are:
 
-### 📂 File System Operations
+#### 📂 File System Operations
 
 | Tool Name      | Description                                                                                                                                                                   |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -93,14 +120,14 @@ The supported tools are:
 | `moveFile`     | Moves a file to a different location. Used for organizing files within the project structure.                                                                                 |
 | `copyFile`     | Duplicates a file to a different location. Used when file duplication is needed within the project structure.                                                                 |
 
-### 🌐 Web & Search Operations
+#### 🌐 Web & Search Operations
 
 | Tool Name      | Description                                                                                                                                                                                                                                                                                     |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tavilySearch` | Performs web searches using the Tavily API. Used when current information or additional context is needed. Requires an API key.                                                                                                                                                                 |
 | `fetchWebsite` | Retrieves content from specified URLs. Large content is automatically split into manageable chunks. Initial call provides chunk overview, with specific chunks retrievable as needed. Supports GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS methods with custom headers and body configuration. |
 
-### 🤖 Amazon Bedrock Integration
+#### 🤖 Amazon Bedrock Integration
 
 | Tool Name            | Description                                                                                                                                                                                                                                                                                                                                       |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -108,13 +135,13 @@ The supported tools are:
 | `retrieve`           | Searches information using Amazon Bedrock Knowledge Base. Retrieves relevant information from specified knowledge bases.                                                                                                                                                                                                                          |
 | `invokeBedrockAgent` | Interacts with specified Amazon Bedrock Agents. Initiates dialogue using agent ID and alias ID, with session ID for conversation continuity. Provides file analysis capabilities for various use cases including Python code analysis and chat functionality.                                                                                     |
 
-### 💻 System Command Execution
+#### 💻 System Command Execution
 
 | Tool Name        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `executeCommand` | Manages command execution and process input handling. Features two operational modes: 1) initiating new processes with command and working directory specification, 2) sending standard input to existing processes using process ID. For security reasons, only allowed commands can be executed, using the configured shell. Unregistered commands cannot be executed. The agent's capabilities can be extended by registering commands that connect to databases, execute APIs, or invoke other AI agents. |
 
-### Website Generator
+## Website Generator
 
 Generate and preview website source code in real-time. Currently supports the following libraries, and you can interactively generate code by providing additional instructions:
 
@@ -135,7 +162,7 @@ The following styles are also supported as presets:
 - Tailwind.css
 - Material UI (React mode only)
 
-#### Connect to Design System Data Source
+### Connect to Design System Data Source
 
 By connecting to Amazon Bedrock's Knowledge Base, you can generate websites referencing any design system, project source code, or website styles.
 
@@ -143,7 +170,7 @@ You need to store source code and crawled web pages in the knowledge base in adv
 
 Click the "Connect" button at the bottom of the screen and enter your knowledge base ID.
 
-### Step Functions Generator
+## Step Functions Generator
 
 Generate AWS Step Functions ASL definitions and preview them in real-time.
 
