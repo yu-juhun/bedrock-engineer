@@ -141,6 +141,15 @@ The supported tools are:
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `executeCommand` | Manages command execution and process input handling. Features two operational modes: 1) initiating new processes with command and working directory specification, 2) sending standard input to existing processes using process ID. For security reasons, only allowed commands can be executed, using the configured shell. Unregistered commands cannot be executed. The agent's capabilities can be extended by registering commands that connect to databases, execute APIs, or invoke other AI agents. |
 
+<details>
+<summary>Tips for Integrate Bedrock Agents</summary>
+
+### Agent Preparation Toolkit (APT)
+
+You can get up and running quickly with Amazon Bedrock Agents by using the [Agent Preparation Toolkit](https://github.com/aws-samples/agent-preparation-toolkit).
+
+</details>
+
 ## Website Generator
 
 Generate and preview website source code in real-time. Currently supports the following libraries, and you can interactively generate code by providing additional instructions:
@@ -178,7 +187,7 @@ Generate AWS Step Functions ASL definitions and preview them in real-time.
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=daisuke-awaji/bedrock-engineer&type=Date)](https://star-history.com/#daisuke-awaji/bedrock-engineer&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=aws-samples/bedrock-engineer&type=Date)](https://star-history.com/#aws-samples/bedrock-engineer&Date)
 
 ## Security
 
