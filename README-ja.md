@@ -143,6 +143,17 @@ npm run build:linux
 | `executeCommand` | コマンドの実行やプロセスへの入力送信を管理します。2つの動作モードがあり、1)コマンドと作業ディレクトリを指定して新規プロセスを開始、2)既存のプロセスIDを指定して標準入力を送信できます。セキュリティ上の理由から、許可されたコマンドのみが実行可能で、設定で指定されたシェルを使用します。登録されていないコマンドは実行できません。データベースに接続するコマンド、APIを実行するコマンド、別の AI エージェントを呼び出すコマンドなどを登録することで、エージェントの能力を拡張することができます。 |
 |                  |
 
+
+<details>
+<summary>Tips for Integrate Bedrock Agents</summary>
+
+### APT (Agent Preparation Toolkit) を活用する
+
+[Agent Preparation Toolkit](https://github.com/aws-samples/agent-preparation-toolkit) を使用することで、Amazon Bedrock Agents を使ってすぐに Agent を動かすことができます。
+
+</details>
+
+
 ## Website Generator
 
 ウェブサイトを描画するソースコードを生成し、リアルタイムにプレビューします。現在は以下のライブラリに対応しています。また、追加で指示を与えることで対話的にコードを生成することができます。
@@ -180,7 +191,7 @@ AWS Step Functions の ASL 定義を生成し、リアルタイムにプレビ�
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=daisuke-awaji/bedrock-engineer&type=Date)](https://star-history.com/#daisuke-awaji/bedrock-engineer&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=aws-samples/bedrock-engineer&type=Date)](https://star-history.com/#aws-samples/bedrock-engineer&Date)
 
 ## Security
 
