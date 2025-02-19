@@ -18,10 +18,6 @@ MacOS:
 
 [<img src="https://img.shields.io/badge/Download_FOR_MAC-Latest%20Release-blue?style=for-the-badge&logo=apple" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.0.0.dmg)
 
-Windows:
-
-[<img src="https://img.shields.io/badge/Download_FOR_Windows-Latest%20Release-blue?style=for-the-badge" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.0.0-setup.exe)
-
 <details>
 <summary>Tips for Installation</summary>
 
@@ -143,7 +139,6 @@ npm run build:linux
 | `executeCommand` | コマンドの実行やプロセスへの入力送信を管理します。2つの動作モードがあり、1)コマンドと作業ディレクトリを指定して新規プロセスを開始、2)既存のプロセスIDを指定して標準入力を送信できます。セキュリティ上の理由から、許可されたコマンドのみが実行可能で、設定で指定されたシェルを使用します。登録されていないコマンドは実行できません。データベースに接続するコマンド、APIを実行するコマンド、別の AI エージェントを呼び出すコマンドなどを登録することで、エージェントの能力を拡張することができます。 |
 |                  |
 
-
 <details>
 <summary>Tips for Integrate Bedrock Agents</summary>
 
@@ -152,7 +147,6 @@ npm run build:linux
 [Agent Preparation Toolkit](https://github.com/aws-samples/agent-preparation-toolkit) を使用することで、Amazon Bedrock Agents を使ってすぐに Agent を動かすことができます。
 
 </details>
-
 
 ## Website Generator
 
