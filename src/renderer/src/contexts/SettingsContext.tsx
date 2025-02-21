@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { Agent, KnowledgeBase, Scenario, SendMsgKey, ToolState } from 'src/types/agent-chat'
-import { InferenceParameters, LLM } from 'src/types/llm'
 import { listModels } from '@renderer/lib/api'
 import { CustomAgent } from '@/types/agent-chat'
 import { Tool } from '@aws-sdk/client-bedrock-runtime'
@@ -12,6 +11,7 @@ import {
   CODE_BUDDY_SYSTEM_PROMPT,
   PRODUCT_DESIGNER_SYSTEM_PROMPT
 } from '@renderer/pages/ChatPage/constants/DEFAULT_AGENTS'
+import { InferenceParameters, LLM, BEDROCK_SUPPORTED_REGIONS } from '@/types/llm'
 
 const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
   maxTokens: 4096,
@@ -166,9 +166,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // LLM Settings
   const [llmError, setLLMError] = useState<any>()
   const defaultModel = {
-    modelId: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
-    modelName: 'Claude 3.5 Sonnet v2 (cross region inference)',
-    toolUse: true
+    modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+    modelName: 'Claude 3.5 Sonnet v2',
+    toolUse: true,
+    regions: BEDROCK_SUPPORTED_REGIONS
   }
   const [currentLLM, setCurrentLLM] = useState<LLM>(defaultModel)
   const [availableModels, setAvailableModels] = useState<LLM[]>([])
