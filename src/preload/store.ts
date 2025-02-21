@@ -79,7 +79,7 @@ const init = () => {
   const awsConfig = electronStore.get('aws')
   if (!awsConfig) {
     electronStore.set('aws', {
-      region: 'us-east-1',
+      region: 'us-west-2',
       accessKeyId: '',
       secretAccessKey: ''
     })

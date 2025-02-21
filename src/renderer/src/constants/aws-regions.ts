@@ -23,6 +23,16 @@ export const AWS_REGIONS: AwsRegion[] = [
     bedrockSupported: true
   },
   {
+    id: 'ap-northeast-2',
+    name: 'Asia Pacific (Soul)',
+    bedrockSupported: true
+  },
+  {
+    id: 'ap-northeast-3',
+    name: 'Asia Pacific (Osaka)',
+    bedrockSupported: true
+  },
+  {
     id: 'ap-southeast-1',
     name: 'Asia Pacific (Singapore)',
     bedrockSupported: true
