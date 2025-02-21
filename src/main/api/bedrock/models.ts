@@ -1,4 +1,4 @@
-import { BEDROCK_SUPPORTED_REGIONS, BedrockSupportRegion, LLM } from '../../../types/llm'
+import { BedrockSupportRegion, LLM } from '../../../types/llm'
 
 // Base models without cross-region inference
 export const baseModels: LLM[] = [
@@ -6,31 +6,71 @@ export const baseModels: LLM[] = [
     modelId: 'anthropic.claude-3-sonnet-20240229-v1:0',
     modelName: 'Claude 3 Sonnet',
     toolUse: true,
-    regions: BEDROCK_SUPPORTED_REGIONS
+    regions: [
+      'us-east-1',
+      'us-east-2',
+      'us-west-2',
+      'eu-central-1',
+      'eu-west-1',
+      'eu-west-3',
+      // 'ap-northeast-1',  // クロスリージョン推論のみ対応
+      // 'ap-northeast-2', // クロスリージョン推論のみ対応
+      'ap-south-1',
+      // 'ap-southeast-1', // クロスリージョン推論のみ対応
+      'ap-southeast-2'
+    ]
   },
   {
     modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
     modelName: 'Claude 3 Haiku',
     toolUse: true,
-    regions: BEDROCK_SUPPORTED_REGIONS
+    regions: [
+      'us-east-1',
+      // 'us-east-2',
+      'us-west-2',
+      'eu-central-1',
+      'eu-west-1',
+      'eu-west-3',
+      'ap-northeast-1',
+      'ap-northeast-2',
+      'ap-south-1',
+      'ap-southeast-1',
+      'ap-southeast-2'
+    ]
   },
   {
     modelId: 'anthropic.claude-3-5-haiku-20241022-v1:0',
     modelName: 'Claude 3.5 Haiku',
     toolUse: true,
-    regions: BEDROCK_SUPPORTED_REGIONS
+    regions: [
+      // 'us-east-1',
+      // 'us-east-2',
+      'us-west-2'
+    ]
   },
   {
     modelId: 'anthropic.claude-3-5-sonnet-20240620-v1:0',
     modelName: 'Claude 3.5 Sonnet',
     toolUse: true,
-    regions: BEDROCK_SUPPORTED_REGIONS
+    regions: [
+      'us-east-1',
+      // 'us-east-2',
+      'us-west-2',
+      'eu-central-1',
+      'eu-west-1',
+      // 'eu-west-3',
+      'ap-northeast-1',
+      'ap-northeast-2',
+      'ap-south-1'
+      // 'ap-southeast-1',
+      // 'ap-southeast-2'
+    ]
   },
   {
     modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
     modelName: 'Claude 3.5 Sonnet v2',
     toolUse: true,
-    regions: BEDROCK_SUPPORTED_REGIONS
+    regions: ['us-west-2']
   }
 ]
 const usRegions = ['us-east-1', 'us-east-2', 'us-west-2'] as BedrockSupportRegion[]
@@ -122,14 +162,14 @@ const apacRegions = [
 // APAC cross-region inference models
 export const apacModels: LLM[] = [
   {
-    modelId: 'apac.anthropic.claude-3-sonnet-20240229-v1:0',
-    modelName: 'Claude 3 Sonnet (APAC cross-region)',
+    modelId: 'apac.anthropic.claude-3-5-sonnet-20241022-v2:0',
+    modelName: 'Claude 3.5 Sonnet v2 (APAC cross-region)',
     toolUse: true,
     regions: apacRegions
   },
   {
-    modelId: 'apac.anthropic.claude-3-5-sonnet-20240620-v1:0',
-    modelName: 'Claude 3.5 Sonnet (APAC cross-region)',
+    modelId: 'apac.anthropic.claude-3-sonnet-20240229-v1:0',
+    modelName: 'Claude 3 Sonnet (APAC cross-region)',
     toolUse: true,
     regions: apacRegions
   },
@@ -143,7 +183,7 @@ export const apacModels: LLM[] = [
 
 // Combine all models based on region
 export const getModelsForRegion = (region: BedrockSupportRegion): LLM[] => {
-  const models = [...baseModels]
+  const models = baseModels.filter((model) => model.regions?.includes(region))
 
   // Add US models for US regions
   if (usRegions.includes(region)) {
@@ -160,7 +200,9 @@ export const getModelsForRegion = (region: BedrockSupportRegion): LLM[] => {
     models.push(...apacModels.filter((model) => model.regions?.includes(region)))
   }
 
-  return models
+  // sort by model name
+
+  return models.sort((a, b) => a.modelName.localeCompare(b.modelName))
 }
 
 // Prompt Router support
