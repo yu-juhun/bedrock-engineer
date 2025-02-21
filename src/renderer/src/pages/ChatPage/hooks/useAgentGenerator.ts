@@ -15,7 +15,7 @@ A detailed system prompt that defines the agent's capabilities, personality, and
 Rules:
 <Rules>
 - The system prompt should be comprehensive but focused on the agent's specific domain
-- The system prompt should include project path placeholder: {{projectPath}} where appropriate
+- The system prompt must always include the project path placeholder: {{projectPath}}
 - You can also use the placeholders
   - {{date}} to represent the current date and time
   - {{allowedCommands}} to represent a list of available tools.

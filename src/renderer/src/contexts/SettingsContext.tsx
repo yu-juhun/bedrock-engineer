@@ -165,11 +165,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // LLM Settings
   const [llmError, setLLMError] = useState<any>()
-  const [currentLLM, setCurrentLLM] = useState<LLM>({
-    modelId: 'anthropic.claude-3-haiku-20240307-v1:0',
-    modelName: 'Claude 3 Haiku',
+  const defaultModel = {
+    modelId: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
+    modelName: 'Claude 3.5 Sonnet v2 (cross region inference)',
     toolUse: true
-  })
+  }
+  const [currentLLM, setCurrentLLM] = useState<LLM>(defaultModel)
   const [availableModels, setAvailableModels] = useState<LLM[]>([])
   const [inferenceParams, setInferenceParams] =
     useState<InferenceParameters>(DEFAULT_INFERENCE_PARAMS)
