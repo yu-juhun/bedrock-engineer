@@ -32,7 +32,7 @@ export const baseModels: LLM[] = [
       'eu-west-1',
       'eu-west-3',
       'ap-northeast-1',
-      'ap-northeast-2',
+      // 'ap-northeast-2', // クロスリージョン推論のみ対応
       'ap-south-1',
       'ap-southeast-1',
       'ap-southeast-2'
@@ -60,7 +60,7 @@ export const baseModels: LLM[] = [
       'eu-west-1',
       // 'eu-west-3',
       'ap-northeast-1',
-      'ap-northeast-2',
+      // 'ap-northeast-2', // クロスリージョン推論のみ対応
       'ap-south-1'
       // 'ap-southeast-1',
       // 'ap-southeast-2'
@@ -154,6 +154,7 @@ export const euModels: LLM[] = [
 const apacRegions = [
   'ap-northeast-1',
   'ap-northeast-2',
+  'ap-northeast-3',
   'ap-south-1',
   'ap-southeast-1',
   'ap-southeast-2'
@@ -171,13 +172,13 @@ export const apacModels: LLM[] = [
     modelId: 'apac.anthropic.claude-3-sonnet-20240229-v1:0',
     modelName: 'Claude 3 Sonnet (APAC cross-region)',
     toolUse: true,
-    regions: apacRegions
+    regions: ['ap-northeast-1']
   },
   {
     modelId: 'apac.anthropic.claude-3-haiku-20240307-v1:0',
     modelName: 'Claude 3 Haiku (APAC cross-region)',
     toolUse: true,
-    regions: apacRegions
+    regions: ['ap-northeast-1']
   }
 ]
 
