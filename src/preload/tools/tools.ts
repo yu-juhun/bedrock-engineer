@@ -18,6 +18,9 @@ export const executeTool = async (input: ToolInput): Promise<string | ToolResult
     case 'writeToFile':
       return toolService.writeToFile(input.path, input.content)
 
+    case 'applyDiffEdit':
+      return toolService.applyDiffEdit(input.path, input.originalText, input.updatedText)
+
     case 'listFiles': {
       const ignoreFiles = store.get('agentChatConfig')?.ignoreFiles
       return toolService.listFiles(input.path, '', ignoreFiles)
@@ -137,6 +140,43 @@ export const tools: Tool[] = [
             }
           },
           required: ['path', 'content']
+        }
+      }
+    }
+  },
+  {
+    toolSpec: {
+      name: 'applyDiffEdit',
+      description:
+        'Apply a diff edit to a file. This tool replaces the specified original text with updated text at the exact location in the file. Use this when you need to make precise modifications to existing file content. The tool ensures that only the specified text is replaced, keeping the rest of the file intact.',
+      inputSchema: {
+        json: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description:
+                'The absolute path of the file to modify. Make sure to provide the complete path starting from the root directory.'
+            },
+            originalText: {
+              type: 'string',
+              description:
+                'The exact original text to be replaced. Must match the text in the file exactly, including whitespace and line breaks. If the text is not found, the operation will fail.'
+            },
+            updatedText: {
+              type: 'string',
+              description:
+                'The new text that will replace the original text. Can be of different length than the original text. Whitespace and line breaks in this text will be preserved exactly as provided.'
+            }
+          },
+          required: ['path', 'originalText', 'updatedText'],
+          examples: [
+            {
+              path: '/path/to/file.ts',
+              originalText: 'function oldName() {\n  // old implementation\n}',
+              updatedText: 'function newName() {\n  // new implementation\n}'
+            }
+          ]
         }
       }
     }

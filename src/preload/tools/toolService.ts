@@ -104,6 +104,51 @@ export class ToolService {
     }
   }
 
+  async applyDiffEdit(
+    path: string,
+    originalText: string,
+    updatedText: string
+  ): Promise<ToolResult> {
+    try {
+      // ファイルの内容を読み込む
+      const fileContent = await fs.readFile(path, 'utf-8')
+
+      // 元のテキストが存在するか確認
+      if (!fileContent.includes(originalText)) {
+        return {
+          name: 'applyDiffEdit',
+          success: false,
+          error: 'Original text not found in file',
+          result: null
+        }
+      }
+
+      // テキストを置換
+      const newContent = fileContent.replace(originalText, updatedText)
+
+      // ファイルに書き込む
+      await fs.writeFile(path, newContent, 'utf-8')
+
+      return {
+        name: 'applyDiffEdit',
+        success: true,
+        message: 'Successfully applied diff edit',
+        result: {
+          path,
+          originalText,
+          updatedText
+        }
+      }
+    } catch (error) {
+      return {
+        name: 'applyDiffEdit',
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        result: null
+      }
+    }
+  }
+
   async readFiles(filePaths: string[]): Promise<string> {
     try {
       const fileContents = await Promise.all(
