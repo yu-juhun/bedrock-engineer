@@ -210,7 +210,7 @@ export class ToolService {
 
   async fetchWebsite(
     url: string,
-    options?: RequestInit & { chunkIndex?: number }
+    options?: RequestInit & { chunkIndex?: number; cleaning?: boolean }
   ): Promise<string> {
     try {
       const { chunkIndex, ...requestOptions } = options || {}
@@ -221,7 +221,7 @@ export class ToolService {
         const response = await ipcRenderer.invoke('fetch-website', url, requestOptions)
         const rawContent =
           typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2)
-        chunks = ContentChunker.splitContent(rawContent, { url })
+        chunks = ContentChunker.splitContent(rawContent, { url }, { cleaning: options?.cleaning })
         chunkStore.set(url, chunks)
         global.chunkStore = chunkStore
       }
@@ -236,7 +236,10 @@ export class ToolService {
         }
 
         const chunk = chunks[chunkIndex - 1]
-        return `Chunk ${chunk.index}/${chunk.total}:\n\n${chunk.content}`
+        const content = options?.cleaning
+          ? ContentChunker.extractMainContent(chunk.content)
+          : chunk.content
+        return `Chunk ${chunk.index}/${chunk.total}:\n\n${content}`
       }
 
       if (chunks.length === 1) {

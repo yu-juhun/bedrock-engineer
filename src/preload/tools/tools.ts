@@ -252,6 +252,7 @@ export const tools: Tool[] = [
     toolSpec: {
       name: 'fetchWebsite',
       description: `Fetch content from a specified URL. For large content, it will be automatically split into manageable chunks.
+If the cleaning option is true, Extracts plain text content from HTML by removing markup and unnecessary elements. Default is false.
 First call without a chunkIndex(Must be 1 or greater) to get an overview and total number of chunks. Then, if needed, call again with a specific chunkIndex to retrieve that chunk.`,
       inputSchema: {
         json: {
@@ -285,6 +286,11 @@ First call without a chunkIndex(Must be 1 or greater) to get an overview and tot
                   type: 'number',
                   description:
                     'Optional. The index of the specific chunk to fetch (starting from 1, Must be 1 or greater). If not provided, returns a summary of all chunks.'
+                },
+                cleaning: {
+                  type: 'boolean',
+                  description:
+                    'Optional. If true, Extracts plain text content from HTML by removing markup and unnecessary elements. Default is false.'
                 }
               }
             }
