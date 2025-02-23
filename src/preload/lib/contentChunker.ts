@@ -4,6 +4,7 @@ export interface ContentChunk {
   content: string
   metadata?: {
     url?: string
+    filePath?: string
     timestamp: number
   }
 }

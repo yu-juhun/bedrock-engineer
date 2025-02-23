@@ -5,7 +5,7 @@ export const tools = {
     'tool descriptions': {
       createFolder: 'Create new directories in your project',
       writeToFile: 'Write or update file contents',
-      readFiles: 'Read contents from multiple files',
+      readFile: 'Read contents from a file',
       listFiles: 'View directory structure',
       moveFile: 'Move files between locations',
       copyFile: 'Create file duplicates',
@@ -26,7 +26,7 @@ export const tools = {
     'tool descriptions': {
       createFolder: 'プロジェクトに新しいディレクトリを作成',
       writeToFile: 'ファイルの内容を作成または更新',
-      readFiles: '複数のファイルの内容を読み取り',
+      readFile: 'ファイルの内容を読み取り',
       listFiles: 'ディレクトリ構造を表示',
       moveFile: 'ファイルを別の場所に移動',
       copyFile: 'ファイルの複製を作成',

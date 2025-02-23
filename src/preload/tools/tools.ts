@@ -12,8 +12,8 @@ export const executeTool = async (input: ToolInput): Promise<string | ToolResult
     case 'createFolder':
       return toolService.createFolder(input.path)
 
-    case 'readFiles':
-      return toolService.readFiles(input.paths)
+    case 'readFile':
+      return toolService.readFile(input.path, input.options)
 
     case 'writeToFile':
       return toolService.writeToFile(input.path, input.content)
@@ -22,8 +22,12 @@ export const executeTool = async (input: ToolInput): Promise<string | ToolResult
       return toolService.applyDiffEdit(input.path, input.originalText, input.updatedText)
 
     case 'listFiles': {
-      const ignoreFiles = store.get('agentChatConfig')?.ignoreFiles
-      return toolService.listFiles(input.path, '', ignoreFiles)
+      const defaultIgnoreFiles = store.get('agentChatConfig')?.ignoreFiles
+      const options = {
+        ...input.options,
+        ignoreFiles: input.options?.ignoreFiles || defaultIgnoreFiles
+      }
+      return toolService.listFiles(input.path, options)
     }
 
     case 'moveFile':
@@ -183,23 +187,34 @@ export const tools: Tool[] = [
   },
   {
     toolSpec: {
-      name: 'readFiles',
+      name: 'readFile',
       description:
-        'Read the contents of multiple files at the specified paths, including text files and Excel files (.xlsx, .xls). For Excel files, the content is converted to CSV format. Use this when you need to examine the contents of several existing files at once.',
+        'Read the content of a file at the specified path. Content is automatically split into chunks for better management. For Excel files, the content is converted to CSV format.',
       inputSchema: {
         json: {
           type: 'object',
           properties: {
-            paths: {
-              type: 'array',
-              items: {
-                type: 'string'
-              },
+            path: {
+              type: 'string',
               description:
-                'An array of file paths to read. Supports text files and Excel files (.xlsx, .xls).'
+                'The path of the file to read. Supports text files and Excel files (.xlsx, .xls).'
+            },
+            options: {
+              type: 'object',
+              description: 'Optional configurations for reading file',
+              properties: {
+                chunkIndex: {
+                  type: 'number',
+                  description: 'The index of the specific chunk to retrieve (starting from 1)'
+                },
+                chunkSize: {
+                  type: 'number',
+                  description: 'Maximum size of each chunk in characters (default: 4000)'
+                }
+              }
             }
           },
-          required: ['paths']
+          required: ['path']
         }
       }
     }
@@ -208,7 +223,7 @@ export const tools: Tool[] = [
     toolSpec: {
       name: 'listFiles',
       description:
-        'List the entire directory structure, including all subdirectories and files, in a hierarchical format. Use this when you need a comprehensive view of the project structure.',
+        'List the entire directory structure, including all subdirectories and files, in a hierarchical format. Content is automatically split into chunks for better management. Use maxDepth to limit directory depth and chunkIndex to retrieve specific chunks.',
       inputSchema: {
         json: {
           type: 'object',
@@ -216,6 +231,31 @@ export const tools: Tool[] = [
             path: {
               type: 'string',
               description: 'The root path to start listing the directory structure from'
+            },
+            options: {
+              type: 'object',
+              description: 'Optional configurations for listing files',
+              properties: {
+                ignoreFiles: {
+                  type: 'array',
+                  items: {
+                    type: 'string'
+                  },
+                  description: 'Array of patterns to ignore when listing files (gitignore format)'
+                },
+                chunkIndex: {
+                  type: 'number',
+                  description: 'The index of the specific chunk to retrieve (starting from 1)'
+                },
+                maxDepth: {
+                  type: 'number',
+                  description: 'Maximum depth of directory traversal (-1 for unlimited)'
+                },
+                chunkSize: {
+                  type: 'number',
+                  description: 'Maximum size of each chunk in characters (default: 4000)'
+                }
+              }
             }
           },
           required: ['path']

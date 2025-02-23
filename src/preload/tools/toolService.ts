@@ -20,6 +20,8 @@ import {
 import { FileUseCase, InvokeAgentCommandOutput } from '@aws-sdk/client-bedrock-agent-runtime'
 import { InvokeAgentInput } from '../../main/api/bedrock/services/agentService'
 
+const MAX_CHUNK_SIZE = 50000 // 約50,000文字（Claude 3 Haikuの制限を考慮）TODO: 各LLMに対応させる
+
 interface GenerateImageResult extends ToolResult {
   name: 'generateImage'
   result: {
@@ -149,32 +151,22 @@ export class ToolService {
     }
   }
 
-  async readFiles(filePaths: string[]): Promise<string> {
+  private async buildFileTree(
+    dirPath: string,
+    prefix: string = '',
+    ignoreFiles?: string[],
+    depth: number = 0,
+    maxDepth: number = -1
+  ): Promise<{ content: string; hasMore: boolean }> {
     try {
-      const fileContents = await Promise.all(
-        filePaths.map(async (filePath) => {
-          const content = await fs.readFile(filePath, 'utf-8')
-          return { path: filePath, content }
-        })
-      )
+      if (maxDepth !== -1 && depth > maxDepth) {
+        return { content: `${prefix}...\n`, hasMore: true }
+      }
 
-      const result = fileContents
-        .map(({ path, content }) => {
-          return `File: ${path}\n${'='.repeat(path.length + 6)}\n${content}\n\n`
-        })
-        .join('')
-
-      return result
-    } catch (e: any) {
-      throw `Error reading multiple files: ${e.message}`
-    }
-  }
-
-  async listFiles(dirPath: string, prefix: string = '', ignoreFiles?: string[]): Promise<string> {
-    try {
       const files = await fs.readdir(dirPath, { withFileTypes: true })
       const matcher = new GitignoreLikeMatcher(ignoreFiles ?? [])
       let result = ''
+      let hasMore = false
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
@@ -190,13 +182,113 @@ export class ToolService {
 
         if (file.isDirectory()) {
           result += `${currentPrefix}📁 ${file.name}\n`
-          result += await this.listFiles(filePath, nextPrefix)
+          const subTree = await this.buildFileTree(
+            filePath,
+            nextPrefix,
+            ignoreFiles,
+            depth + 1,
+            maxDepth
+          )
+          result += subTree.content
+          hasMore = hasMore || subTree.hasMore
         } else {
           result += `${currentPrefix}📄 ${file.name}\n`
         }
       }
 
-      return result
+      return { content: result, hasMore }
+    } catch (e: any) {
+      throw `Error building file tree: ${e}`
+    }
+  }
+
+  private createDirectoryChunks(
+    treeContent: string,
+    chunkSize: number = MAX_CHUNK_SIZE
+  ): ContentChunk[] {
+    const lines = treeContent.split('\n')
+    const chunks: ContentChunk[] = []
+    let currentChunk = ''
+    let currentSize = 0
+
+    for (const line of lines) {
+      const lineSize = line.length + 1 // +1 for newline
+      if (currentSize + lineSize > chunkSize && currentChunk) {
+        chunks.push({
+          content: currentChunk,
+          index: chunks.length + 1,
+          total: 0, // will be updated later
+          metadata: {
+            timestamp: Date.now()
+          }
+        })
+        currentChunk = ''
+        currentSize = 0
+      }
+      currentChunk += line + '\n'
+      currentSize += lineSize
+    }
+
+    if (currentChunk) {
+      chunks.push({
+        content: currentChunk,
+        index: chunks.length + 1,
+        total: 0,
+        metadata: {
+          timestamp: Date.now()
+        }
+      })
+    }
+
+    // Update total count
+    chunks.forEach((chunk) => (chunk.total = chunks.length))
+    return chunks
+  }
+
+  async listFiles(
+    dirPath: string,
+    options?: {
+      ignoreFiles?: string[]
+      chunkIndex?: number
+      maxDepth?: number
+      chunkSize?: number
+    }
+  ): Promise<string> {
+    try {
+      const { ignoreFiles, chunkIndex, maxDepth = -1, chunkSize = MAX_CHUNK_SIZE } = options || {}
+      const fileTreeResult = await this.buildFileTree(dirPath, '', ignoreFiles, 0, maxDepth)
+      const chunks = this.createDirectoryChunks(fileTreeResult.content, chunkSize)
+
+      // Store chunks in global store for subsequent requests
+      const chunkStore: Map<string, ContentChunk[]> = global.directoryChunkStore || new Map()
+      const cacheKey = `${dirPath}-${maxDepth}`
+      chunkStore.set(cacheKey, chunks)
+      global.directoryChunkStore = chunkStore
+
+      if (typeof chunkIndex === 'number') {
+        if (chunkIndex < 1 || chunkIndex > chunks.length) {
+          throw new Error(`Invalid chunk index. Available chunks: 1 to ${chunks.length}`)
+        }
+        const chunk = chunks[chunkIndex - 1]
+        return `Directory Structure (Chunk ${chunk.index}/${chunk.total}):\n\n${chunk.content}`
+      }
+
+      if (chunks.length === 1) {
+        return `Directory Structure:\n\n${chunks[0].content}`
+      }
+
+      // Return summary if multiple chunks
+      return [
+        'Directory structure has been split into multiple chunks:',
+        `Total Chunks: ${chunks.length}`,
+        `Max Depth: ${maxDepth === -1 ? 'unlimited' : maxDepth}`,
+        fileTreeResult.hasMore ? '\nNote: Some directories are truncated due to depth limit.' : '',
+        '\nTo retrieve specific chunks, use the listFiles tool with chunkIndex option:',
+        'Example usage:',
+        '```',
+        `listFiles("${dirPath}", { chunkIndex: 1, maxDepth: ${maxDepth} })`,
+        '```\n'
+      ].join('\n')
     } catch (e: any) {
       throw `Error listing directory structure: ${e}`
     }
@@ -217,6 +309,114 @@ export class ToolService {
       return `File copied: ${source} to ${destination}`
     } catch (e: any) {
       throw `Error copying file: ${e.message}`
+    }
+  }
+
+  private createFileChunks(
+    content: string,
+    filePath: string,
+    chunkSize: number = MAX_CHUNK_SIZE
+  ): ContentChunk[] {
+    const chunks: ContentChunk[] = []
+    const lines = content.split('\n')
+    let currentChunk = ''
+    let currentSize = 0
+
+    // Add file header only to the first chunk
+    const fileHeader = `File: ${filePath}\n${'='.repeat(filePath.length + 6)}\n`
+
+    for (const line of lines) {
+      const lineWithBreak = line + '\n'
+      const lineSize = lineWithBreak.length
+
+      // If this is the first line, account for the header size
+      const effectiveSize = currentChunk === '' ? lineSize + fileHeader.length : lineSize
+
+      if (currentSize + effectiveSize > chunkSize && currentChunk) {
+        chunks.push({
+          content: currentChunk,
+          index: chunks.length + 1,
+          total: 0,
+          metadata: {
+            timestamp: Date.now(),
+            filePath
+          }
+        })
+        currentChunk = ''
+        currentSize = 0
+      }
+
+      if (currentChunk === '') {
+        // Add header for the first line of each chunk
+        currentChunk = chunks.length === 0 ? fileHeader : ''
+      }
+
+      currentChunk += lineWithBreak
+      currentSize += lineSize
+    }
+
+    if (currentChunk) {
+      chunks.push({
+        content: currentChunk,
+        index: chunks.length + 1,
+        total: 0,
+        metadata: {
+          timestamp: Date.now(),
+          filePath
+        }
+      })
+    }
+
+    // Update total count
+    chunks.forEach((chunk) => (chunk.total = chunks.length))
+    return chunks
+  }
+
+  async readFile(
+    filePath: string,
+    options?: {
+      chunkIndex?: number
+      chunkSize?: number
+    }
+  ): Promise<string> {
+    try {
+      const { chunkIndex, chunkSize = MAX_CHUNK_SIZE } = options || {}
+
+      const content = await fs.readFile(filePath, 'utf-8')
+      const chunks = this.createFileChunks(content, filePath, chunkSize)
+
+      // Store chunks in global store for subsequent requests
+      const chunkStore: Map<string, ContentChunk[]> = global.fileContentChunkStore || new Map()
+      chunkStore.set(filePath, chunks)
+      global.fileContentChunkStore = chunkStore
+
+      if (typeof chunkIndex === 'number') {
+        if (chunkIndex < 1 || chunkIndex > chunks.length) {
+          throw new Error(`Invalid chunk index. Available chunks: 1 to ${chunks.length}`)
+        }
+        const chunk = chunks[chunkIndex - 1]
+        return `File Content (Chunk ${chunk.index}/${chunk.total}):\n\n${chunk.content}`
+      }
+
+      if (chunks.length === 1) {
+        return chunks[0].content
+      }
+
+      // Return summary if multiple chunks
+      const totalLines = content.split('\n').length
+      return [
+        'File content has been split into multiple chunks:',
+        `File: ${filePath}`,
+        `Total Chunks: ${chunks.length}`,
+        `Total Lines: ${totalLines}`,
+        '\nTo retrieve specific chunks, use the readFile tool with chunkIndex option:',
+        'Example usage:',
+        '```',
+        `readFile("${filePath}", { chunkIndex: 1 })`,
+        '```\n'
+      ].join('\n')
+    } catch (e: any) {
+      throw `Error reading file: ${e.message}`
     }
   }
 
