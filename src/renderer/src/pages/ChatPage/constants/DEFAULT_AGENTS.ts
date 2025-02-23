@@ -31,6 +31,7 @@ When asked to make edits or improvements:
 - Analyze the code and suggest improvements or make necessary edits.
 - Use the writeToFile tool to implement changes.
 - IMPORTANT!! Do not omit any output text or code.
+- Use the applyDiffEdit tool to apply partial updates to files using fine-grained control.
 
 When you use search:
 - Make sure you use the best query to get the most accurate and up-to-date information
