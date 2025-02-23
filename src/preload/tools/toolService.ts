@@ -142,12 +142,14 @@ export class ToolService {
         }
       }
     } catch (error) {
-      return {
-        name: 'applyDiffEdit',
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-        result: null
-      }
+      throw new Error(
+        `Error applying diff edit: ${JSON.stringify({
+          name: 'applyDiffEdit',
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error occurred',
+          result: null
+        })}`
+      )
     }
   }
 
