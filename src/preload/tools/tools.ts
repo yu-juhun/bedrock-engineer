@@ -12,8 +12,8 @@ export const executeTool = async (input: ToolInput): Promise<string | ToolResult
     case 'createFolder':
       return toolService.createFolder(input.path)
 
-    case 'readFile':
-      return toolService.readFile(input.path, input.options)
+    case 'readFiles':
+      return toolService.readFiles(input.paths, input.options)
 
     case 'writeToFile':
       return toolService.writeToFile(input.path, input.content)
@@ -187,21 +187,24 @@ export const tools: Tool[] = [
   },
   {
     toolSpec: {
-      name: 'readFile',
+      name: 'readFiles',
       description:
-        'Read the content of a file at the specified path. Content is automatically split into chunks for better management. For Excel files, the content is converted to CSV format.',
+        'Read the content of multiple files at the specified paths. Content is automatically split into chunks for better management. For Excel files, the content is converted to CSV format.',
       inputSchema: {
         json: {
           type: 'object',
           properties: {
-            path: {
-              type: 'string',
+            paths: {
+              type: 'array',
+              items: {
+                type: 'string'
+              },
               description:
-                'The path of the file to read. Supports text files and Excel files (.xlsx, .xls).'
+                'Array of file paths to read. Supports text files and Excel files (.xlsx, .xls).'
             },
             options: {
               type: 'object',
-              description: 'Optional configurations for reading file',
+              description: 'Optional configurations for reading files',
               properties: {
                 chunkIndex: {
                   type: 'number',
@@ -214,7 +217,7 @@ export const tools: Tool[] = [
               }
             }
           },
-          required: ['path']
+          required: ['paths']
         }
       }
     }

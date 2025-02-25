@@ -2,7 +2,7 @@ import { AspectRatio, ImageGeneratorModel } from '../main/api/bedrock'
 
 export type ToolName =
   | 'createFolder'
-  | 'readFile'
+  | 'readFiles'
   | 'writeToFile'
   | 'listFiles'
   | 'moveFile'
@@ -29,9 +29,9 @@ export type CreateFolderInput = {
   path: string
 }
 
-export type ReadFileInput = {
-  type: 'readFile'
-  path: string
+export type ReadFilesInput = {
+  type: 'readFiles'
+  paths: string[] // 複数のファイルパスを受け取るように変更
   options?: {
     chunkIndex?: number
     chunkSize?: number
@@ -140,7 +140,7 @@ export type ApplyDiffEditInput = {
 // ディスクリミネーテッドユニオン型
 export type ToolInput =
   | CreateFolderInput
-  | ReadFileInput
+  | ReadFilesInput
   | WriteToFileInput
   | ListFilesInput
   | MoveFileInput
@@ -156,7 +156,7 @@ export type ToolInput =
 // ツール名から入力型を取得するユーティリティ型
 export type ToolInputTypeMap = {
   createFolder: CreateFolderInput
-  readFile: ReadFileInput
+  readFiles: ReadFilesInput
   writeToFile: WriteToFileInput
   listFiles: ListFilesInput
   moveFile: MoveFileInput

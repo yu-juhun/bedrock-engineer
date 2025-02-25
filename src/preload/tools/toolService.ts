@@ -374,8 +374,8 @@ export class ToolService {
     return chunks
   }
 
-  async readFile(
-    filePath: string,
+  async readFiles(
+    filePaths: string[],
     options?: {
       chunkIndex?: number
       chunkSize?: number
@@ -384,12 +384,68 @@ export class ToolService {
     try {
       const { chunkIndex, chunkSize = MAX_CHUNK_SIZE } = options || {}
 
-      const content = await fs.readFile(filePath, 'utf-8')
-      const chunks = this.createFileChunks(content, filePath, chunkSize)
+      // 単一ファイルの場合は従来の処理
+      if (filePaths.length === 1) {
+        const filePath = filePaths[0]
+        const content = await fs.readFile(filePath, 'utf-8')
+        const chunks = this.createFileChunks(content, filePath, chunkSize)
 
-      // Store chunks in global store for subsequent requests
+        // Store chunks in global store for subsequent requests
+        const chunkStore: Map<string, ContentChunk[]> = global.fileContentChunkStore || new Map()
+        chunkStore.set(filePath, chunks)
+        global.fileContentChunkStore = chunkStore
+
+        if (typeof chunkIndex === 'number') {
+          if (chunkIndex < 1 || chunkIndex > chunks.length) {
+            throw new Error(`Invalid chunk index. Available chunks: 1 to ${chunks.length}`)
+          }
+          const chunk = chunks[chunkIndex - 1]
+          return `File Content (Chunk ${chunk.index}/${chunk.total}):\n\n${chunk.content}`
+        }
+
+        if (chunks.length === 1) {
+          return chunks[0].content
+        }
+
+        // Return summary if multiple chunks
+        const totalLines = content.split('\n').length
+        return [
+          'File content has been split into multiple chunks:',
+          `File: ${filePath}`,
+          `Total Chunks: ${chunks.length}`,
+          `Total Lines: ${totalLines}`,
+          '\nTo retrieve specific chunks, use the readFiles tool with chunkIndex option:',
+          'Example usage:',
+          '```',
+          `readFiles(["${filePath}"], { chunkIndex: 1 })`,
+          '```\n'
+        ].join('\n')
+      }
+
+      // 複数ファイルの場合
+      const fileContents: string[] = []
+
+      // 各ファイルを順番に処理
+      for (const filePath of filePaths) {
+        try {
+          const content = await fs.readFile(filePath, 'utf-8')
+          const fileHeader = `## File: ${filePath}\n${'='.repeat(filePath.length + 6)}\n`
+          fileContents.push(fileHeader + content)
+        } catch (error: any) {
+          fileContents.push(`## Error reading file: ${filePath}\nError: ${error.message}`)
+        }
+      }
+
+      // 複数ファイルの内容を結合
+      const combinedContent = fileContents.join('\n\n')
+
+      // チャンク分割が必要な場合
+      const chunks = this.createFileChunks(combinedContent, 'Multiple Files', chunkSize)
+
+      // Store chunks for subsequent requests
       const chunkStore: Map<string, ContentChunk[]> = global.fileContentChunkStore || new Map()
-      chunkStore.set(filePath, chunks)
+      const cacheKey = filePaths.join('||')
+      chunkStore.set(cacheKey, chunks)
       global.fileContentChunkStore = chunkStore
 
       if (typeof chunkIndex === 'number') {
@@ -397,28 +453,26 @@ export class ToolService {
           throw new Error(`Invalid chunk index. Available chunks: 1 to ${chunks.length}`)
         }
         const chunk = chunks[chunkIndex - 1]
-        return `File Content (Chunk ${chunk.index}/${chunk.total}):\n\n${chunk.content}`
+        return `Files Content (Chunk ${chunk.index}/${chunk.total}):\n\n${chunk.content}`
       }
 
       if (chunks.length === 1) {
         return chunks[0].content
       }
 
-      // Return summary if multiple chunks
-      const totalLines = content.split('\n').length
+      // Return summary for multiple chunks
       return [
-        'File content has been split into multiple chunks:',
-        `File: ${filePath}`,
+        'Files content has been split into multiple chunks:',
+        `Files: ${filePaths.length} files`,
         `Total Chunks: ${chunks.length}`,
-        `Total Lines: ${totalLines}`,
-        '\nTo retrieve specific chunks, use the readFile tool with chunkIndex option:',
+        '\nTo retrieve specific chunks, use the readFiles tool with chunkIndex option:',
         'Example usage:',
         '```',
-        `readFile("${filePath}", { chunkIndex: 1 })`,
+        `readFiles(${JSON.stringify(filePaths)}, { chunkIndex: 1 })`,
         '```\n'
       ].join('\n')
     } catch (e: any) {
-      throw `Error reading file: ${e.message}`
+      throw `Error reading files: ${e.message}`
     }
   }
 

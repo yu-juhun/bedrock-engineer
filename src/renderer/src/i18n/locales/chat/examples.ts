@@ -15,7 +15,7 @@ export const examples = {
       'Create an AWS CDK project that deploys a Lambda function with an API Gateway endpoint.',
     'Understanding the source code': 'Understanding the source code',
     'Understanding the source code description':
-      'Please analyze the source code in {{projectPath}} and explain its structure and functionality.',
+      'Analyze the source code of {{projectPath}} and explain, with illustrations, its structure and functionality.',
     Refactoring: 'Refactoring',
     'Refactoring description':
       'Please analyze the code in {{projectPath}} and suggest improvements or refactoring opportunities.',
@@ -89,7 +89,7 @@ export const examples = {
       'Lambda関数とAPI Gatewayエンドポイントをデプロイするための新しいAWS CDKプロジェクトを作成してください。',
     'Understanding the source code': 'ソースコードの理解',
     'Understanding the source code description':
-      '{{projectPath}}のソースコードを分析し、その構造と機能を説明してください。',
+      '{{projectPath}}のソースコードを分析し、その構造と機能を図解を含めて説明してください。',
     Refactoring: 'リファクタリング',
     'Refactoring description':
       '{{projectPath}}のコードを分析し、改善やリファクタリングの機会を提案してください。',
