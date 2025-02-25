@@ -4,6 +4,7 @@ export interface ContentChunk {
   content: string
   metadata?: {
     url?: string
+    filePath?: string
     timestamp: number
   }
 }
@@ -11,24 +12,30 @@ export interface ContentChunk {
 export class ContentChunker {
   private static readonly MAX_CHUNK_SIZE = 50000 // 約50,000文字（Claude 3 Haikuの制限を考慮）
 
-  static splitContent(content: string, metadata: { url?: string }): ContentChunk[] {
+  static splitContent(
+    content: string,
+    metadata: { url?: string },
+    option?: { cleaning?: boolean }
+  ): ContentChunk[] {
     const chunks: ContentChunk[] = []
     const timestamp = Date.now()
 
-    // HTMLの場合、主要なコンテンツを抽出
-    const cleanContent = metadata.url ? this.extractMainContent(content) : content
+    // option のデフォルトは false
+    if (option?.cleaning) {
+      content = this.extractMainContent(content)
+    }
 
     // コンテンツを適切なサイズに分割
-    const totalChunks = Math.ceil(cleanContent.length / this.MAX_CHUNK_SIZE)
+    const totalChunks = Math.ceil(content.length / this.MAX_CHUNK_SIZE)
 
     for (let i = 0; i < totalChunks; i++) {
       const start = i * this.MAX_CHUNK_SIZE
-      const end = Math.min((i + 1) * this.MAX_CHUNK_SIZE, cleanContent.length)
+      const end = Math.min((i + 1) * this.MAX_CHUNK_SIZE, content.length)
 
       chunks.push({
         index: i + 1,
         total: totalChunks,
-        content: cleanContent.slice(start, end),
+        content: content.slice(start, end),
         metadata: {
           ...metadata,
           timestamp
@@ -39,7 +46,7 @@ export class ContentChunker {
     return chunks
   }
 
-  private static extractMainContent(html: string): string {
+  public static extractMainContent(html: string): string {
     // 基本的なHTMLクリーニング
     const content = html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // スクリプトの削除

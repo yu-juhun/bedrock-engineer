@@ -13,6 +13,7 @@ import {
   FaTerminal
 } from 'react-icons/fa'
 import { BiFace } from 'react-icons/bi'
+import { MdDifference } from 'react-icons/md'
 
 export const toolIcons: { [key in ToolName]: React.ReactElement } = {
   createFolder: <FaFolderPlus className="text-blue-500 size-6" />,
@@ -26,5 +27,6 @@ export const toolIcons: { [key in ToolName]: React.ReactElement } = {
   generateImage: <FaImage className="text-pink-500 size-6" />,
   retrieve: <FaDatabase className="text-green-500 size-6" />,
   invokeBedrockAgent: <BiFace className="text-purple-700 size-6" />,
-  executeCommand: <FaTerminal className="text-gray-500 size-6" />
+  executeCommand: <FaTerminal className="text-gray-500 size-6" />,
+  applyDiffEdit: <MdDifference className="text-cyan-500 size-6" />
 }

@@ -20,6 +20,8 @@ import {
 import { FileUseCase, InvokeAgentCommandOutput } from '@aws-sdk/client-bedrock-agent-runtime'
 import { InvokeAgentInput } from '../../main/api/bedrock/services/agentService'
 
+const MAX_CHUNK_SIZE = 50000 // 約50,000文字（Claude 3 Haikuの制限を考慮）TODO: 各LLMに対応させる
+
 interface GenerateImageResult extends ToolResult {
   name: 'generateImage'
   result: {
@@ -104,32 +106,69 @@ export class ToolService {
     }
   }
 
-  async readFiles(filePaths: string[]): Promise<string> {
+  async applyDiffEdit(
+    path: string,
+    originalText: string,
+    updatedText: string
+  ): Promise<ToolResult> {
     try {
-      const fileContents = await Promise.all(
-        filePaths.map(async (filePath) => {
-          const content = await fs.readFile(filePath, 'utf-8')
-          return { path: filePath, content }
-        })
+      // ファイルの内容を読み込む
+      const fileContent = await fs.readFile(path, 'utf-8')
+
+      // 元のテキストが存在するか確認
+      if (!fileContent.includes(originalText)) {
+        return {
+          name: 'applyDiffEdit',
+          success: false,
+          error: 'Original text not found in file',
+          result: null
+        }
+      }
+
+      // テキストを置換
+      const newContent = fileContent.replace(originalText, updatedText)
+
+      // ファイルに書き込む
+      await fs.writeFile(path, newContent, 'utf-8')
+
+      return {
+        name: 'applyDiffEdit',
+        success: true,
+        message: 'Successfully applied diff edit',
+        result: {
+          path,
+          originalText,
+          updatedText
+        }
+      }
+    } catch (error) {
+      throw new Error(
+        `Error applying diff edit: ${JSON.stringify({
+          name: 'applyDiffEdit',
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error occurred',
+          result: null
+        })}`
       )
-
-      const result = fileContents
-        .map(({ path, content }) => {
-          return `File: ${path}\n${'='.repeat(path.length + 6)}\n${content}\n\n`
-        })
-        .join('')
-
-      return result
-    } catch (e: any) {
-      throw `Error reading multiple files: ${e.message}`
     }
   }
 
-  async listFiles(dirPath: string, prefix: string = '', ignoreFiles?: string[]): Promise<string> {
+  private async buildFileTree(
+    dirPath: string,
+    prefix: string = '',
+    ignoreFiles?: string[],
+    depth: number = 0,
+    maxDepth: number = -1
+  ): Promise<{ content: string; hasMore: boolean }> {
     try {
+      if (maxDepth !== -1 && depth > maxDepth) {
+        return { content: `${prefix}...\n`, hasMore: true }
+      }
+
       const files = await fs.readdir(dirPath, { withFileTypes: true })
       const matcher = new GitignoreLikeMatcher(ignoreFiles ?? [])
       let result = ''
+      let hasMore = false
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
@@ -145,13 +184,113 @@ export class ToolService {
 
         if (file.isDirectory()) {
           result += `${currentPrefix}📁 ${file.name}\n`
-          result += await this.listFiles(filePath, nextPrefix)
+          const subTree = await this.buildFileTree(
+            filePath,
+            nextPrefix,
+            ignoreFiles,
+            depth + 1,
+            maxDepth
+          )
+          result += subTree.content
+          hasMore = hasMore || subTree.hasMore
         } else {
           result += `${currentPrefix}📄 ${file.name}\n`
         }
       }
 
-      return result
+      return { content: result, hasMore }
+    } catch (e: any) {
+      throw `Error building file tree: ${e}`
+    }
+  }
+
+  private createDirectoryChunks(
+    treeContent: string,
+    chunkSize: number = MAX_CHUNK_SIZE
+  ): ContentChunk[] {
+    const lines = treeContent.split('\n')
+    const chunks: ContentChunk[] = []
+    let currentChunk = ''
+    let currentSize = 0
+
+    for (const line of lines) {
+      const lineSize = line.length + 1 // +1 for newline
+      if (currentSize + lineSize > chunkSize && currentChunk) {
+        chunks.push({
+          content: currentChunk,
+          index: chunks.length + 1,
+          total: 0, // will be updated later
+          metadata: {
+            timestamp: Date.now()
+          }
+        })
+        currentChunk = ''
+        currentSize = 0
+      }
+      currentChunk += line + '\n'
+      currentSize += lineSize
+    }
+
+    if (currentChunk) {
+      chunks.push({
+        content: currentChunk,
+        index: chunks.length + 1,
+        total: 0,
+        metadata: {
+          timestamp: Date.now()
+        }
+      })
+    }
+
+    // Update total count
+    chunks.forEach((chunk) => (chunk.total = chunks.length))
+    return chunks
+  }
+
+  async listFiles(
+    dirPath: string,
+    options?: {
+      ignoreFiles?: string[]
+      chunkIndex?: number
+      maxDepth?: number
+      chunkSize?: number
+    }
+  ): Promise<string> {
+    try {
+      const { ignoreFiles, chunkIndex, maxDepth = -1, chunkSize = MAX_CHUNK_SIZE } = options || {}
+      const fileTreeResult = await this.buildFileTree(dirPath, '', ignoreFiles, 0, maxDepth)
+      const chunks = this.createDirectoryChunks(fileTreeResult.content, chunkSize)
+
+      // Store chunks in global store for subsequent requests
+      const chunkStore: Map<string, ContentChunk[]> = global.directoryChunkStore || new Map()
+      const cacheKey = `${dirPath}-${maxDepth}`
+      chunkStore.set(cacheKey, chunks)
+      global.directoryChunkStore = chunkStore
+
+      if (typeof chunkIndex === 'number') {
+        if (chunkIndex < 1 || chunkIndex > chunks.length) {
+          throw new Error(`Invalid chunk index. Available chunks: 1 to ${chunks.length}`)
+        }
+        const chunk = chunks[chunkIndex - 1]
+        return `Directory Structure (Chunk ${chunk.index}/${chunk.total}):\n\n${chunk.content}`
+      }
+
+      if (chunks.length === 1) {
+        return `Directory Structure:\n\n${chunks[0].content}`
+      }
+
+      // Return summary if multiple chunks
+      return [
+        'Directory structure has been split into multiple chunks:',
+        `Total Chunks: ${chunks.length}`,
+        `Max Depth: ${maxDepth === -1 ? 'unlimited' : maxDepth}`,
+        fileTreeResult.hasMore ? '\nNote: Some directories are truncated due to depth limit.' : '',
+        '\nTo retrieve specific chunks, use the listFiles tool with chunkIndex option:',
+        'Example usage:',
+        '```',
+        `listFiles("${dirPath}", { chunkIndex: 1, maxDepth: ${maxDepth} })`,
+        '```\n'
+      ].join('\n')
     } catch (e: any) {
       throw `Error listing directory structure: ${e}`
     }
@@ -172,6 +311,168 @@ export class ToolService {
       return `File copied: ${source} to ${destination}`
     } catch (e: any) {
       throw `Error copying file: ${e.message}`
+    }
+  }
+
+  private createFileChunks(
+    content: string,
+    filePath: string,
+    chunkSize: number = MAX_CHUNK_SIZE
+  ): ContentChunk[] {
+    const chunks: ContentChunk[] = []
+    const lines = content.split('\n')
+    let currentChunk = ''
+    let currentSize = 0
+
+    // Add file header only to the first chunk
+    const fileHeader = `File: ${filePath}\n${'='.repeat(filePath.length + 6)}\n`
+
+    for (const line of lines) {
+      const lineWithBreak = line + '\n'
+      const lineSize = lineWithBreak.length
+
+      // If this is the first line, account for the header size
+      const effectiveSize = currentChunk === '' ? lineSize + fileHeader.length : lineSize
+
+      if (currentSize + effectiveSize > chunkSize && currentChunk) {
+        chunks.push({
+          content: currentChunk,
+          index: chunks.length + 1,
+          total: 0,
+          metadata: {
+            timestamp: Date.now(),
+            filePath
+          }
+        })
+        currentChunk = ''
+        currentSize = 0
+      }
+
+      if (currentChunk === '') {
+        // Add header for the first line of each chunk
+        currentChunk = chunks.length === 0 ? fileHeader : ''
+      }
+
+      currentChunk += lineWithBreak
+      currentSize += lineSize
+    }
+
+    if (currentChunk) {
+      chunks.push({
+        content: currentChunk,
+        index: chunks.length + 1,
+        total: 0,
+        metadata: {
+          timestamp: Date.now(),
+          filePath
+        }
+      })
+    }
+
+    // Update total count
+    chunks.forEach((chunk) => (chunk.total = chunks.length))
+    return chunks
+  }
+
+  async readFiles(
+    filePaths: string[],
+    options?: {
+      chunkIndex?: number
+      chunkSize?: number
+    }
+  ): Promise<string> {
+    try {
+      const { chunkIndex, chunkSize = MAX_CHUNK_SIZE } = options || {}
+
+      // 単一ファイルの場合は従来の処理
+      if (filePaths.length === 1) {
+        const filePath = filePaths[0]
+        const content = await fs.readFile(filePath, 'utf-8')
+        const chunks = this.createFileChunks(content, filePath, chunkSize)
+
+        // Store chunks in global store for subsequent requests
+        const chunkStore: Map<string, ContentChunk[]> = global.fileContentChunkStore || new Map()
+        chunkStore.set(filePath, chunks)
+        global.fileContentChunkStore = chunkStore
+
+        if (typeof chunkIndex === 'number') {
+          if (chunkIndex < 1 || chunkIndex > chunks.length) {
+            throw new Error(`Invalid chunk index. Available chunks: 1 to ${chunks.length}`)
+          }
+          const chunk = chunks[chunkIndex - 1]
+          return `File Content (Chunk ${chunk.index}/${chunk.total}):\n\n${chunk.content}`
+        }
+
+        if (chunks.length === 1) {
+          return chunks[0].content
+        }
+
+        // Return summary if multiple chunks
+        const totalLines = content.split('\n').length
+        return [
+          'File content has been split into multiple chunks:',
+          `File: ${filePath}`,
+          `Total Chunks: ${chunks.length}`,
+          `Total Lines: ${totalLines}`,
+          '\nTo retrieve specific chunks, use the readFiles tool with chunkIndex option:',
+          'Example usage:',
+          '```',
+          `readFiles(["${filePath}"], { chunkIndex: 1 })`,
+          '```\n'
+        ].join('\n')
+      }
+
+      // 複数ファイルの場合
+      const fileContents: string[] = []
+
+      // 各ファイルを順番に処理
+      for (const filePath of filePaths) {
+        try {
+          const content = await fs.readFile(filePath, 'utf-8')
+          const fileHeader = `## File: ${filePath}\n${'='.repeat(filePath.length + 6)}\n`
+          fileContents.push(fileHeader + content)
+        } catch (error: any) {
+          fileContents.push(`## Error reading file: ${filePath}\nError: ${error.message}`)
+        }
+      }
+
+      // 複数ファイルの内容を結合
+      const combinedContent = fileContents.join('\n\n')
+
+      // チャンク分割が必要な場合
+      const chunks = this.createFileChunks(combinedContent, 'Multiple Files', chunkSize)
+
+      // Store chunks for subsequent requests
+      const chunkStore: Map<string, ContentChunk[]> = global.fileContentChunkStore || new Map()
+      const cacheKey = filePaths.join('||')
+      chunkStore.set(cacheKey, chunks)
+      global.fileContentChunkStore = chunkStore
+
+      if (typeof chunkIndex === 'number') {
+        if (chunkIndex < 1 || chunkIndex > chunks.length) {
+          throw new Error(`Invalid chunk index. Available chunks: 1 to ${chunks.length}`)
+        }
+        const chunk = chunks[chunkIndex - 1]
+        return `Files Content (Chunk ${chunk.index}/${chunk.total}):\n\n${chunk.content}`
+      }
+
+      if (chunks.length === 1) {
+        return chunks[0].content
+      }
+
+      // Return summary for multiple chunks
+      return [
+        'Files content has been split into multiple chunks:',
+        `Files: ${filePaths.length} files`,
+        `Total Chunks: ${chunks.length}`,
+        '\nTo retrieve specific chunks, use the readFiles tool with chunkIndex option:',
+        'Example usage:',
+        '```',
+        `readFiles(${JSON.stringify(filePaths)}, { chunkIndex: 1 })`,
+        '```\n'
+      ].join('\n')
+    } catch (e: any) {
+      throw `Error reading files: ${e.message}`
     }
   }
 
@@ -210,7 +511,7 @@ export class ToolService {
 
   async fetchWebsite(
     url: string,
-    options?: RequestInit & { chunkIndex?: number }
+    options?: RequestInit & { chunkIndex?: number; cleaning?: boolean }
   ): Promise<string> {
     try {
       const { chunkIndex, ...requestOptions } = options || {}
@@ -221,7 +522,7 @@ export class ToolService {
         const response = await ipcRenderer.invoke('fetch-website', url, requestOptions)
         const rawContent =
           typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2)
-        chunks = ContentChunker.splitContent(rawContent, { url })
+        chunks = ContentChunker.splitContent(rawContent, { url }, { cleaning: options?.cleaning })
         chunkStore.set(url, chunks)
         global.chunkStore = chunkStore
       }
@@ -236,7 +537,10 @@ export class ToolService {
         }
 
         const chunk = chunks[chunkIndex - 1]
-        return `Chunk ${chunk.index}/${chunk.total}:\n\n${chunk.content}`
+        const content = options?.cleaning
+          ? ContentChunker.extractMainContent(chunk.content)
+          : chunk.content
+        return `Chunk ${chunk.index}/${chunk.total}:\n\n${content}`
       }
 
       if (chunks.length === 1) {

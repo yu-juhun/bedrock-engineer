@@ -1,12 +1,40 @@
 import {
+  ContentBlock,
   ConverseCommand,
   ConverseCommandOutput,
   ConverseStreamCommand,
-  ConverseStreamCommandOutput
+  ConverseStreamCommandOutput,
+  Message
 } from '@aws-sdk/client-bedrock-runtime'
 import { createRuntimeClient } from '../client'
 import { processImageContent } from '../utils/imageUtils'
 import type { CallConverseAPIProps, ServiceContext } from '../types'
+
+// contentBlockのテキストフィールドが空でないことを確認する関数
+function sanitizeContentBlocks(content: ContentBlock[] | any): ContentBlock[] | any {
+  if (!Array.isArray(content)) {
+    return content
+  }
+
+  return content.map((block) => {
+    // テキストフィールドが空の場合、スペースを挿入する
+    if (Object.prototype.hasOwnProperty.call(block, 'text') && block.text === '') {
+      // スペース1文字をプレースホルダーとして設定
+      block.text = ' '
+    }
+    return block
+  })
+}
+
+// メッセージの各コンテンツブロックを処理する
+function sanitizeMessages(messages: Message[]): Message[] {
+  return messages.map((message) => {
+    if (message.content) {
+      message.content = sanitizeContentBlocks(message.content)
+    }
+    return message
+  })
+}
 
 export class ConverseService {
   private static readonly MAX_RETRIES = 30
@@ -23,10 +51,26 @@ export class ConverseService {
         content: Array.isArray(msg.content) ? processImageContent(msg.content) : msg.content
       }))
 
+      // Check for empty text fields before sanitization (debugging purposes)
+      const hasEmptyTextFields = processedMessages.some(
+        (msg) =>
+          Array.isArray(msg.content) &&
+          msg.content.some(
+            (block) => Object.prototype.hasOwnProperty.call(block, 'text') && block.text === ''
+          )
+      )
+
+      if (hasEmptyTextFields) {
+        console.log('Found empty text fields in content blocks before sanitization')
+      }
+
+      // Sanitize messages to handle empty text fields
+      const sanitizedMessages = sanitizeMessages(processedMessages)
+
       const { maxTokens, temperature, topP } = this.context.store.get('inferenceParams')
       const command = new ConverseCommand({
         modelId,
-        messages: processedMessages,
+        messages: sanitizedMessages,
         system,
         toolConfig,
         inferenceConfig: { maxTokens, temperature, topP }
@@ -62,9 +106,25 @@ export class ConverseService {
         content: Array.isArray(msg.content) ? processImageContent(msg.content) : msg.content
       }))
 
+      // Check for empty text fields before sanitization (debugging purposes)
+      const hasEmptyTextFields = processedMessages.some(
+        (msg) =>
+          Array.isArray(msg.content) &&
+          msg.content.some(
+            (block) => Object.prototype.hasOwnProperty.call(block, 'text') && block.text === ''
+          )
+      )
+
+      if (hasEmptyTextFields) {
+        console.log('Found empty text fields in content blocks before sanitization')
+      }
+
+      // Sanitize messages to handle empty text fields
+      const sanitizedMessages = sanitizeMessages(processedMessages)
+
       const command = new ConverseStreamCommand({
         modelId,
-        messages: processedMessages,
+        messages: sanitizedMessages,
         system,
         toolConfig,
         inferenceConfig: this.context.store.get('inferenceParams')

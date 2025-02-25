@@ -13,6 +13,7 @@ export type ToolName =
   | 'retrieve'
   | 'invokeBedrockAgent'
   | 'executeCommand'
+  | 'applyDiffEdit' // 新しいツールを追加
 
 export interface ToolResult<T = any> {
   name: ToolName
@@ -30,7 +31,11 @@ export type CreateFolderInput = {
 
 export type ReadFilesInput = {
   type: 'readFiles'
-  paths: string[]
+  paths: string[] // 複数のファイルパスを受け取るように変更
+  options?: {
+    chunkIndex?: number
+    chunkSize?: number
+  }
 }
 
 export type WriteToFileInput = {
@@ -42,6 +47,12 @@ export type WriteToFileInput = {
 export type ListFilesInput = {
   type: 'listFiles'
   path: string
+  options?: {
+    ignoreFiles?: string[]
+    chunkIndex?: number
+    maxDepth?: number
+    chunkSize?: number
+  }
 }
 
 export type MoveFileInput = {
@@ -118,6 +129,14 @@ export type ExecuteCommandInput = {
     }
 )
 
+// 新しい applyDiffEdit ツールの入力型
+export type ApplyDiffEditInput = {
+  type: 'applyDiffEdit'
+  path: string
+  originalText: string
+  updatedText: string
+}
+
 // ディスクリミネーテッドユニオン型
 export type ToolInput =
   | CreateFolderInput
@@ -132,6 +151,7 @@ export type ToolInput =
   | RetrieveInput
   | InvokeBedrockAgentInput
   | ExecuteCommandInput
+  | ApplyDiffEditInput
 
 // ツール名から入力型を取得するユーティリティ型
 export type ToolInputTypeMap = {
@@ -147,4 +167,5 @@ export type ToolInputTypeMap = {
   retrieve: RetrieveInput
   invokeBedrockAgent: InvokeBedrockAgentInput
   executeCommand: ExecuteCommandInput
+  applyDiffEdit: ApplyDiffEditInput
 }

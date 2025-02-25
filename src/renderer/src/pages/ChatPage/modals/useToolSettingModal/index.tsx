@@ -7,6 +7,7 @@ import { CommandForm } from './CommandForm'
 import { BedrockAgent, BedrockAgentSettingForm } from './BedrockAgentSettingForm'
 import { Modal } from 'flowbite-react'
 import { memo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export interface CommandConfig {
   pattern: string
@@ -20,27 +21,60 @@ export const AVAILABLE_SHELLS = [
   { value: '/bin/sh', label: 'Shell' }
 ]
 
-// ツールの説明文
-const toolDescriptions: { [key in ToolName]: string } = {
-  createFolder: 'Create new directories in your project',
-  writeToFile: 'Write or update file contents',
-  readFiles: 'Read contents from multiple files',
-  listFiles: 'View directory structure',
-  moveFile: 'Move files between locations',
-  copyFile: 'Create file duplicates',
-  tavilySearch: 'Search the web for information',
-  fetchWebsite: 'Fetch and analyze content from websites',
-  generateImage: 'Generate images using LLMs',
-  retrieve:
-    'Query the Amazon Bedrock Knowledge Base to find relevant information using Retrieval-Augmented Generation (RAG).',
-  invokeBedrockAgent:
-    '(Experimental) Invoke Amazon Bedrock Agent to interact with LLMs and external tools',
-  executeCommand: 'Execute allowed commands with support for wildcards'
-}
+// 全幅で表示するツール名のリスト
+const FULL_WIDTH_TOOLS = ['executeCommand', 'retrieve', 'invokeBedrockAgent'] as const
 
 interface ToolSettingModalProps {
   isOpen: boolean
   onClose: () => void
+}
+
+interface ToolCardProps {
+  toolName: string
+  enabled: boolean
+  onClick: () => void
+  children?: React.ReactNode
+}
+
+const ToolCard: React.FC<ToolCardProps> = ({ toolName, enabled, onClick, children }) => {
+  const { t } = useTranslation()
+
+  return (
+    <div
+      className={`
+        p-4 rounded-lg
+        border-2 transition-all duration-200
+        ${enabled ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'}
+        hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10
+      `}
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex-grow cursor-pointer" onClick={onClick}>
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 mt-1">{toolIcons[toolName as ToolName]}</div>
+            <div>
+              <span
+                className={`
+                  text-sm font-medium
+                  ${
+                    enabled
+                      ? 'text-blue-700 dark:text-blue-300'
+                      : 'text-gray-900 dark:text-gray-300'
+                  }
+                `}
+              >
+                {toolName === 'retrieve' ? 'retrieve (from Bedrock Knowledge Base)' : toolName}
+              </span>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {t(`tool descriptions.${toolName}`)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {children}
+    </div>
+  )
 }
 
 export const useToolSettingModal = () => {
@@ -61,6 +95,7 @@ export const useToolSettingModal = () => {
 }
 
 const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
+  const { t } = useTranslation()
   const {
     tools,
     setTools,
@@ -80,6 +115,11 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
   const handleClickEnableTool = (toolName: string) => {
     if (!tools) return
 
+    if (!currentLLM.toolUse) {
+      toast(`${currentLLM.modelName} does not support ToolUse.`)
+      return
+    }
+
     const updatedTools = tools.map((tool) => {
       if (tool.toolSpec?.name === toolName) {
         return { ...tool, enabled: !tool.enabled }
@@ -89,81 +129,68 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
     setTools(updatedTools)
   }
 
+  // ツールを標準サイズとフルワイドサイズに分類
+  const { standardTools, fullWidthTools } = tools?.reduce(
+    (acc, tool) => {
+      const toolName = tool.toolSpec?.name
+      if (!toolName) return acc
+
+      if (FULL_WIDTH_TOOLS.includes(toolName as (typeof FULL_WIDTH_TOOLS)[number])) {
+        acc.fullWidthTools.push(tool)
+      } else {
+        acc.standardTools.push(tool)
+      }
+      return acc
+    },
+    { standardTools: [], fullWidthTools: [] } as {
+      standardTools: typeof tools
+      fullWidthTools: typeof tools
+    }
+  ) ?? { standardTools: [], fullWidthTools: [] }
+
   return (
     <Modal dismissible size="8xl" show={isOpen} onClose={onClose}>
-      <Modal.Header>Available Tools</Modal.Header>
+      <Modal.Header>{t('Available Tools')}</Modal.Header>
       <Modal.Body>
-        <p className="text-gray-700 text-sm pb-4 dark:text-white">
-          Choose the tools you want to enable for the AI assistant
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-4">
-          {tools?.map((tool) => {
+        <p className="text-gray-700 text-sm pb-4 dark:text-white">{t('Choose the tools')}</p>
+
+        {/* 標準サイズのツール */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-4 mb-4">
+          {standardTools.map((tool) => {
             const toolName = tool.toolSpec?.name
             if (!toolName) return null
 
-            const isCommandTool = toolName === 'executeCommand'
-            const isRetrieveTool = toolName === 'retrieve'
-            const isBedrockAgentTool = toolName === 'invokeBedrockAgent'
+            return (
+              <ToolCard
+                key={toolName}
+                toolName={toolName}
+                enabled={tool.enabled}
+                onClick={() => handleClickEnableTool(toolName)}
+              />
+            )
+          })}
+        </div>
+
+        {/* フルワイドサイズのツール */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {fullWidthTools.map((tool) => {
+            const toolName = tool.toolSpec?.name
+            if (!toolName) return null
 
             return (
-              <div
+              <ToolCard
                 key={toolName}
-                className={`
-                ${isCommandTool || isRetrieveTool || isBedrockAgentTool ? 'col-span-full xl:col-span-3' : ''}
-                p-4 rounded-lg
-                border-2 transition-all duration-200
-                ${
-                  tool.enabled
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-200 dark:border-gray-700'
-                }
-                hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10
-              `}
+                toolName={toolName}
+                enabled={tool.enabled}
+                onClick={() => handleClickEnableTool(toolName)}
               >
-                <div className="flex items-start gap-3">
-                  <div
-                    className="flex-grow cursor-pointer"
-                    onClick={() => {
-                      if (!currentLLM.toolUse) {
-                        toast(`${currentLLM.modelName} does not support ToolUse.`)
-                        return
-                      }
-                      handleClickEnableTool(toolName)
-                    }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-1">{toolIcons[toolName]}</div>
-                      <div>
-                        <span
-                          className={`
-                          text-sm font-medium
-                          ${
-                            tool.enabled
-                              ? 'text-blue-700 dark:text-blue-300'
-                              : 'text-gray-900 dark:text-gray-300'
-                          }
-                        `}
-                        >
-                          {toolName === 'retrieve'
-                            ? 'retrieve (from Bedrock Knowledge Base)'
-                            : toolName}
-                        </span>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {toolDescriptions[toolName]}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {isRetrieveTool && tool.enabled && (
+                {toolName === 'retrieve' && tool.enabled && (
                   <KnowledgeBaseSettingForm
                     knowledgeBases={knowledgeBases}
                     setKnowledgeBases={setKnowledgeBases}
                   />
                 )}
-
-                {isCommandTool && tool.enabled && (
+                {toolName === 'executeCommand' && tool.enabled && (
                   <CommandForm
                     allowedCommands={allowedCommands}
                     setAllowedCommands={setAllowedCommands}
@@ -171,14 +198,13 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
                     setShell={setShell}
                   />
                 )}
-
-                {isBedrockAgentTool && tool.enabled && (
+                {toolName === 'invokeBedrockAgent' && tool.enabled && (
                   <BedrockAgentSettingForm
                     bedrockAgents={bedrockAgents}
                     setBedrockAgents={setBedrockAgents}
                   />
                 )}
-              </div>
+              </ToolCard>
             )
           })}
         </div>

@@ -13,14 +13,21 @@ export const executeTool = async (input: ToolInput): Promise<string | ToolResult
       return toolService.createFolder(input.path)
 
     case 'readFiles':
-      return toolService.readFiles(input.paths)
+      return toolService.readFiles(input.paths, input.options)
 
     case 'writeToFile':
       return toolService.writeToFile(input.path, input.content)
 
+    case 'applyDiffEdit':
+      return toolService.applyDiffEdit(input.path, input.originalText, input.updatedText)
+
     case 'listFiles': {
-      const ignoreFiles = store.get('agentChatConfig')?.ignoreFiles
-      return toolService.listFiles(input.path, '', ignoreFiles)
+      const defaultIgnoreFiles = store.get('agentChatConfig')?.ignoreFiles
+      const options = {
+        ...input.options,
+        ignoreFiles: input.options?.ignoreFiles || defaultIgnoreFiles
+      }
+      return toolService.listFiles(input.path, options)
     }
 
     case 'moveFile':
@@ -143,9 +150,46 @@ export const tools: Tool[] = [
   },
   {
     toolSpec: {
+      name: 'applyDiffEdit',
+      description:
+        'Apply a diff edit to a file. This tool replaces the specified original text with updated text at the exact location in the file. Use this when you need to make precise modifications to existing file content. The tool ensures that only the specified text is replaced, keeping the rest of the file intact.',
+      inputSchema: {
+        json: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description:
+                'The absolute path of the file to modify. Make sure to provide the complete path starting from the root directory.'
+            },
+            originalText: {
+              type: 'string',
+              description:
+                'The exact original text to be replaced. Must match the text in the file exactly, including whitespace and line breaks. If the text is not found, the operation will fail.'
+            },
+            updatedText: {
+              type: 'string',
+              description:
+                'The new text that will replace the original text. Can be of different length than the original text. Whitespace and line breaks in this text will be preserved exactly as provided.'
+            }
+          },
+          required: ['path', 'originalText', 'updatedText'],
+          examples: [
+            {
+              path: '/path/to/file.ts',
+              originalText: 'function oldName() {\n  // old implementation\n}',
+              updatedText: 'function newName() {\n  // new implementation\n}'
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    toolSpec: {
       name: 'readFiles',
       description:
-        'Read the contents of multiple files at the specified paths, including text files and Excel files (.xlsx, .xls). For Excel files, the content is converted to CSV format. Use this when you need to examine the contents of several existing files at once.',
+        'Read the content of multiple files at the specified paths. Content is automatically split into chunks for better management. For Excel files, the content is converted to CSV format.',
       inputSchema: {
         json: {
           type: 'object',
@@ -156,7 +200,21 @@ export const tools: Tool[] = [
                 type: 'string'
               },
               description:
-                'An array of file paths to read. Supports text files and Excel files (.xlsx, .xls).'
+                'Array of file paths to read. Supports text files and Excel files (.xlsx, .xls).'
+            },
+            options: {
+              type: 'object',
+              description: 'Optional configurations for reading files',
+              properties: {
+                chunkIndex: {
+                  type: 'number',
+                  description: 'The index of the specific chunk to retrieve (starting from 1)'
+                },
+                chunkSize: {
+                  type: 'number',
+                  description: 'Maximum size of each chunk in characters (default: 4000)'
+                }
+              }
             }
           },
           required: ['paths']
@@ -168,7 +226,7 @@ export const tools: Tool[] = [
     toolSpec: {
       name: 'listFiles',
       description:
-        'List the entire directory structure, including all subdirectories and files, in a hierarchical format. Use this when you need a comprehensive view of the project structure.',
+        'List the entire directory structure, including all subdirectories and files, in a hierarchical format. Content is automatically split into chunks for better management. Use maxDepth to limit directory depth and chunkIndex to retrieve specific chunks.',
       inputSchema: {
         json: {
           type: 'object',
@@ -176,6 +234,31 @@ export const tools: Tool[] = [
             path: {
               type: 'string',
               description: 'The root path to start listing the directory structure from'
+            },
+            options: {
+              type: 'object',
+              description: 'Optional configurations for listing files',
+              properties: {
+                ignoreFiles: {
+                  type: 'array',
+                  items: {
+                    type: 'string'
+                  },
+                  description: 'Array of patterns to ignore when listing files (gitignore format)'
+                },
+                chunkIndex: {
+                  type: 'number',
+                  description: 'The index of the specific chunk to retrieve (starting from 1)'
+                },
+                maxDepth: {
+                  type: 'number',
+                  description: 'Maximum depth of directory traversal (-1 for unlimited)'
+                },
+                chunkSize: {
+                  type: 'number',
+                  description: 'Maximum size of each chunk in characters (default: 4000)'
+                }
+              }
             }
           },
           required: ['path']
@@ -252,6 +335,7 @@ export const tools: Tool[] = [
     toolSpec: {
       name: 'fetchWebsite',
       description: `Fetch content from a specified URL. For large content, it will be automatically split into manageable chunks.
+If the cleaning option is true, Extracts plain text content from HTML by removing markup and unnecessary elements. Default is false.
 First call without a chunkIndex(Must be 1 or greater) to get an overview and total number of chunks. Then, if needed, call again with a specific chunkIndex to retrieve that chunk.`,
       inputSchema: {
         json: {
@@ -285,6 +369,11 @@ First call without a chunkIndex(Must be 1 or greater) to get an overview and tot
                   type: 'number',
                   description:
                     'Optional. The index of the specific chunk to fetch (starting from 1, Must be 1 or greater). If not provided, returns a summary of all chunks.'
+                },
+                cleaning: {
+                  type: 'boolean',
+                  description:
+                    'Optional. If true, Extracts plain text content from HTML by removing markup and unnecessary elements. Default is false.'
                 }
               }
             }
