@@ -13,6 +13,8 @@ interface ChatHistoryAPI {
   getAllSessionMetadata(): SessionMetadata[]
   setActiveSession(sessionId: string | undefined): void
   getActiveSessionId(): string | undefined
+  updateMessageContent(sessionId: string, messageIndex: number, updatedMessage: ChatMessage): void
+  deleteMessage(sessionId: string, messageIndex: number): void
 }
 
 declare global {

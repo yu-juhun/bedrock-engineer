@@ -34,16 +34,39 @@ export default function ChatPage() {
 
   const currentScenarios = currentAgent?.scenarios || []
 
-  const { messages, loading, handleSubmit, currentSessionId, setCurrentSessionId, clearChat } =
-    useAgentChat(
-      llm?.modelId,
-      systemPrompt,
-      enabledTools?.filter((tool) => tool.enabled)
-    )
+  const {
+    messages,
+    loading,
+    handleSubmit,
+    currentSessionId,
+    setCurrentSessionId,
+    clearChat,
+    setMessages
+  } = useAgentChat(
+    llm?.modelId,
+    systemPrompt,
+    enabledTools?.filter((tool) => tool.enabled)
+  )
 
   const onSubmit = (input: string, images: AttachedImage[]) => {
     handleSubmit(input, images)
     setUserInput('')
+  }
+
+  // ContentBlock単位での削除機能は不要になったため、handleUpdateMessageは削除
+
+  const handleDeleteMessage = (index: number) => {
+    // メッセージの配列のコピーを作成し、指定されたインデックスのメッセージを削除
+    const updatedMessages = [...messages]
+    updatedMessages.splice(index, 1)
+
+    // 更新されたメッセージの配列を設定
+    setMessages(updatedMessages)
+
+    // チャット履歴が有効な場合は、対応するメッセージを削除
+    if (currentSessionId) {
+      window.chatHistory.deleteMessage(currentSessionId, index)
+    }
   }
 
   const { scrollToBottom } = useScroll()
@@ -184,7 +207,11 @@ export default function ChatPage() {
                   )}
                 </div>
               ) : null}
-              <MessageList messages={messages} loading={loading} />
+              <MessageList
+                messages={messages}
+                loading={loading}
+                deleteMessage={handleDeleteMessage}
+              />
             </div>
           </div>
           <InputForm

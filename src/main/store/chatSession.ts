@@ -227,4 +227,42 @@ export class ChatSessionManager {
   getActiveSessionId(): string | undefined {
     return this.metadataStore.get('activeSessionId')
   }
+
+  updateMessageContent(sessionId: string, messageIndex: number, updatedMessage: ChatMessage): void {
+    const session = this.readSessionFile(sessionId)
+    if (!session) return
+
+    // 指定されたインデックスが有効な範囲内かチェック
+    if (messageIndex < 0 || messageIndex >= session.messages.length) {
+      console.error(`Invalid message index: ${messageIndex}`)
+      return
+    }
+
+    // メッセージを更新
+    session.messages[messageIndex] = updatedMessage
+    session.updatedAt = Date.now()
+
+    // ファイルとメタデータを更新
+    this.writeSessionFile(sessionId, session)
+    this.updateMetadata(sessionId, session)
+  }
+
+  deleteMessage(sessionId: string, messageIndex: number): void {
+    const session = this.readSessionFile(sessionId)
+    if (!session) return
+
+    // 指定されたインデックスが有効な範囲内かチェック
+    if (messageIndex < 0 || messageIndex >= session.messages.length) {
+      console.error(`Invalid message index: ${messageIndex}`)
+      return
+    }
+
+    // メッセージを削除
+    session.messages.splice(messageIndex, 1)
+    session.updatedAt = Date.now()
+
+    // ファイルとメタデータを更新
+    this.writeSessionFile(sessionId, session)
+    this.updateMetadata(sessionId, session)
+  }
 }
