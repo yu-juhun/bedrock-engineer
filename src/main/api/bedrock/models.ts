@@ -108,6 +108,12 @@ export const usModels: LLM[] = [
     regions: usRegions
   },
   {
+    modelId: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
+    modelName: 'Claude 3.7 Sonnet (US cross-region)',
+    toolUse: true,
+    regions: usRegions
+  },
+  {
     modelId: 'us.amazon.nova-pro-v1:0',
     modelName: 'Amazon Nova Pro (US cross-region)',
     toolUse: true,
