@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { AttachedImage } from './components/InputForm/TextArea'
 import { ChatHistory } from './components/ChatHistory'
 import { useSystemPromptModal } from './modals/useSystemPromptModal'
+import { ReasoningEffort } from '@/types/llm'
 
 export default function ChatPage() {
   const [userInput, setUserInput] = useState('')
@@ -29,8 +30,19 @@ export default function ChatPage() {
     agents,
     currentAgent,
     currentAgentSystemPrompt: systemPrompt,
-    enabledTools
+    enabledTools,
+    inferenceParams,
+    updateInferenceParams
   } = useSetting()
+
+  // Reasoning機能の有効/無効状態
+  const reasoningEnabled = inferenceParams.thinking?.enabled || false
+
+  // Reasoning の強度設定（low, medium, high）
+  const reasoningEffort = inferenceParams.thinking?.reasoningEffort || 'medium'
+
+  // Claude 3.7モデルを使用しているかチェック (Reasoning機能はClaude 3.7以降のみ対応)
+  const isClaude37OrLater = llm?.modelId?.includes('claude-3-7') || false
 
   const currentScenarios = currentAgent?.scenarios || []
 
@@ -103,6 +115,38 @@ export default function ChatPage() {
       clearChat()
       setUserInput('')
     }
+  }
+
+  // Reasoning機能のトグル処理
+  const handleReasoningToggle = () => {
+    const isCurrentlyEnabled = inferenceParams.thinking?.enabled || false
+    const budgetTokens = inferenceParams.thinking?.budgetTokens || 4000 // デフォルト値
+    const currentEffort = inferenceParams.thinking?.reasoningEffort || 'medium'
+
+    updateInferenceParams({
+      thinking: {
+        enabled: !isCurrentlyEnabled,
+        budgetTokens: budgetTokens,
+        reasoningEffort: currentEffort
+      }
+    })
+  }
+
+  // Reasoning強度の変更ハンドラ
+  const handleReasoningEffortChange = (effort: ReasoningEffort) => {
+    // 強度に応じたトークン数を設定
+    let budgetTokens = 4000
+    if (effort === 'low') budgetTokens = 1024
+    else if (effort === 'medium') budgetTokens = 2048
+    else if (effort === 'high') budgetTokens = 4096
+
+    updateInferenceParams({
+      thinking: {
+        enabled: true,
+        budgetTokens: budgetTokens,
+        reasoningEffort: effort
+      }
+    })
   }
 
   useEffect(() => {
@@ -226,6 +270,10 @@ export default function ChatPage() {
             onOpenIgnoreModal={handleOpenIgnoreFileModal}
             onClearChat={handleClearChat}
             hasMessages={messages.length > 0}
+            reasoningEnabled={reasoningEnabled}
+            onReasoningToggle={isClaude37OrLater ? handleReasoningToggle : undefined}
+            reasoningEffort={reasoningEffort}
+            onReasoningEffortChange={isClaude37OrLater ? handleReasoningEffortChange : undefined}
           />
         </div>
       </div>

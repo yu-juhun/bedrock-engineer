@@ -13,10 +13,17 @@ export type AWSCredentials = {
   secretAccessKey: string
 }
 
+export type ReasoningEffort = 'low' | 'medium' | 'high'
+
 export type InferenceParams = {
   maxTokens: number
   temperature: number
   topP: number
+  thinking?: {
+    enabled: boolean
+    budgetTokens: number
+    reasoningEffort?: ReasoningEffort
+  }
 }
 
 export interface Store {

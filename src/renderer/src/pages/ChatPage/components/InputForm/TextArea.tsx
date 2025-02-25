@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useMemo } from 'react'
-import { FiLoader, FiSend, FiX } from 'react-icons/fi'
+import { FiLoader, FiSend, FiX, FiActivity } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 
@@ -9,6 +9,8 @@ export type AttachedImage = {
   base64: string
 }
 
+import { ReasoningEffort } from '@/types/llm'
+
 type TextAreaProps = {
   value: string
   onChange: (value: string) => void
@@ -17,6 +19,10 @@ type TextAreaProps = {
   isComposing: boolean
   setIsComposing: (value: boolean) => void
   sendMsgKey?: 'Enter' | 'Cmd+Enter'
+  reasoningEnabled?: boolean
+  onReasoningToggle?: () => void
+  reasoningEffort?: ReasoningEffort
+  onReasoningEffortChange?: (effort: ReasoningEffort) => void
 }
 
 export const TextArea: React.FC<TextAreaProps> = ({
@@ -26,7 +32,11 @@ export const TextArea: React.FC<TextAreaProps> = ({
   disabled = false,
   isComposing,
   setIsComposing,
-  sendMsgKey = 'Enter'
+  sendMsgKey = 'Enter',
+  reasoningEnabled = false,
+  onReasoningToggle,
+  reasoningEffort = 'medium',
+  onReasoningEffortChange
 }) => {
   const { t } = useTranslation()
   const [dragActive, setDragActive] = useState(false)
@@ -196,6 +206,42 @@ export const TextArea: React.FC<TextAreaProps> = ({
         className={`relative ${dragActive ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
         onDragEnter={handleDrag}
       >
+        {/* Reasoning Button and Dropdown - positioned above the textarea */}
+        {onReasoningToggle && (
+          <div className="absolute top-0 right-5 transform -translate-y-8 z-10 flex items-center">
+            <button
+              onClick={onReasoningToggle}
+              className={`flex items-center gap-1 rounded-l-full py-1 px-3 text-xs font-medium transition-colors
+                ${
+                  reasoningEnabled
+                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                }`}
+              title={
+                reasoningEnabled
+                  ? 'Disable Reasoning (Extended thinking)'
+                  : 'Enable Reasoning (Extended thinking)'
+              }
+            >
+              <FiActivity className={reasoningEnabled ? 'text-white' : 'text-gray-500'} size={12} />
+              <span>Reasoning</span>
+            </button>
+
+            {reasoningEnabled && onReasoningEffortChange && (
+              <select
+                value={reasoningEffort}
+                onChange={(e) => onReasoningEffortChange(e.target.value as ReasoningEffort)}
+                className={`rounded-r-full py-1 pl-1 pr-3 text-xs font-medium border-l border-white/20 bg-blue-500 text-white focus:outline-none focus:ring-1 focus:ring-blue-300`}
+                title="Select reasoning effort level"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            )}
+          </div>
+        )}
+
         <textarea
           onCompositionStart={() => setIsComposing(true)}
           onCompositionEnd={() => setIsComposing(false)}

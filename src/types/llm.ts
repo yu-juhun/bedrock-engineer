@@ -35,8 +35,15 @@ export const isValidLLM = (llm: LLM): boolean => {
     llm.regions.every((region) => BEDROCK_SUPPORTED_REGIONS.includes(region))
   )
 }
+export type ReasoningEffort = 'low' | 'medium' | 'high'
+
 export interface InferenceParameters {
   maxTokens: number
   temperature: number
   topP: number
+  thinking?: {
+    enabled: boolean
+    budgetTokens: number
+    reasoningEffort?: ReasoningEffort
+  }
 }

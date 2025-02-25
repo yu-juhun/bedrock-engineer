@@ -67,14 +67,37 @@ export class ConverseService {
       // Sanitize messages to handle empty text fields
       const sanitizedMessages = sanitizeMessages(processedMessages)
 
-      const { maxTokens, temperature, topP } = this.context.store.get('inferenceParams')
-      const command = new ConverseCommand({
+      const inferenceParams = this.context.store.get('inferenceParams')
+      const { maxTokens, temperature, topP, thinking } = inferenceParams
+
+      const commandParams = {
         modelId,
         messages: sanitizedMessages,
         system,
         toolConfig,
         inferenceConfig: { maxTokens, temperature, topP }
-      })
+      }
+
+      // Add thinking configuration if enabled
+      if (thinking?.enabled && modelId.includes('claude-3-7')) {
+        // 強度に基づいてトークン数を決定（フロントエンドで既に設定済みだが安全のため）
+        let budgetTokens = thinking.budgetTokens || 2048
+
+        if (thinking.reasoningEffort === 'low') {
+          budgetTokens = 1024
+        } else if (thinking.reasoningEffort === 'medium') {
+          budgetTokens = 2048
+        } else if (thinking.reasoningEffort === 'high') {
+          budgetTokens = 4096
+        }
+
+        commandParams['thinking'] = {
+          type: 'enabled',
+          budget_tokens: budgetTokens
+        }
+      }
+
+      const command = new ConverseCommand(commandParams)
 
       const runtimeClient = createRuntimeClient(this.context.store.get('aws'))
       return runtimeClient.send(command)
@@ -122,13 +145,37 @@ export class ConverseService {
       // Sanitize messages to handle empty text fields
       const sanitizedMessages = sanitizeMessages(processedMessages)
 
-      const command = new ConverseStreamCommand({
+      const inferenceParams = this.context.store.get('inferenceParams')
+      const { thinking } = inferenceParams
+
+      const commandParams = {
         modelId,
         messages: sanitizedMessages,
         system,
         toolConfig,
-        inferenceConfig: this.context.store.get('inferenceParams')
-      })
+        inferenceConfig: inferenceParams
+      }
+
+      // Add thinking configuration if enabled
+      if (thinking?.enabled && modelId.includes('claude-3-7')) {
+        // 強度に基づいてトークン数を決定（フロントエンドで既に設定済みだが安全のため）
+        let budgetTokens = thinking.budgetTokens || 2048
+
+        if (thinking.reasoningEffort === 'low') {
+          budgetTokens = 1024
+        } else if (thinking.reasoningEffort === 'medium') {
+          budgetTokens = 2048
+        } else if (thinking.reasoningEffort === 'high') {
+          budgetTokens = 4096
+        }
+
+        commandParams['thinking'] = {
+          type: 'enabled',
+          budget_tokens: budgetTokens
+        }
+      }
+
+      const command = new ConverseStreamCommand(commandParams)
 
       return await runtimeClient.send(command)
     } catch (error: any) {

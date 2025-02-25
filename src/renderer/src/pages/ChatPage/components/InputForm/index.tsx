@@ -6,6 +6,8 @@ import { SendMsgKey } from '@/types/agent-chat'
 import { FiTrash2 } from 'react-icons/fi'
 import { ModelSelector } from '../ModelSelector'
 
+import { ReasoningEffort } from '@/types/llm'
+
 type InputFormProps = {
   userInput: string
   loading: boolean
@@ -18,6 +20,10 @@ type InputFormProps = {
   onOpenIgnoreModal: () => void
   onClearChat: () => void
   hasMessages: boolean
+  reasoningEnabled?: boolean
+  onReasoningToggle?: () => void
+  reasoningEffort?: ReasoningEffort
+  onReasoningEffortChange?: (effort: ReasoningEffort) => void
 }
 
 export const InputForm: React.FC<InputFormProps> = ({
@@ -31,7 +37,11 @@ export const InputForm: React.FC<InputFormProps> = ({
   onSelectDirectory,
   onOpenIgnoreModal,
   onClearChat,
-  hasMessages
+  hasMessages,
+  reasoningEnabled = false,
+  onReasoningToggle,
+  reasoningEffort = 'medium',
+  onReasoningEffortChange
 }) => {
   const [isComposing, setIsComposing] = useState(false)
 
@@ -74,6 +84,10 @@ export const InputForm: React.FC<InputFormProps> = ({
           isComposing={isComposing}
           setIsComposing={setIsComposing}
           sendMsgKey={sendMsgKey}
+          reasoningEnabled={reasoningEnabled}
+          onReasoningToggle={onReasoningToggle}
+          reasoningEffort={reasoningEffort}
+          onReasoningEffortChange={onReasoningEffortChange}
         />
       </div>
     </div>
