@@ -6,6 +6,7 @@ import AILogo from '@renderer/assets/images/icons/ai.svg'
 type MessageListProps = {
   messages: MessageType[]
   loading: boolean
+  deleteMessage?: (index: number) => void
 }
 
 const LoadingMessage = () => (
@@ -30,11 +31,21 @@ const LoadingMessage = () => (
   </div>
 )
 
-export const MessageList: React.FC<MessageListProps> = ({ messages, loading }) => {
+export const MessageList: React.FC<MessageListProps> = ({ messages, loading, deleteMessage }) => {
+  const handleDeleteMessage = (messageIndex: number) => () => {
+    if (deleteMessage) {
+      deleteMessage(messageIndex)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {messages.map((message, index) => (
-        <ChatMessage key={index} message={message} />
+        <ChatMessage
+          key={index}
+          message={message}
+          onDeleteMessage={deleteMessage ? handleDeleteMessage(index) : undefined}
+        />
       ))}
       {loading && <LoadingMessage />}
     </div>

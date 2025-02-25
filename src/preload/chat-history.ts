@@ -43,5 +43,13 @@ export const chatHistory = {
 
   getActiveSessionId() {
     return chatSessionManager.getActiveSessionId()
+  },
+
+  updateMessageContent(sessionId: string, messageIndex: number, updatedMessage: ChatMessage) {
+    return chatSessionManager.updateMessageContent(sessionId, messageIndex, updatedMessage)
+  },
+
+  deleteMessage(sessionId: string, messageIndex: number) {
+    return chatSessionManager.deleteMessage(sessionId, messageIndex)
   }
 }

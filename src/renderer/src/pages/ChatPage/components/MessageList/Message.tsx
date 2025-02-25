@@ -1,5 +1,5 @@
 import { Message } from '@aws-sdk/client-bedrock-runtime'
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Avatar } from './Avatar'
 import { Accordion } from 'flowbite-react'
 import { JSONCodeBlock } from '../CodeBlocks/JSONCodeBlock'
@@ -8,9 +8,13 @@ import CodeRenderer from '../Code/CodeRenderer'
 import { toolIcons } from '../Tool/ToolIcons'
 import { FaCheck } from 'react-icons/fa'
 import { MdErrorOutline } from 'react-icons/md'
+import { FiTrash2, FiCopy } from 'react-icons/fi'
+import { useTranslation } from 'react-i18next'
+import toast from 'react-hot-toast'
 
 type ChatMessageProps = {
   message: Message
+  onDeleteMessage?: () => void
 }
 
 // Helper function to convert various image data formats to data URL
@@ -46,18 +50,118 @@ function convertImageToDataUrl(imageData: any, format: string = 'png'): string {
   return ''
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
+export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDeleteMessage }) => {
+  const { t } = useTranslation()
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const avatarRef = useRef<HTMLDivElement>(null)
+
+  // メッセージの内容をテキスト形式で抽出する関数
+  const extractMessageText = (message: Message): string => {
+    if (!message.content) return ''
+
+    // メッセージ内容をテキストとして連結
+    return message.content
+      .map((block) => {
+        if ('text' in block) {
+          return block.text || ''
+        } else if ('toolUse' in block && block.toolUse?.input) {
+          return `Tool: ${block.toolUse.name}\nInput: ${JSON.stringify(block.toolUse.input, null, 2)}`
+        } else if ('toolResult' in block) {
+          if (block.toolResult?.content) {
+            return block.toolResult.content
+              .map((content) => {
+                if ('text' in content) return content.text
+                if ('json' in content) return JSON.stringify(content.json, null, 2)
+                return ''
+              })
+              .join('\n')
+          }
+          return `Tool Result: ${block.toolResult?.status}`
+        }
+        return ''
+      })
+      .join('\n\n')
+  }
+
+  const handleCopyMessage = () => {
+    const textToCopy = extractMessageText(message)
+    navigator.clipboard
+      .writeText(textToCopy)
+      .then(() => {
+        toast.success(t('Message copied to clipboard'))
+        setIsDropdownOpen(false)
+      })
+      .catch((err) => {
+        console.error('Failed to copy text: ', err)
+        toast.error(t('Failed to copy message'))
+      })
+  }
+
+  const handleDeleteMessage = () => {
+    if (onDeleteMessage) {
+      if (window.confirm(t('Are you sure you want to delete this message?'))) {
+        onDeleteMessage()
+        toast.success(t('Message deleted successfully'))
+        setIsDropdownOpen(false)
+      }
+    }
+  }
+
+  // 外部クリック時にドロップダウンを閉じる
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (avatarRef.current && !avatarRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [avatarRef])
+
   return (
-    <div className="flex gap-4">
-      <Avatar role={message.role} />
+    <div className="flex gap-4 relative">
+      <div className="relative" ref={avatarRef}>
+        <div
+          className="cursor-pointer hover:bg-gray-200 rounded-md"
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          title={t('Click for options')}
+        >
+          <Avatar role={message.role} />
+        </div>
+        {isDropdownOpen && (
+          <div className="absolute left-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-50 min-w-32 py-1 border dark:border-gray-700 whitespace-nowrap p-1">
+            <button
+              className="flex items-center gap-2 px-4 py-2 w-full text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+              onClick={handleCopyMessage}
+            >
+              <FiCopy className="text-blue-500" />
+              <span>{t('Copy to clipboard')}</span>
+            </button>
+            <button
+              className="flex items-center gap-2 px-4 py-2 w-full text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+              onClick={handleDeleteMessage}
+            >
+              <FiTrash2 className="text-red-500" />
+              <span>{t('Delete message')}</span>
+            </button>
+          </div>
+        )}
+      </div>
       <div className="flex flex-col gap-2 w-full">
-        <span className="text-xs text-gray-500">{message.role}</span>
+        <span className="text-xs text-gray-500 relative">{message.role}</span>
         {message.content?.map((c, index) => {
           if ('text' in c) {
-            return <CodeRenderer key={index} text={c.text} />
+            return (
+              <div key={index} className="relative">
+                <CodeRenderer text={c.text} />
+              </div>
+            )
           } else if ('toolUse' in c) {
             return (
-              <div key={index} className="flex flex-col gap-2 text-xs w-full">
+              <div key={index} className="flex flex-col gap-2 text-xs w-full relative">
                 <Accordion className="w-full" collapseAll>
                   <Accordion.Panel>
                     <Accordion.Title>
@@ -81,7 +185,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
             )
           } else if ('toolResult' in c) {
             return (
-              <div key={index} className="flex flex-col gap-2 text-xs w-full">
+              <div key={index} className="flex flex-col gap-2 text-xs w-full relative">
                 <Accordion className="w-full" collapseAll>
                   <Accordion.Panel>
                     <Accordion.Title>
@@ -122,7 +226,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           } else if ('image' in c) {
             const imageUrl = convertImageToDataUrl(c.image?.source?.bytes)
             return (
-              <div key={index} className="max-w-lg">
+              <div key={index} className="max-w-lg relative">
                 <img
                   src={imageUrl}
                   alt="image"
@@ -133,7 +237,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
           } else {
             console.error(c)
             console.error('Invalid message content')
-            return <CodeRenderer key={index} text={JSON.stringify(c)} />
+            return (
+              <div key={index} className="relative">
+                <CodeRenderer text={JSON.stringify(c)} />
+              </div>
+            )
           }
         })}
       </div>
