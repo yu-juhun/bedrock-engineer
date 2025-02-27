@@ -1,4 +1,5 @@
 import { chatPage } from './chat'
+import { awsDiagramGenerator } from './awsDiagramGenerator'
 import { iamPolicy } from './settings'
 
 const HomePage = {
@@ -150,7 +151,8 @@ const en = {
   ...StepFunctionsGeneratorPage,
   ...chatPage.en,
   ...WebsiteGeneratorPage,
-  ...iamPolicy.en
+  ...iamPolicy.en,
+  ...awsDiagramGenerator.en
 }
 
 export default en

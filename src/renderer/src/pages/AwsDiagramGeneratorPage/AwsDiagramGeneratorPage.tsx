@@ -10,14 +10,20 @@ import { RecommendDiagrams } from './components/RecommendDiagrams'
 import { useTranslation } from 'react-i18next'
 
 export default function AwsDiagramGeneratorPage() {
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+
   const [userInput, setUserInput] = useState('')
   const [xml, setXml] = useState(exampleDiagrams['serverless'])
   const [isComposing, setIsComposing] = useState(false)
   const drawioRef = useRef<DrawIoEmbedRef>(null)
   const { currentLLM: llm, sendMsgKey } = useSetting()
-  const { t } = useTranslation()
 
   const { recommendDiagrams, recommendLoading, getRecommendDiagrams } = useRecommendDiagrams()
+
+  const {
+    t,
+    i18n: { language }
+  } = useTranslation()
 
   const systemPrompt = `You are an expert in creating AWS architecture diagrams.
 When I describe a system, create a draw.io compatible XML diagram that represents the AWS architecture.
@@ -28,6 +34,7 @@ When I describe a system, create a draw.io compatible XML diagram that represent
 * The diagram should be clear, professional, and follow AWS architecture best practices.
 * If you really can't express it, you can use a simple diagram with just rectangular blocks and lines.
 * Try to keep ids and styles to a minimum and reduce the length of the prompt.
+* Respond in the following languages: ${language}.
 </rules>
 
 Here is example diagramm's xml:
@@ -113,7 +120,18 @@ Here is example diagramm's xml:
           </div>
         ) : (
           <div className="w-full h-full border border-gray-200">
-            <DrawIoEmbed ref={drawioRef} xml={xml} />
+            <DrawIoEmbed
+              ref={drawioRef}
+              xml={xml}
+              configuration={{
+                defaultLibraries: 'aws4;aws3;aws3d;general'
+              }}
+              urlParameters={{
+                dark: isDark,
+                libraries: true,
+                lang: language
+              }}
+            />
           </div>
         )}
       </div>

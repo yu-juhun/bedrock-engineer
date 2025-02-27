@@ -1,6 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import LoadingDotsLottie from '@renderer/pages/WebsiteGeneratorPage/LoadingDots.lottie'
+import { useTranslation } from 'react-i18next'
 
 interface Recommendation {
   title: string
@@ -18,13 +19,15 @@ export const RecommendDiagrams: React.FC<RecommendDiagramsProps> = ({
   loading,
   recommendations,
   onSelect,
-  loadingText = 'Generating recommendations...'
+  loadingText
 }) => {
+  const { t } = useTranslation()
+  const defaultLoadingText = t('generatingRecommendations', 'Generating recommendations...')
   if (loading) {
     return (
       <div className="flex gap-1 justify-center items-center dark:text-white">
         <LoadingDotsLottie className="h-[2rem]" />
-        <span className="dark:text-white">{loadingText}</span>
+        <span className="dark:text-white">{loadingText || defaultLoadingText}</span>
       </div>
     )
   }
