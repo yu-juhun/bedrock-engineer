@@ -1,5 +1,5 @@
-import LazyVisibleMessage from '../LazyVisibleMessage'
-import LoadingWebsiteLottie from '../LoadingWebsite.lottie'
+import LazyVisibleMessage from '../pages/WebsiteGeneratorPage/LazyVisibleMessage'
+import LoadingWebsiteLottie from '../pages/WebsiteGeneratorPage/LoadingWebsite.lottie'
 
 export const WebLoader = () => {
   return (

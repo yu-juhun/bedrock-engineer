@@ -16,7 +16,7 @@ Bedrock Engineer はネイティブアプリです。アプリをダウンロー
 
 MacOS:
 
-[<img src="https://img.shields.io/badge/Download_FOR_MAC-Latest%20Release-blue?style=for-the-badge&logo=apple" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.1.2.dmg)
+[<img src="https://img.shields.io/badge/Download_FOR_MAC-Latest%20Release-blue?style=for-the-badge&logo=apple" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.1.3.dmg)
 
 <details>
 <summary>Tips for Installation</summary>
@@ -70,7 +70,7 @@ npm run build:linux
 
 開発ができる自律的な AI エージェントが、あなたの開発を支援します。これは [Cline](https://github.com/cline/cline) のような AI アシスタントに似た機能を提供していますが、VS Code のようなエディタに依存しない独自の UI を備えています。これにより、Bedrock Engineer のエージェントチャット機能では、よりリッチな図解と対話型の体験が可能になります。また、エージェントのカスタマイズ機能により、開発以外のユースケースにおいても、エージェントを活用することができます。
 
-- 💬 人間のような Amazon Nova, Claude 3.5, Meta llama モデルとの対話型チャットインターフェース。
+- 💬 人間のような Amazon Nova, Claude, Meta llama モデルとの対話型チャットインターフェース。
 - 📁 ファイルシステム操作（フォルダ作成、ファイル作成、ファイル読み/書き）
 - 🔍 Tavily APIを使用したWeb検索機能
 - 🏗️ プロジェクト構造の作成と管理

@@ -3,7 +3,6 @@ import { ToggleSwitch, Tooltip } from 'flowbite-react'
 import { GrClearOption } from 'react-icons/gr'
 import prompts from '../../prompts/prompts'
 import { AiOutlineReload } from 'react-icons/ai'
-
 import { autocompletion, completionKeymap } from '@codemirror/autocomplete'
 import {
   SandpackCodeEditor,
@@ -34,8 +33,8 @@ import { KnowledgeBaseConnectButton } from './components/KnowledgeBaseConnectBut
 import { RagLoader } from './components/RagLoader'
 import { AttachedImage, TextArea } from '../ChatPage/components/InputForm/TextArea'
 import { useRecommendChanges } from './hooks/useRecommendChanges'
-import { WebLoader } from './components/WebLoader'
-import { DeepSearchButton } from './components/DeepSearchButton'
+import { WebLoader } from '../../components/WebLoader'
+import { DeepSearchButton } from '../../components/DeepSearchButton'
 
 export default function WebsiteGeneratorPage() {
   const [template, setTemplate] = useState<SupportedTemplate['id']>('react-ts')

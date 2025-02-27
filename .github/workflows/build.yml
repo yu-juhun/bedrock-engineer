@@ -1,10 +1,6 @@
 name: Build
 
 on:
-  push:
-    branches:
-      - '**' # matches every branch
-      - '!main' # excludes main branch
   pull_request:
     branches: ['**']
 
@@ -29,8 +25,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Test
-        run: npm test
+      - name: Run unit tests
+        run: npm test -- --coverage
 
       - name: Build app
         run: npm run build:${{ matrix.os == 'windows-latest' && 'win' || 'mac' }}
