@@ -8,6 +8,7 @@ import { exampleDiagrams } from './example-diagrams'
 import { useRecommendDiagrams } from './hooks/useRecommendDiagrams'
 import { RecommendDiagrams } from './components/RecommendDiagrams'
 import { useTranslation } from 'react-i18next'
+import { motion } from 'framer-motion'
 
 export default function AwsDiagramGeneratorPage() {
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -17,6 +18,10 @@ export default function AwsDiagramGeneratorPage() {
   const [isComposing, setIsComposing] = useState(false)
   const drawioRef = useRef<DrawIoEmbedRef>(null)
   const { currentLLM: llm, sendMsgKey } = useSetting()
+
+  // 履歴管理用の状態
+  const [diagramHistory, setDiagramHistory] = useState<{ xml: string; prompt: string }[]>([])
+  const [selectedHistoryIndex, setSelectedHistoryIndex] = useState<number | null>(null)
 
   const { recommendDiagrams, recommendLoading, getRecommendDiagrams } = useRecommendDiagrams()
 
@@ -82,11 +87,14 @@ Here is example diagramm's xml:
   const onSubmit = (input: string) => {
     handleSubmit(input)
     setUserInput('')
+    // 履歴から選択していた場合はリセット
+    setSelectedHistoryIndex(null)
   }
 
   // 最後のアシスタントメッセージから XML を取得して draw.io に設定
   useEffect(() => {
     const lastAssistantMessage = messages.filter((m) => m.role === 'assistant').pop()
+    const lastUserMessage = messages.filter((m) => m.role === 'user').pop()
 
     if (lastAssistantMessage?.content && !loading && drawioRef.current) {
       const xml = lastAssistantMessage.content.map((c) => ('text' in c ? c.text : '')).join('')
@@ -96,6 +104,18 @@ Here is example diagramm's xml:
           setXml(xml)
           // Generate new recommendations based on the current diagram
           getRecommendDiagrams(xml)
+
+          // 履歴に追加（最大3つまで）
+          if (lastUserMessage?.content) {
+            const userPrompt = lastUserMessage.content
+              .map((c) => ('text' in c ? c.text : ''))
+              .join('')
+            setDiagramHistory((prev) => {
+              const newHistory = [...prev, { xml, prompt: userPrompt }]
+              // 最大10つまで保持
+              return newHistory.slice(-10)
+            })
+          }
         } catch (error) {
           console.error('Failed to load diagram:', error)
         }
@@ -103,12 +123,49 @@ Here is example diagramm's xml:
     }
   }, [messages, loading])
 
+  // 履歴からダイアグラムを読み込む関数
+  const loadDiagramFromHistory = (index: number) => {
+    if (diagramHistory[index]) {
+      const historyItem = diagramHistory[index]
+      if (drawioRef.current) {
+        try {
+          drawioRef.current.load({ xml: historyItem.xml })
+          setXml(historyItem.xml)
+          setUserInput(historyItem.prompt)
+          setSelectedHistoryIndex(index)
+        } catch (error) {
+          console.error('Failed to load diagram from history:', error)
+        }
+      }
+    }
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-11rem)] overflow-y-auto">
       <div className="flex pb-2 justify-between">
         <span className="font-bold flex flex-col gap-2 w-full">
           <div className="flex justify-between">
             <h1 className="content-center dark:text-white text-lg">AWS Diagram Generator</h1>
+          </div>
+          <div className="flex justify-between w-full">
+            <div className="flex gap-2">
+              {diagramHistory.map((_history, index) => (
+                <motion.span
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  key={index}
+                  className={`p-1 px-3 rounded cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500 dark:text-white ${
+                    selectedHistoryIndex === index
+                      ? 'bg-gray-300 text-gray-800 dark:bg-gray-500 dark:text-white'
+                      : 'bg-gray-200 text-gray-500 dark:bg-gray-600'
+                  }`}
+                  onClick={() => loadDiagramFromHistory(index)}
+                >
+                  {index + 1}
+                </motion.span>
+              ))}
+            </div>
           </div>
         </span>
       </div>
@@ -124,11 +181,10 @@ Here is example diagramm's xml:
               ref={drawioRef}
               xml={xml}
               configuration={{
-                defaultLibraries: 'aws4;aws3;aws3d;general'
+                defaultLibraries: 'aws4;aws3;aws3d'
               }}
               urlParameters={{
                 dark: isDark,
-                libraries: true,
                 lang: language
               }}
             />

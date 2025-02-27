@@ -5,7 +5,7 @@ export const awsDiagramGenerator = {
     generatingRecommendations: 'Generating recommendations...',
     addRecommend: 'Considering additional recommended features',
     awsLibraries: 'AWS Libraries',
-    
+
     // Example prompts
     serverlessArchitectureTitle: 'Serverless API',
     serverlessArchitectureValue:
@@ -13,7 +13,7 @@ export const awsDiagramGenerator = {
     microservicesTitle: 'Microservices',
     microservicesValue:
       'Design a microservices architecture using ECS, API Gateway, and DynamoDB with service discovery',
-    webHostingTitle: 'Web Hosting',
+    webHostingTitle: 'Website Hosting',
     webHostingValue:
       'Create a scalable web hosting architecture with S3, CloudFront, Route 53, and WAF',
     dataLakeTitle: 'Data Lake',
@@ -32,15 +32,15 @@ export const awsDiagramGenerator = {
     generatingRecommendations: 'レコメンデーションを生成中...',
     addRecommend: '追加機能を検討中',
     awsLibraries: 'AWSライブラリ',
-    
+
     // Example prompts
-    serverlessArchitectureTitle: 'サーバーレスAPI',
+    serverlessArchitectureTitle: 'Serverless API',
     serverlessArchitectureValue:
       'API Gateway、Lambda、DynamoDBを使用したRESTful APIのサーバーレスアーキテクチャを作成する',
     microservicesTitle: 'マイクロサービス',
     microservicesValue:
       'ECS、API Gateway、DynamoDBを使用したサービスディスカバリー付きのマイクロサービスアーキテクチャを設計する',
-    webHostingTitle: 'Webホスティング',
+    webHostingTitle: 'Website Hosting',
     webHostingValue:
       'S3、CloudFront、Route 53、WAFを使用したスケーラブルなWebホスティングアーキテクチャを作成する',
     dataLakeTitle: 'データレイク',
