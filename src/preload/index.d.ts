@@ -15,6 +15,12 @@ interface ChatHistoryAPI {
   getActiveSessionId(): string | undefined
   updateMessageContent(sessionId: string, messageIndex: number, updatedMessage: ChatMessage): void
   deleteMessage(sessionId: string, messageIndex: number): void
+  // トークン制限を考慮した最適化されたメッセージリストを取得する
+  getOptimizedMessages(sessionId: string): {
+    messages: any[]
+    systemPromptText: string
+    summarized: boolean
+  }
 }
 
 declare global {

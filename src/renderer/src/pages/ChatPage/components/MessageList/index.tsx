@@ -2,11 +2,13 @@ import { Message as MessageType } from '@aws-sdk/client-bedrock-runtime'
 import React from 'react'
 import { ChatMessage } from './Message'
 import AILogo from '@renderer/assets/images/icons/ai.svg'
+import { FiInfo } from 'react-icons/fi'
 
 type MessageListProps = {
   messages: MessageType[]
   loading: boolean
   deleteMessage?: (index: number) => void
+  summarized?: boolean // 要約が使用されているかどうか
 }
 
 const LoadingMessage = () => (
@@ -31,7 +33,19 @@ const LoadingMessage = () => (
   </div>
 )
 
-export const MessageList: React.FC<MessageListProps> = ({ messages, loading, deleteMessage }) => {
+const SummarizedIndicator = () => (
+  <div className="flex items-center justify-center py-2 px-4 my-2 bg-blue-50 text-blue-800 text-xs rounded-md mx-auto">
+    <FiInfo className="h-3 w-3 mr-1" />
+    <span>以前のメッセージは要約されています</span>
+  </div>
+)
+
+export const MessageList: React.FC<MessageListProps> = ({
+  messages,
+  loading,
+  deleteMessage,
+  summarized
+}) => {
   const handleDeleteMessage = (messageIndex: number) => () => {
     if (deleteMessage) {
       deleteMessage(messageIndex)
@@ -40,6 +54,9 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, loading, del
 
   return (
     <div className="flex flex-col gap-4">
+      {/* 要約が使用されている場合はインジケータを表示 */}
+      {summarized && messages.length > 0 && <SummarizedIndicator />}
+
       {messages.map((message, index) => (
         <ChatMessage
           key={index}

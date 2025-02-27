@@ -67,6 +67,8 @@ export const useAgentChat = (
   const [loading, setLoading] = useState(false)
   const [executingTool, setExecutingTool] = useState<ToolName | null>(null)
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(sessionId)
+  const [isSummarized, setIsSummarized] = useState(false) // 要約が使用されたかどうかのフラグ
+  const [systemPromptToSend, setSystemPromptToSend] = useState(systemPrompt)
   const abortController = useRef<AbortController | null>(null)
   const { t } = useTranslation()
 
@@ -139,6 +141,9 @@ export const useAgentChat = (
     [currentSessionId, modelId, enabledTools, enableHistory]
   )
 
+  // 注: トークン制限を考慮したメッセージ取得関数は、
+  // streamChat内で直接実装するように変更したため削除
+
   const streamChat = async (props: StreamChatCompletionProps, currentMessages: Message[]) => {
     // 既存の通信があれば中断
     if (abortController.current) {
@@ -148,7 +153,40 @@ export const useAgentChat = (
     // 新しい AbortController を作成
     abortController.current = new AbortController()
 
-    props.messages = removeTraces(props.messages)
+    // メッセージの最適化を試みる（長い会話の場合は要約を使用）
+    let enhancedSystemPrompt = systemPrompt
+    let optimizedMessages = currentMessages
+
+    if (currentSessionId) {
+      try {
+        // 要約機能を使って最適化されたメッセージリストとシステムプロンプトを取得
+        const {
+          messages: optimized,
+          systemPromptText,
+          summarized
+        } = window.chatHistory.getOptimizedMessages(currentSessionId)
+
+        // 要約が使用されたかどうかのフラグを更新
+        setIsSummarized(summarized)
+
+        // 最適化されたメッセージとシステムプロンプトを使用
+        if (optimized.length > 0 || systemPromptText) {
+          optimizedMessages = optimized.length > 0 ? optimized : currentMessages
+          enhancedSystemPrompt = systemPromptText || systemPrompt
+        }
+      } catch (error) {
+        console.error('Error optimizing messages:', error)
+      }
+    }
+
+    // 最適化されたメッセージをプロップスに設定
+    props.messages = removeTraces(optimizedMessages)
+
+    // 最適化されたシステムプロンプトを設定
+    if (enhancedSystemPrompt) {
+      setSystemPromptToSend(enhancedSystemPrompt)
+      props.system = [{ text: enhancedSystemPrompt }]
+    }
 
     const generator = streamChatCompletion(props, abortController.current.signal)
 
@@ -166,8 +204,10 @@ export const useAgentChat = (
           messageStart = true
         } else if (json.messageStop) {
           if (!messageStart) {
-            console.warn('messageStop without messageStart')
-            console.log(messages)
+            // messageStartなしでmessageStopが来た場合は再試行
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('messageStop without messageStart, retrying')
+            }
             await streamChat(props, currentMessages)
             return
           }
@@ -226,8 +266,17 @@ export const useAgentChat = (
       }
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        console.log('Chat stream aborted')
+        // 中断は正常な操作なのでエラーとして扱わない
         return
+      }
+      // もし要約使用時にエラーが発生し、かつそれがトークン制限に関連するエラーなら、要約なしで再試行
+      if (isSummarized && error.message?.includes('exceed context limit')) {
+        console.warn('Error with summarized context, trying without summarization')
+        // 要約を使わずに元のメッセージと元のシステムプロンプトを使用
+        props.messages = removeTraces(currentMessages)
+        props.system = systemPrompt ? [{ text: systemPrompt }] : undefined
+        setIsSummarized(false)
+        return await streamChat(props, currentMessages)
       }
       console.error({ streamChatRequestError: error })
       toast.error(t('request error'))
@@ -309,7 +358,7 @@ export const useAgentChat = (
       {
         messages: currentMessages,
         modelId,
-        system: systemPrompt ? [{ text: systemPrompt }] : undefined,
+        system: systemPromptToSend ? [{ text: systemPromptToSend }] : undefined,
         toolConfig: enabledTools.length ? { tools: enabledTools } : undefined
       },
       currentMessages
@@ -372,7 +421,10 @@ export const useAgentChat = (
       const lastMessage = currentMessages[currentMessages.length - 1]
       if (lastMessage.content?.find((v) => v.toolUse)) {
         if (!lastMessage.content) {
-          console.warn(lastMessage)
+          // コンテンツがない場合はツール実行をスキップ
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Message has toolUse but no content')
+          }
           result = null
         } else {
           result = await recursivelyExecTool(lastMessage.content, currentMessages)
@@ -399,6 +451,8 @@ export const useAgentChat = (
 
     // メッセージをクリア
     setMessages([])
+    // 要約フラグもリセット
+    setIsSummarized(false)
   }, [modelId, systemPrompt, abortCurrentRequest])
 
   const setSession = useCallback(
@@ -406,6 +460,8 @@ export const useAgentChat = (
       // 進行中の通信を中断してから新しいセッションを設定
       abortCurrentRequest()
       setCurrentSessionId(newSessionId)
+      // 新しいセッションに切り替えるときは要約フラグをリセット
+      setIsSummarized(false)
     },
     [abortCurrentRequest]
   )
@@ -418,6 +474,7 @@ export const useAgentChat = (
     setMessages,
     currentSessionId,
     setCurrentSessionId: setSession, // 中断処理付きのセッション切り替え関数を返す
-    clearChat
+    clearChat,
+    isSummarized // 要約が使用されたかどうかがわかるフラグを返す
   }
 }

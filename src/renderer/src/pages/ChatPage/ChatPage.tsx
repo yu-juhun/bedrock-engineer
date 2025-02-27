@@ -10,7 +10,7 @@ import useScroll from '@renderer/hooks/useScroll'
 import { useIgnoreFileModal } from './modals/useIgnoreFileModal'
 import { useToolSettingModal } from './modals/useToolSettingModal'
 import { useAgentSettingsModal } from './modals/useAgentSettingsModal'
-import { FiSettings, FiChevronRight } from 'react-icons/fi'
+import { FiSettings, FiChevronRight, FiInfo } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { AttachedImage } from './components/InputForm/TextArea'
 import { ChatHistory } from './components/ChatHistory'
@@ -41,7 +41,8 @@ export default function ChatPage() {
     currentSessionId,
     setCurrentSessionId,
     clearChat,
-    setMessages
+    setMessages,
+    isSummarized
   } = useAgentChat(
     llm?.modelId,
     systemPrompt,
@@ -121,14 +122,24 @@ export default function ChatPage() {
         <div className="flex-1 flex flex-col overflow-y-auto">
           {/* ヘッダー */}
           <div className="flex justify-between items-center mb-4">
-            {agents.length > 1 ? (
-              <AgentSelector
-                agents={agents}
-                selectedAgent={selectedAgentId}
-                onSelectAgent={setSelectedAgentId}
-                openable={messages.length === 0}
-              />
-            ) : null}
+            <div className="flex items-center">
+              {agents.length > 1 ? (
+                <AgentSelector
+                  agents={agents}
+                  selectedAgent={selectedAgentId}
+                  onSelectAgent={setSelectedAgentId}
+                  openable={messages.length === 0}
+                />
+              ) : null}
+
+              {/* 要約が使用されている場合に表示する通知 */}
+              {isSummarized && (
+                <div className="ml-4 px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-md flex items-center">
+                  <FiInfo className="h-3 w-3 mr-1" />
+                  過去の会話を要約して使用しています
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center gap-2">
               <button
@@ -211,6 +222,7 @@ export default function ChatPage() {
                 messages={messages}
                 loading={loading}
                 deleteMessage={handleDeleteMessage}
+                summarized={isSummarized}
               />
             </div>
           </div>
