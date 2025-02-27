@@ -181,6 +181,23 @@ Generate AWS Step Functions ASL definitions and preview them in real-time.
 
 ![step-functions-generator](./assets/step-functions-generator.png)
 
+## Diagram Generator
+
+Create AWS architecture diagrams with ease using natural language descriptions. The Diagram Generator leverages Amazon Bedrock's powerful language models to convert your text descriptions into professional AWS architecture diagrams.
+
+Key features:
+
+- 🏗️ Generate AWS architecture diagrams from natural language descriptions
+- 🔍 Web search integration to gather up-to-date information for accurate diagrams
+- 💾 Save diagram history for easy reference and iteration
+- 🔄 Get intelligent recommendations for diagram improvements
+- 🎨 Professional diagram styling using AWS architecture icons
+- 🌐 Multi-language support
+
+The diagrams are created using draw.io compatible XML format, allowing for further editing and customization if needed.
+
+![diagram-generator](./assets/diagram-generator.png)
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=aws-samples/bedrock-engineer&type=Date)](https://star-history.com/#aws-samples/bedrock-engineer&Date)
