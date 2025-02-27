@@ -9,6 +9,9 @@ import { useRecommendDiagrams } from './hooks/useRecommendDiagrams'
 import { RecommendDiagrams } from './components/RecommendDiagrams'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
+import { WebLoader } from '../../components/WebLoader'
+import { DeepSearchButton } from '@renderer/components/DeepSearchButton'
+import { extractDrawioXml } from './utils/xmlParser'
 
 export default function AwsDiagramGeneratorPage() {
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -17,7 +20,10 @@ export default function AwsDiagramGeneratorPage() {
   const [xml, setXml] = useState(exampleDiagrams['serverless'])
   const [isComposing, setIsComposing] = useState(false)
   const drawioRef = useRef<DrawIoEmbedRef>(null)
-  const { currentLLM: llm, sendMsgKey } = useSetting()
+  const { currentLLM: llm, sendMsgKey, enabledTools } = useSetting()
+
+  // 検索機能の状態
+  const [enableSearch, setEnableSearch] = useState(false)
 
   // 履歴管理用の状態
   const [diagramHistory, setDiagramHistory] = useState<{ xml: string; prompt: string }[]>([])
@@ -30,7 +36,8 @@ export default function AwsDiagramGeneratorPage() {
     i18n: { language }
   } = useTranslation()
 
-  const systemPrompt = `You are an expert in creating AWS architecture diagrams.
+  const getSystemPrompt = () => {
+    const basePrompt = `You are an expert in creating AWS architecture diagrams.
 When I describe a system, create a draw.io compatible XML diagram that represents the AWS architecture.
 
 <rules>
@@ -40,6 +47,7 @@ When I describe a system, create a draw.io compatible XML diagram that represent
 * If you really can't express it, you can use a simple diagram with just rectangular blocks and lines.
 * Try to keep ids and styles to a minimum and reduce the length of the prompt.
 * Respond in the following languages: ${language}.
+${enableSearch ? "* If the user's request requires specific information, use the tavilySearch tool to gather up-to-date information before creating the diagram." : ''}
 </rules>
 
 Here is example diagramm's xml:
@@ -75,11 +83,20 @@ Here is example diagramm's xml:
   </diagram>
 </mxfile>
 `
+    return basePrompt
+  }
 
-  const { messages, loading, handleSubmit } = useAgentChat(
+  const systemPrompt = getSystemPrompt()
+
+  // 検索ツールを設定
+  const searchTools = enableSearch
+    ? enabledTools.filter((tool) => tool.toolSpec?.name === 'tavilySearch')
+    : []
+
+  const { messages, loading, handleSubmit, executingTool } = useAgentChat(
     llm?.modelId,
     systemPrompt,
-    [],
+    searchTools,
     undefined,
     { enableHistory: false }
   )
@@ -91,13 +108,23 @@ Here is example diagramm's xml:
     setSelectedHistoryIndex(null)
   }
 
+  // システムプロンプトを検索状態に応じて更新
+  useEffect(() => {
+    // systemPromptは関数から取得するため、enableSearchが変更されたときに再レンダリングされる
+  }, [enableSearch])
+
   // 最後のアシスタントメッセージから XML を取得して draw.io に設定
   useEffect(() => {
     const lastAssistantMessage = messages.filter((m) => m.role === 'assistant').pop()
     const lastUserMessage = messages.filter((m) => m.role === 'user').pop()
 
     if (lastAssistantMessage?.content && !loading && drawioRef.current) {
-      const xml = lastAssistantMessage.content.map((c) => ('text' in c ? c.text : '')).join('')
+      const rawContent = lastAssistantMessage.content
+        .map((c) => ('text' in c ? c.text : ''))
+        .join('')
+      // XMLパーサーを使用して有効なDrawIO XMLだけを抽出
+      const xml = extractDrawioXml(rawContent) || rawContent
+
       if (xml) {
         try {
           drawioRef.current.load({ xml })
@@ -105,7 +132,7 @@ Here is example diagramm's xml:
           // Generate new recommendations based on the current diagram
           getRecommendDiagrams(xml)
 
-          // 履歴に追加（最大3つまで）
+          // 履歴に追加
           if (lastUserMessage?.content) {
             const userPrompt = lastUserMessage.content
               .map((c) => ('text' in c ? c.text : ''))
@@ -118,6 +145,8 @@ Here is example diagramm's xml:
           }
         } catch (error) {
           console.error('Failed to load diagram:', error)
+          // XMLの解析に失敗した場合、エラーメッセージをコンソールに表示
+          console.error('Invalid XML content:', rawContent)
         }
       }
     }
@@ -145,7 +174,7 @@ Here is example diagramm's xml:
       <div className="flex pb-2 justify-between">
         <span className="font-bold flex flex-col gap-2 w-full">
           <div className="flex justify-between">
-            <h1 className="content-center dark:text-white text-lg">AWS Diagram Generator</h1>
+            <h1 className="content-center dark:text-white text-lg">Diagram Generator</h1>
           </div>
           <div className="flex justify-between w-full">
             <div className="flex gap-2">
@@ -173,7 +202,7 @@ Here is example diagramm's xml:
       <div className="flex-1 rounded-lg">
         {loading ? (
           <div className="flex h-full justify-center items-center">
-            <Loader />
+            {executingTool === 'tavilySearch' ? <WebLoader /> : <Loader />}
           </div>
         ) : (
           <div className="w-full h-full border border-gray-200">
@@ -201,6 +230,13 @@ Here is example diagramm's xml:
               onSelect={setUserInput}
               loadingText={t('addRecommend', 'Generating recommendations...')}
             />
+
+            <div className="flex gap-3 items-center">
+              <DeepSearchButton
+                enableDeepSearch={enableSearch}
+                handleToggleDeepSearch={() => setEnableSearch(!enableSearch)}
+              />
+            </div>
           </div>
 
           <TextArea

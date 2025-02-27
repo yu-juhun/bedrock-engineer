@@ -1,7 +1,7 @@
 import { FiHome, FiFeather, FiSettings } from 'react-icons/fi'
 import { LuCombine } from 'react-icons/lu'
 import { HiOutlineChatAlt2 } from 'react-icons/hi'
-import { FaAws } from 'react-icons/fa'
+import { BsLayoutWtf } from 'react-icons/bs'
 import HomePage from './pages/HomePage/HomePage'
 import SettingPage from './pages/SettingPage/SettingPage'
 import StepFunctionsGeneratorPage from './pages/StepFunctionsGeneratorPage/StepFunctionsGeneratorPage'
@@ -24,12 +24,6 @@ export const routes = [
     position: 'top',
     element: <ChatPage />
   },
-  // {
-  //   name: 'History',
-  //   href: '/history',
-  //   icon: FiBook,
-  //   position: 'top'
-  // },
   {
     name: 'Website Generator',
     href: '/generative-ui',
@@ -45,9 +39,9 @@ export const routes = [
     element: <StepFunctionsGeneratorPage />
   },
   {
-    name: 'AWS Diagram Generator',
-    href: '/aws-diagram-generator',
-    icon: FaAws,
+    name: 'Diagram Generator',
+    href: '/diagram-generator',
+    icon: BsLayoutWtf,
     position: 'top',
     element: <AwsDiagramGeneratorPage />
   },
