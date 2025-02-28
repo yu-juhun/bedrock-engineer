@@ -11,7 +11,8 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { WebLoader } from '../../components/WebLoader'
 import { DeepSearchButton } from '@renderer/components/DeepSearchButton'
-import { extractDrawioXml } from './utils/xmlParser'
+import { extractDrawioXml, extractExplanationText } from './utils/xmlParser'
+import MD from '@renderer/components/Markdown/MD'
 
 export default function AwsDiagramGeneratorPage() {
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -26,7 +27,9 @@ export default function AwsDiagramGeneratorPage() {
   const [enableSearch, setEnableSearch] = useState(false)
 
   // 履歴管理用の状態
-  const [diagramHistory, setDiagramHistory] = useState<{ xml: string; prompt: string }[]>([])
+  const [diagramHistory, setDiagramHistory] = useState<
+    { xml: string; prompt: string; explanation: string }[]
+  >([])
   const [selectedHistoryIndex, setSelectedHistoryIndex] = useState<number | null>(null)
 
   const { recommendDiagrams, recommendLoading, getRecommendDiagrams } = useRecommendDiagrams()
@@ -35,13 +38,17 @@ export default function AwsDiagramGeneratorPage() {
     t,
     i18n: { language }
   } = useTranslation()
+  const defaultExplanationText = t('defaultExplanation')
+  const [explanationText, setExplanationText] = useState(defaultExplanationText) // 説明文を保存する状態変数
+  const [showExplanation, setShowExplanation] = useState(false) // 説明文の表示/非表示を切り替える状態変数
 
   const getSystemPrompt = () => {
     const basePrompt = `You are an expert in creating AWS architecture diagrams.
 When I describe a system, create a draw.io compatible XML diagram that represents the AWS architecture.
 
 <rules>
-* Please output only the XML content without any explanation or markdown formatting.
+* First, provide a brief explanation of the architecture in markdown format.
+* Then, provide the draw.io compatible XML diagram.
 * Use appropriate AWS icons and connect them with meaningful relationships.
 * The diagram should be clear, professional, and follow AWS architecture best practices.
 * If you really can't express it, you can use a simple diagram with just rectangular blocks and lines.
@@ -118,14 +125,20 @@ Here is example diagramm's xml:
     const lastAssistantMessage = messages.filter((m) => m.role === 'assistant').pop()
     const lastUserMessage = messages.filter((m) => m.role === 'user').pop()
 
-    if (lastAssistantMessage?.content && !loading && drawioRef.current) {
+    if (lastAssistantMessage?.content) {
       const rawContent = lastAssistantMessage.content
         .map((c) => ('text' in c ? c.text : ''))
         .join('')
-      // XMLパーサーを使用して有効なDrawIO XMLだけを抽出
-      const xml = extractDrawioXml(rawContent) || rawContent
 
-      if (xml) {
+      // 説明文を抽出して状態に保存（ストリーミング中でも更新）
+      const explanation = extractExplanationText(rawContent)
+      setExplanationText(explanation)
+
+      // XMLパーサーを使用して有効なDrawIO XMLだけを抽出
+      const xml = extractDrawioXml(rawContent)
+
+      // ローディングが終わり、XMLが取得できた場合のみ図を更新
+      if (!loading && xml && drawioRef.current) {
         try {
           drawioRef.current.load({ xml })
           setXml(xml)
@@ -138,7 +151,7 @@ Here is example diagramm's xml:
               .map((c) => ('text' in c ? c.text : ''))
               .join('')
             setDiagramHistory((prev) => {
-              const newHistory = [...prev, { xml, prompt: userPrompt }]
+              const newHistory = [...prev, { xml, prompt: userPrompt, explanation }]
               // 最大10つまで保持
               return newHistory.slice(-10)
             })
@@ -161,6 +174,7 @@ Here is example diagramm's xml:
           drawioRef.current.load({ xml: historyItem.xml })
           setXml(historyItem.xml)
           setUserInput(historyItem.prompt)
+          setExplanationText(historyItem.explanation)
           setSelectedHistoryIndex(index)
         } catch (error) {
           console.error('Failed to load diagram from history:', error)
@@ -176,49 +190,92 @@ Here is example diagramm's xml:
           <div className="flex justify-between">
             <h1 className="content-center dark:text-white text-lg">Diagram Generator</h1>
           </div>
-          <div className="flex justify-between w-full">
-            <div className="flex gap-2">
-              {diagramHistory.map((_history, index) => (
-                <motion.span
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  key={index}
-                  className={`p-1 px-3 rounded cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500 dark:text-white ${
-                    selectedHistoryIndex === index
-                      ? 'bg-gray-300 text-gray-800 dark:bg-gray-500 dark:text-white'
-                      : 'bg-gray-200 text-gray-500 dark:bg-gray-600'
-                  }`}
-                  onClick={() => loadDiagramFromHistory(index)}
-                >
-                  {index + 1}
-                </motion.span>
-              ))}
+          <div className="flex justify-between">
+            <div className="flex justify-between w-full">
+              <div className="flex gap-2">
+                {diagramHistory.map((_history, index) => (
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    key={index}
+                    className={`p-1 px-3 rounded cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500 dark:text-white ${
+                      selectedHistoryIndex === index
+                        ? 'bg-gray-300 text-gray-800 dark:bg-gray-500 dark:text-white'
+                        : 'bg-gray-200 text-gray-500 dark:bg-gray-600'
+                    }`}
+                    onClick={() => loadDiagramFromHistory(index)}
+                  >
+                    {index + 1}
+                  </motion.span>
+                ))}
+              </div>
             </div>
+            {showExplanation ? (
+              <button
+                onClick={() => setShowExplanation(false)}
+                className="whitespace-pre bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-1 px-4 rounded-md self-start hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                {t('hide', '非表示')}
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowExplanation(true)}
+                className="whitespace-pre bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-1 px-4 rounded-md self-start hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                {t('showExplanation', '説明を表示')}
+              </button>
+            )}
           </div>
         </span>
       </div>
 
       <div className="flex-1 rounded-lg">
-        {loading ? (
-          <div className="flex h-full justify-center items-center">
-            {executingTool === 'tavilySearch' ? <WebLoader /> : <Loader />}
+        <div className="flex w-full h-full gap-4">
+          {/* 左側: Draw.io エディタ */}
+          <div className="flex-1 h-full">
+            {loading ? (
+              <div className="flex h-full justify-center items-center border border-gray-200 dark:border-gray-700">
+                {executingTool === 'tavilySearch' ? <WebLoader /> : <Loader />}
+              </div>
+            ) : (
+              <div className="w-full h-full border border-gray-200 dark:border-gray-700">
+                <DrawIoEmbed
+                  ref={drawioRef}
+                  xml={xml}
+                  configuration={{
+                    defaultLibraries: 'aws4;aws3;aws3d'
+                  }}
+                  urlParameters={{
+                    dark: isDark,
+                    lang: language
+                  }}
+                />
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="w-full h-full border border-gray-200">
-            <DrawIoEmbed
-              ref={drawioRef}
-              xml={xml}
-              configuration={{
-                defaultLibraries: 'aws4;aws3;aws3d'
-              }}
-              urlParameters={{
-                dark: isDark,
-                lang: language
-              }}
-            />
-          </div>
-        )}
+
+          {/* 右側: 説明文エリア */}
+          {showExplanation && (
+            <div className="w-1/3 h-full flex flex-col">
+              {/* 説明文表示エリア */}
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 overflow-auto h-full">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold text-gray-700 dark:text-gray-300">
+                    {t('explanation', '説明')}
+                  </h3>
+                </div>
+                {loading ? (
+                  <div className="text-gray-600 dark:text-gray-300 animate-pulse">
+                    <MD>{explanationText || t('generatingExplanation', '説明を生成中...')}</MD>
+                  </div>
+                ) : (
+                  <MD>{explanationText}</MD>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-2 fixed bottom-0 left-20 right-5 bottom-3">
