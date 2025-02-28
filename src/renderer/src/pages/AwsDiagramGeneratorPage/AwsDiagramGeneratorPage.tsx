@@ -49,7 +49,7 @@ export default function AwsDiagramGeneratorPage() {
   const {
     t,
     i18n: { language }
-  } = useTranslation(['awsDiagramGenerator'])
+  } = useTranslation()
   const defaultExplanationText = t('defaultExplanation')
   const [explanationText, setExplanationText] = useState(defaultExplanationText) // 説明文を保存する状態変数
   const [showExplanation, setShowExplanation] = useState(false) // 説明文の表示/非表示を切り替える状態変数
@@ -240,7 +240,35 @@ ${
 
       // 説明文を抽出して状態に保存（ストリーミング中でも更新）
       const explanation = extractExplanationText(rawContent)
-      setExplanationText(explanation)
+
+      // TODO: Tool の実行結果表示は後日
+      // // 直前のツール実行結果を取得
+      // const getLastToolResults = () => {
+      //   for (let i = messages.length - 1; i >= 0; i--) {
+      //     const message = messages[i]
+      //     if (message.role === 'user' && message.content) {
+      //       const toolResults = message.content.filter((c: ContentBlock) => {
+      //         return c.toolResult
+      //       })
+      //       if (toolResults.length > 0) {
+      //         return toolResults
+      //       }
+      //     }
+      //   }
+      //   return null
+      // }
+
+      // const lastToolResults = getLastToolResults()
+      // console.log(lastToolResults)
+
+      // // ツール実行結果があれば説明文に追加
+      // const explanationWithToolResult = lastToolResults
+      //   ? `${explanation}\n\n## Last Tool Execution Results\n${lastToolResults
+      //       .map((result) => `### \`\`\`json\n${JSON.stringify(result, null, 2)}\n\`\`\``)
+      //       .join('\n\n')}`
+      //   : explanation
+
+      // setExplanationText(explanationWithToolResult)
 
       // XMLパーサーを使用して有効なDrawIO XMLだけを抽出
       const xml = extractDrawioXml(rawContent)
@@ -385,11 +413,6 @@ ${
             <div className="w-1/3 h-full flex flex-col">
               {/* 説明文表示エリア */}
               <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 overflow-auto h-full">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-semibold text-gray-700 dark:text-gray-300">
-                    {t('explanation', '説明')}
-                  </h3>
-                </div>
                 {loading ? (
                   <div className="text-gray-600 dark:text-gray-300 animate-pulse">
                     <MD>{explanationText || 'Generating Explanation...'}</MD>

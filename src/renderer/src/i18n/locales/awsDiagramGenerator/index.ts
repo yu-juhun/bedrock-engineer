@@ -10,6 +10,9 @@ export const awsDiagramGenerator = {
     awsCliDisabled: 'AWS CLI Disabled',
     analyzingAwsEnvironment: 'Analyzing AWS environment...',
 
+    hide: 'hide',
+    showExplanation: 'Show Explanation',
+
     // Example prompts
     serverlessArchitectureTitle: 'Serverless API',
     serverlessArchitectureValue:
@@ -55,7 +58,12 @@ In addition to AWS architecture diagrams, it can also represent a variety of dia
 - Entering a more detailed description will generate a more accurate diagram
 - Explicitly stating specific AWS service names will include them in the diagram
 - "Search" generates a diagram that reflects the latest AWS service information, but it may take longer to process
-- "AWS" button uses AWS CLI to analyze your current AWS environment and generate a diagram based on actual resources`
+- "AWS" button uses AWS CLI to analyze your current AWS environment and generate a diagram based on actual resources
+
+## Constraints
+
+- Currently, the AWS integration function can only investigate the following resources:
+- EC2, S3, RDS, Lambda, APIGateway, DynamoDB, ELB`
   },
   ja: {
     // Page title and components
@@ -67,6 +75,9 @@ In addition to AWS architecture diagrams, it can also represent a variety of dia
     awsCliEnabled: 'AWS CLI 有効',
     awsCliDisabled: 'AWS CLI 無効',
     analyzingAwsEnvironment: 'AWS環境を分析中...',
+
+    hide: '非表示',
+    showExplanation: '説明を表示',
 
     // Example prompts
     serverlessArchitectureTitle: 'Serverless API',
@@ -103,7 +114,7 @@ AWS のアーキテクチャ図以外にも、ソフトウェアアーキテク�
 
 - **AIによる図の自動生成**: 自然言語の説明からプロフェッショナルなAWS構成図を作成
 - **検索機能**: 「Search」ボタンをクリックすると、最新のAWSサービス情報を取得して図を生成
-- **AWS CLI連携**: 「AWS」ボタンをクリックすると、AWS CLIを使用して現在のAWS環境を分析し、図を生成
+- **AWS連携**: 「AWS」ボタンをクリックすると、AWS CLIを使用して現在のAWS環境を分析し、図を生成
 - **履歴管理**: 生成した図は履歴に保存され、上部の番号をクリックして過去の図を参照可能
 - **図の説明**: 右側のパネルに図の詳細な説明が表示されます
 
@@ -113,6 +124,11 @@ AWS のアーキテクチャ図以外にも、ソフトウェアアーキテク�
 - 特定のAWSサービス名を明示的に記載すると、それらが図に含まれます
 - 「Search」すると最新のAWSサービス情報を反映した図が生成されますが、処理時間が長くなることがあります
 - 「AWS」ボタンを使用すると、AWS CLIで現在のAWS環境を分析し、実際のリソースに基づいた図を生成します
+
+## 制約
+
+- 現在 AWS 連携機能では以下のリソースのみを対象として調査することが可能です。
+  - EC2, S3, RDS, Lambda, APIGateway, DynamoDB, ELB
     `
   }
 }
