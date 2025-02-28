@@ -5,6 +5,10 @@ export const awsDiagramGenerator = {
     generatingRecommendations: 'Generating recommendations...',
     addRecommend: 'Considering additional recommended features',
     awsLibraries: 'AWS Libraries',
+    enableAWSCLI: 'AWS',
+    awsCliEnabled: 'AWS CLI Enabled',
+    awsCliDisabled: 'AWS CLI Disabled',
+    analyzingAwsEnvironment: 'Analyzing AWS environment...',
 
     // Example prompts
     serverlessArchitectureTitle: 'Serverless API',
@@ -42,6 +46,7 @@ In addition to AWS architecture diagrams, it can also represent a variety of dia
 
 - **AI-based automatic diagram generation**: Create professional AWS configuration diagrams from natural language descriptions
 - **Search function**: Click the "Search" button to obtain the latest AWS service information and generate a diagram
+- **AWS CLI integration**: Click the "AWS" button to analyze your current AWS environment using AWS CLI and generate a diagram
 - **History management**: Generated diagrams are saved in the history, and you can refer to past diagrams by clicking the numbers at the top
 - **Diagram description**: A detailed description of the diagram is displayed in the right panel
 
@@ -49,7 +54,8 @@ In addition to AWS architecture diagrams, it can also represent a variety of dia
 
 - Entering a more detailed description will generate a more accurate diagram
 - Explicitly stating specific AWS service names will include them in the diagram
-- "Search" generates a diagram that reflects the latest AWS service information, but it may take longer to process`
+- "Search" generates a diagram that reflects the latest AWS service information, but it may take longer to process
+- "AWS" button uses AWS CLI to analyze your current AWS environment and generate a diagram based on actual resources`
   },
   ja: {
     // Page title and components
@@ -57,6 +63,10 @@ In addition to AWS architecture diagrams, it can also represent a variety of dia
     generatingRecommendations: 'レコメンデーションを生成中...',
     addRecommend: '追加機能を検討中',
     awsLibraries: 'AWSライブラリ',
+    enableAWSCLI: 'AWS',
+    awsCliEnabled: 'AWS CLI 有効',
+    awsCliDisabled: 'AWS CLI 無効',
+    analyzingAwsEnvironment: 'AWS環境を分析中...',
 
     // Example prompts
     serverlessArchitectureTitle: 'Serverless API',
@@ -93,6 +103,7 @@ AWS のアーキテクチャ図以外にも、ソフトウェアアーキテク�
 
 - **AIによる図の自動生成**: 自然言語の説明からプロフェッショナルなAWS構成図を作成
 - **検索機能**: 「Search」ボタンをクリックすると、最新のAWSサービス情報を取得して図を生成
+- **AWS CLI連携**: 「AWS」ボタンをクリックすると、AWS CLIを使用して現在のAWS環境を分析し、図を生成
 - **履歴管理**: 生成した図は履歴に保存され、上部の番号をクリックして過去の図を参照可能
 - **図の説明**: 右側のパネルに図の詳細な説明が表示されます
 
@@ -101,6 +112,7 @@ AWS のアーキテクチャ図以外にも、ソフトウェアアーキテク�
 - より詳細な説明を入力すると、より正確な図が生成されます
 - 特定のAWSサービス名を明示的に記載すると、それらが図に含まれます
 - 「Search」すると最新のAWSサービス情報を反映した図が生成されますが、処理時間が長くなることがあります
+- 「AWS」ボタンを使用すると、AWS CLIで現在のAWS環境を分析し、実際のリソースに基づいた図を生成します
     `
   }
 }
