@@ -2,6 +2,7 @@ import React, { useCallback, useState, useMemo } from 'react'
 import { FiLoader, FiSend, FiX } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
+import SoundService from '@renderer/services/SoundService'
 
 export type AttachedImage = {
   file: File
@@ -106,6 +107,11 @@ export const TextArea: React.FC<TextAreaProps> = ({
   )
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Play typing sound for all keystrokes except special keys
+    if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1) {
+      SoundService.playTypingSound()
+    }
+
     if (e.shiftKey || isComposing) {
       return
     }

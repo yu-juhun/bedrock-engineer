@@ -12,6 +12,7 @@ import {
   PRODUCT_DESIGNER_SYSTEM_PROMPT
 } from '@renderer/pages/ChatPage/constants/DEFAULT_AGENTS'
 import { InferenceParameters, LLM, BEDROCK_SUPPORTED_REGIONS } from '@/types/llm'
+import SoundService, { SoundType } from '@renderer/services/SoundService'
 
 const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
   maxTokens: 4096,
@@ -155,6 +156,12 @@ export interface SettingsContextType {
   // Shell Settings
   shell: string
   setShell: (shell: string) => void
+
+  // Sound Settings
+  soundType: SoundType
+  setSoundType: (soundType: SoundType) => void
+  soundEnabled: boolean
+  setSoundEnabled: (enabled: boolean) => void
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
@@ -214,6 +221,26 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Shell Settings
   const [shell, setStateShell] = useState<string>(DEFAULT_SHELL)
+
+  // Sound Settings
+  const [soundType, setStateSoundType] = useState<SoundType>(SoundType.SND01)
+  const [soundEnabled, setStateSoundEnabled] = useState<boolean>(true)
+
+  // Initialize sound service
+  useEffect(() => {
+    const initSound = async () => {
+      try {
+        if (soundEnabled) {
+          await SoundService.initialize(soundType)
+        } else {
+          await SoundService.initialize(SoundType.NONE)
+        }
+      } catch (error) {
+        console.error('Failed to initialize sound service:', error)
+      }
+    }
+    initSound()
+  }, [soundType, soundEnabled])
 
   // Initialize all settings
   useEffect(() => {
@@ -322,6 +349,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         allowedCommands: initialCommands,
         shell: DEFAULT_SHELL
       })
+    }
+
+    // Load Sound Settings
+    const soundSettings = window.store.get('sound')
+    if (soundSettings) {
+      setStateSoundType(soundSettings.type || SoundType.SND01)
+      setStateSoundEnabled(soundSettings.enabled !== undefined ? soundSettings.enabled : true)
     }
   }, [])
 
@@ -575,6 +609,22 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     })
   }
 
+  const setSoundType = (type: SoundType) => {
+    setStateSoundType(type)
+    window.store.set('sound', {
+      type,
+      enabled: soundEnabled
+    })
+  }
+
+  const setSoundEnabled = (enabled: boolean) => {
+    setStateSoundEnabled(enabled)
+    window.store.set('sound', {
+      type: soundType,
+      enabled
+    })
+  }
+
   const value = {
     // Advanced Settings
     sendMsgKey,
@@ -638,7 +688,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // Shell Settings
     shell,
-    setShell
+    setShell,
+
+    // Sound Settings
+    soundType,
+    setSoundType,
+    soundEnabled,
+    setSoundEnabled
   }
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>

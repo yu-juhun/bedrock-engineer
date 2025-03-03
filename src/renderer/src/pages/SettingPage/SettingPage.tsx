@@ -9,6 +9,7 @@ import {
   BedrockSection,
   AdvancedSection
 } from './components/sections'
+import { SoundSection } from './components/sections/SoundSection'
 import { ConfigDirSection } from './components/sections/ConfigDirSection'
 
 export const SettingPage: React.FC = () => {
@@ -31,7 +32,11 @@ export const SettingPage: React.FC = () => {
     awsSecretAccessKey,
     setAwsSecretAccessKey,
     inferenceParams,
-    updateInferenceParams
+    updateInferenceParams,
+    soundType,
+    setSoundType,
+    soundEnabled,
+    setSoundEnabled
   } = useSetting()
 
   const handleChangeLLM = (modelId: string) => {
@@ -81,6 +86,13 @@ export const SettingPage: React.FC = () => {
         inferenceParams={inferenceParams}
         onUpdateLLM={handleChangeLLM}
         onUpdateInferenceParams={updateInferenceParams}
+      />
+
+      <SoundSection
+        soundType={soundType}
+        soundEnabled={soundEnabled}
+        onUpdateSoundType={setSoundType}
+        onUpdateSoundEnabled={setSoundEnabled}
       />
 
       <AdvancedSection sendMsgKey={sendMsgKey} onUpdateSendMsgKey={updateSendMsgKey} />
