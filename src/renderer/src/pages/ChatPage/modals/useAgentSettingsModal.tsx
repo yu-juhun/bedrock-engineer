@@ -24,155 +24,193 @@ export const useAgentSettingsModal = () => {
 interface AgentSettingModalProps {
   isOpen: boolean
   onClose: () => void
+  selectedAgentId?: string
+  onSelectAgent?: (agentId: string) => void
 }
 
-const AgentSettingsModal = React.memo(({ isOpen, onClose }: AgentSettingModalProps) => {
-  const [editingAgent, setEditingAgent] = useState<CustomAgent | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const { customAgents, saveCustomAgents } = useSetting()
-  const { t } = useTranslation()
+const AgentSettingsModal = React.memo(
+  ({ isOpen, onClose, selectedAgentId, onSelectAgent }: AgentSettingModalProps) => {
+    const [editingAgent, setEditingAgent] = useState<CustomAgent | null>(null)
+    const [searchQuery, setSearchQuery] = useState('')
+    const { customAgents, saveCustomAgents, agents } = useSetting()
+    const { t } = useTranslation()
 
-  const handleSaveAgent = (agent: CustomAgent) => {
-    const updatedAgents = editingAgent?.id
-      ? customAgents.map((a) => (a.id === agent.id ? agent : a))
-      : [...customAgents, agent]
-    saveCustomAgents(updatedAgents)
-    setEditingAgent(null)
-    onClose()
-  }
-
-  const handleDeleteAgent = (id: string) => {
-    const updatedAgents = customAgents.filter((agent) => agent.id !== id)
-    saveCustomAgents(updatedAgents)
-  }
-
-  const handleDuplicateAgent = (agent: CustomAgent) => {
-    const newAgent = {
-      ...agent,
-      id: crypto.randomUUID(),
-      name: `${agent.name} (${t('copy')})`
+    const handleSaveAgent = (agent: CustomAgent) => {
+      const updatedAgents = editingAgent?.id
+        ? customAgents.map((a) => (a.id === agent.id ? agent : a))
+        : [...customAgents, agent]
+      saveCustomAgents(updatedAgents)
+      setEditingAgent(null)
+      onClose()
     }
-    saveCustomAgents([...customAgents, newAgent])
-  }
 
-  const filteredAgents = customAgents.filter((agent) =>
-    agent.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+    const handleDeleteAgent = (id: string) => {
+      const updatedAgents = customAgents.filter((agent) => agent.id !== id)
+      saveCustomAgents(updatedAgents)
+    }
 
-  return (
-    <Modal
-      dismissible
-      show={isOpen}
-      onClose={() => {
-        setEditingAgent(null)
+    const handleDuplicateAgent = (agent: CustomAgent) => {
+      const newAgent = {
+        ...agent,
+        id: crypto.randomUUID(),
+        name: `${agent.name} (${t('copy')})`
+      }
+      saveCustomAgents([...customAgents, newAgent])
+    }
+
+    const handleSelectAgent = (agentId: string) => {
+      if (onSelectAgent) {
+        onSelectAgent(agentId)
         onClose()
-      }}
-      size="8xl"
-    >
-      <Modal.Header className="border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-2">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {editingAgent ? t('editAgent') : t('customAgents')}
-          </h3>
-        </div>
-      </Modal.Header>
-      <Modal.Body className="p-6">
-        <div className="space-y-6 min-h-[800px]">
-          {editingAgent ? (
-            <AgentForm
-              agent={editingAgent}
-              onSave={handleSaveAgent}
-              onCancel={() => setEditingAgent(null)}
-            />
-          ) : (
-            <>
-              <div className="flex items-center justify-between gap-4">
-                <div className="relative flex-1 max-w-md">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <FiSearch className="w-5 h-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="search"
-                    className="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg
+      }
+    }
+
+    const filteredAgents = [...agents].filter((agent) =>
+      agent.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+
+    return (
+      <Modal
+        dismissible
+        show={isOpen}
+        onClose={() => {
+          setEditingAgent(null)
+          onClose()
+        }}
+        size="8xl"
+      >
+        <Modal.Header className="border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-2">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+              {editingAgent ? t('editAgent') : t('customAgents')}
+            </h3>
+          </div>
+        </Modal.Header>
+        <Modal.Body className="p-6">
+          <div className="space-y-6 min-h-[800px]">
+            {editingAgent ? (
+              <AgentForm
+                agent={editingAgent}
+                onSave={handleSaveAgent}
+                onCancel={() => setEditingAgent(null)}
+              />
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="relative flex-1 max-w-md">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <FiSearch className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="search"
+                      className="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg
                       bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700
                       dark:border-gray-600 dark:placeholder-gray-400 dark:text-white
                       dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                    placeholder={t('searchAgents')}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <button
-                  onClick={() => setEditingAgent({} as CustomAgent)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-700
+                      placeholder={t('searchAgents')}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    onClick={() => setEditingAgent({} as CustomAgent)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-700
                     border border-transparent rounded-lg shadow-sm hover:bg-blue-700 dark:hover:bg-blue-600
                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
                     dark:focus:ring-offset-gray-900 whitespace-nowrap flex gap-2 items-center"
-                >
-                  {t('addNewAgent')}
-                </button>
-              </div>
-              <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                {filteredAgents.map((agent) => (
-                  <div
-                    key={agent.id}
-                    className="group relative flex items-start p-4 border border-gray-200
-                      dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 hover:border-blue-500
-                      dark:hover:border-blue-400 transition-all duration-200 cursor-pointer"
-                    onClick={() => setEditingAgent(agent)}
                   >
-                    <div className="flex-shrink-0 mr-4">
+                    {t('addNewAgent')}
+                  </button>
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                  {filteredAgents.map((agent) => {
+                    const isCustomAgent = customAgents.some((a) => a.id === agent.id)
+                    const isSelected = agent.id === selectedAgentId
+
+                    return (
                       <div
-                        className="w-10 h-10 flex items-center justify-center
-                        bg-blue-50 dark:bg-blue-900/20 rounded-lg"
+                        key={agent.id}
+                        className={`group relative flex items-start p-4 border
+                        ${isSelected ? 'border-blue-500 dark:border-blue-400' : 'border-gray-200 dark:border-gray-700'}
+                        rounded-lg bg-white dark:bg-gray-800 hover:border-blue-500
+                        dark:hover:border-blue-400 transition-all duration-200 cursor-pointer
+                        ${isSelected ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}
+                        onClick={() => handleSelectAgent(agent.id)}
                       >
-                        <TbRobot className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0 relative pr-10">
-                      <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1 pr-6 truncate">
-                        {agent.name}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 break-words">
-                        {agent.description || t('noDescription')}
-                      </p>
-                      <div className="absolute right-0 top-0" onClick={(e) => e.stopPropagation()}>
-                        <Dropdown
-                          label=""
-                          dismissOnClick={true}
-                          renderTrigger={() => (
-                            <button
-                              className="p-1.5 text-gray-600 hover:text-gray-900 dark:text-gray-400
-                                dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                              <FiMoreVertical className="w-4 h-4" />
-                            </button>
-                          )}
-                        >
-                          <Dropdown.Item onClick={() => setEditingAgent(agent)} className="w-28">
-                            {t('edit')}
-                          </Dropdown.Item>
-                          <Dropdown.Item onClick={() => handleDuplicateAgent(agent)}>
-                            {t('duplicate')}
-                          </Dropdown.Item>
-                          <Dropdown.Item
-                            onClick={() => handleDeleteAgent(agent.id!)}
-                            className="text-red-600 dark:text-red-400"
+                        <div className="flex-shrink-0 mr-4">
+                          <div
+                            className={`w-10 h-10 flex items-center justify-center
+                            ${isSelected ? 'bg-blue-100 dark:bg-blue-900/40' : 'bg-blue-50 dark:bg-blue-900/20'}
+                            rounded-lg`}
                           >
-                            {t('delete')}
-                          </Dropdown.Item>
-                        </Dropdown>
+                            <TbRobot
+                              className={`w-5 h-5 ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-blue-600 dark:text-blue-400'}`}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0 relative pr-10">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-base font-medium text-gray-900 dark:text-white pr-6 truncate">
+                              {agent.name}
+                            </h3>
+                            {isSelected && (
+                              <span className="px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 rounded">
+                                {t('active')}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 break-words">
+                            {agent.description || t('noDescription')}
+                          </p>
+                          {isCustomAgent && (
+                            <div
+                              className="absolute right-0 top-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Dropdown
+                                label=""
+                                dismissOnClick={true}
+                                renderTrigger={() => (
+                                  <button
+                                    className="p-1.5 text-gray-600 hover:text-gray-900 dark:text-gray-400
+                                    dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  >
+                                    <FiMoreVertical className="w-4 h-4" />
+                                  </button>
+                                )}
+                              >
+                                <Dropdown.Item
+                                  onClick={() => setEditingAgent(agent as CustomAgent)}
+                                  className="w-28"
+                                >
+                                  {t('edit')}
+                                </Dropdown.Item>
+                                <Dropdown.Item
+                                  onClick={() => handleDuplicateAgent(agent as CustomAgent)}
+                                >
+                                  {t('duplicate')}
+                                </Dropdown.Item>
+                                <Dropdown.Item
+                                  onClick={() => handleDeleteAgent(agent.id!)}
+                                  className="text-red-600 dark:text-red-400"
+                                >
+                                  {t('delete')}
+                                </Dropdown.Item>
+                              </Dropdown>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </Modal.Body>
-    </Modal>
-  )
-})
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        </Modal.Body>
+      </Modal>
+    )
+  }
+)
 
 AgentSettingsModal.displayName = 'AgentSettingsModal'

@@ -10,7 +10,7 @@ import useScroll from '@renderer/hooks/useScroll'
 import { useIgnoreFileModal } from './modals/useIgnoreFileModal'
 import { useToolSettingModal } from './modals/useToolSettingModal'
 import { useAgentSettingsModal } from './modals/useAgentSettingsModal'
-import { FiSettings, FiChevronRight } from 'react-icons/fi'
+import { FiChevronRight } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { AttachedImage } from './components/InputForm/TextArea'
 import { ChatHistory } from './components/ChatHistory'
@@ -125,19 +125,11 @@ export default function ChatPage() {
               <AgentSelector
                 agents={agents}
                 selectedAgent={selectedAgentId}
-                onSelectAgent={setSelectedAgentId}
-                openable={messages.length === 0}
+                onOpenSettings={openAgentSettingsModal}
               />
             ) : null}
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={openAgentSettingsModal}
-                className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
-                title={t('agent settings')}
-              >
-                <FiSettings className="w-5 h-5" />
-              </button>
               <span
                 className="text-xs text-gray-400 font-thin cursor-pointer hover:text-gray-700"
                 onClick={handleOpenSystemPromptModal}
@@ -156,6 +148,8 @@ export default function ChatPage() {
           <AgentSettingsModal
             isOpen={showAgentSettingModal}
             onClose={handleCloseAgentSettingsModal}
+            selectedAgentId={selectedAgentId}
+            onSelectAgent={setSelectedAgentId}
           />
           <ToolSettingModal isOpen={showToolSettingModal} onClose={handleCloseToolSettingModal} />
           <IgnoreFileModal isOpen={showIgnoreFileModal} onClose={handleCloseIgnoreFileModal} />
