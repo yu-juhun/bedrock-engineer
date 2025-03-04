@@ -33,6 +33,9 @@ export interface SettingFormData {
 
   // Advanced Settings
   sendMsgKey: 'Enter' | 'Cmd+Enter'
+
+  // Notification Settings
+  enableNotification?: boolean
 }
 
 export interface SettingFormErrors {
@@ -49,4 +52,6 @@ export interface SettingFormErrors {
 export interface SettingSectionProps {
   className?: string
   children: React.ReactNode
+  title: string
+  description?: string
 }
