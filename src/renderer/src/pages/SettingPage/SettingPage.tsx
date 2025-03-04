@@ -6,7 +6,6 @@ import {
   LanguageSection,
   AgentChatSection,
   AWSSection,
-  BedrockSection,
   AdvancedSection,
   NotificationSection
 } from './components/sections'
@@ -32,7 +31,9 @@ export const SettingPage: React.FC = () => {
     awsSecretAccessKey,
     setAwsSecretAccessKey,
     inferenceParams,
-    updateInferenceParams
+    updateInferenceParams,
+    bedrockSettings,
+    updateBedrockSettings
   } = useSetting()
 
   const handleChangeLLM = (modelId: string) => {
@@ -74,14 +75,13 @@ export const SettingPage: React.FC = () => {
         onUpdateRegion={setAwsRegion}
         onUpdateAccessKeyId={setAwsAccessKeyId}
         onUpdateSecretAccessKey={setAwsSecretAccessKey}
-      />
-
-      <BedrockSection
         currentLLM={currentLLM}
         availableModels={availableModels}
         inferenceParams={inferenceParams}
+        bedrockSettings={bedrockSettings}
         onUpdateLLM={handleChangeLLM}
         onUpdateInferenceParams={updateInferenceParams}
+        onUpdateBedrockSettings={updateBedrockSettings}
       />
 
       <AdvancedSection sendMsgKey={sendMsgKey} onUpdateSendMsgKey={updateSendMsgKey} />

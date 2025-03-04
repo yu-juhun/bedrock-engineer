@@ -109,6 +109,18 @@ export interface SettingsContextType {
   inferenceParams: InferenceParameters
   updateInferenceParams: (params: Partial<InferenceParameters>) => void
 
+  // Bedrock Settings
+  bedrockSettings: {
+    enableRegionFailover: boolean
+    availableFailoverRegions: string[]
+  }
+  updateBedrockSettings: (
+    settings: Partial<{
+      enableRegionFailover: boolean
+      availableFailoverRegions: string[]
+    }>
+  ) => void
+
   // userDataPath (Electorn store directory)
   userDataPath: string
 
@@ -183,6 +195,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [inferenceParams, setInferenceParams] =
     useState<InferenceParameters>(DEFAULT_INFERENCE_PARAMS)
 
+  const [bedrockSettings, setBedrockSettings] = useState<{
+    enableRegionFailover: boolean
+    availableFailoverRegions: string[]
+  }>({
+    enableRegionFailover: true,
+    availableFailoverRegions: [...BEDROCK_SUPPORTED_REGIONS]
+  })
+
   const userDataPath = window.store.get('userDataPath')
 
   // Project Settings
@@ -244,6 +264,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const storedInferenceParams = window.store.get('inferenceParams')
     if (storedInferenceParams) {
       setInferenceParams(storedInferenceParams)
+    }
+
+    // Load Bedrock Settings
+    const storedBedrockSettings = window.store.get('bedrockSettings')
+    if (storedBedrockSettings) {
+      setBedrockSettings(storedBedrockSettings)
     }
 
     // Load Project Settings
@@ -393,6 +419,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     window.store.set('inferenceParams', updatedParams)
   }
 
+  const updateBedrockSettings = (settings: Partial<typeof bedrockSettings>) => {
+    const updatedSettings = { ...bedrockSettings, ...settings }
+    setBedrockSettings(updatedSettings)
+    window.store.set('bedrockSettings', updatedSettings)
+  }
+
   const selectDirectory = async () => {
     const path = await window.file.handleFolderOpen()
     if (path) {
@@ -411,6 +443,16 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const setAwsRegion = (region: string) => {
     setStateAwsRegion(region)
     saveAwsConfig(region, awsAccessKeyId, awsSecretAccessKey)
+
+    // availableFailoverRegions をリセット
+    setBedrockSettings({
+      ...bedrockSettings,
+      availableFailoverRegions: []
+    })
+    window.store.set('bedrockSettings', {
+      ...bedrockSettings,
+      availableFailoverRegions: [...BEDROCK_SUPPORTED_REGIONS]
+    })
   }
 
   const setAwsAccessKeyId = (accessKeyId: string) => {
@@ -611,6 +653,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Inference Parameters
     inferenceParams,
     updateInferenceParams,
+
+    // Bedrock Settings
+    bedrockSettings,
+    updateBedrockSettings,
 
     // userDataPath (Electron store directory)
     userDataPath,
