@@ -5,8 +5,7 @@ import { BedrockAgent } from '../../modals/useToolSettingModal/BedrockAgentSetti
 export interface AgentFormProps {
   agent: CustomAgent
   onSave: (agent: CustomAgent) => void
-  onCancel?: () => void
-  availableTags?: string[]
+  onCancel: () => void
 }
 
 export interface BasicSectionProps {

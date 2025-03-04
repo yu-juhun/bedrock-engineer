@@ -1,12 +1,10 @@
 import React, { useState } from 'react'
 import { CustomAgent } from '@/types/agent-chat'
-import { FiMoreVertical, FiSearch } from 'react-icons/fi'
 import useSetting from '@renderer/hooks/useSetting'
 import { useTranslation } from 'react-i18next'
-import { Modal, Dropdown } from 'flowbite-react'
-import { TbRobot } from 'react-icons/tb'
+import { Modal } from 'flowbite-react'
 import { AgentForm } from '../components/AgentForm/AgentForm'
-import { AGENT_ICONS } from '@renderer/components/icons/AgentIcons'
+import { AgentList } from '../components/AgentList'
 
 export const useAgentSettingsModal = () => {
   const [show, setShow] = useState(false)
@@ -32,19 +30,8 @@ interface AgentSettingModalProps {
 const AgentSettingsModal = React.memo(
   ({ isOpen, onClose, selectedAgentId, onSelectAgent }: AgentSettingModalProps) => {
     const [editingAgent, setEditingAgent] = useState<CustomAgent | null>(null)
-    const [searchQuery, setSearchQuery] = useState('')
-    const [selectedTags, setSelectedTags] = useState<string[]>([])
     const { customAgents, saveCustomAgents, agents } = useSetting()
     const { t } = useTranslation()
-
-    // 全エージェントから利用可能なタグを収集
-    const availableTags = React.useMemo(() => {
-      const tagSet = new Set<string>()
-      agents.forEach((agent) => {
-        agent.tags?.forEach((tag) => tagSet.add(tag))
-      })
-      return Array.from(tagSet).sort()
-    }, [agents])
 
     const handleSaveAgent = (agent: CustomAgent) => {
       const updatedAgents = editingAgent?.id
@@ -76,13 +63,6 @@ const AgentSettingsModal = React.memo(
       }
     }
 
-    const filteredAgents = [...agents].filter((agent) => {
-      const nameMatch = agent.name.toLowerCase().includes(searchQuery.toLowerCase())
-      const tagMatch =
-        selectedTags.length === 0 || selectedTags.every((tag) => agent.tags?.includes(tag))
-      return nameMatch && tagMatch
-    })
-
     return (
       <Modal
         dismissible
@@ -107,159 +87,18 @@ const AgentSettingsModal = React.memo(
                 agent={editingAgent}
                 onSave={handleSaveAgent}
                 onCancel={() => setEditingAgent(null)}
-                availableTags={availableTags}
               />
             ) : (
-              <>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="relative flex-1 max-w-md">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <FiSearch className="w-5 h-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="search"
-                      className="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg
-                      bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700
-                      dark:border-gray-600 dark:placeholder-gray-400 dark:text-white
-                      dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                      placeholder={t('searchAgents')}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <button
-                    onClick={() => setEditingAgent({} as CustomAgent)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-700
-                    border border-transparent rounded-lg shadow-sm hover:bg-blue-700 dark:hover:bg-blue-600
-                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-                    dark:focus:ring-offset-gray-900 whitespace-nowrap flex gap-2 items-center"
-                  >
-                    {t('addNewAgent')}
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-4 mb-6">
-                  {availableTags.map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => {
-                        setSelectedTags((prev) =>
-                          prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-                        )
-                      }}
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                        ${
-                          selectedTags.includes(tag)
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                        }`}
-                    >
-                      {tag}
-                      {selectedTags.includes(tag) && (
-                        <span className="ml-2 text-xs" aria-hidden="true">
-                          ×
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                  {filteredAgents.map((agent) => {
-                    const isCustomAgent = customAgents.some((a) => a.id === agent.id)
-                    const isSelected = agent.id === selectedAgentId
-
-                    return (
-                      <div
-                        key={agent.id}
-                        className={`group relative flex items-start p-4 border
-                        ${isSelected ? 'border-blue-500 dark:border-blue-400' : 'border-gray-200 dark:border-gray-700'}
-                        rounded-lg bg-white dark:bg-gray-800 hover:border-blue-500
-                        dark:hover:border-blue-400 transition-all duration-200 cursor-pointer
-                        ${isSelected ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}
-                        onClick={() => handleSelectAgent(agent.id)}
-                      >
-                        <div className="flex-shrink-0 mr-4">
-                          <div
-                            className={`w-10 h-10 flex items-center justify-center
-                            ${isSelected ? 'bg-blue-100 dark:bg-blue-900/40' : 'bg-blue-50 dark:bg-blue-900/20'}
-                            rounded-lg`}
-                          >
-                            {agent.icon ? (
-                              React.cloneElement(
-                                AGENT_ICONS.find((opt) => opt.value === agent.icon)
-                                  ?.icon as React.ReactElement,
-                                {
-                                  className: `w-5 h-5`,
-                                  style: (agent as CustomAgent).iconColor
-                                    ? { color: (agent as CustomAgent).iconColor }
-                                    : isSelected
-                                      ? { color: 'var(--tw-text-blue-700)' }
-                                      : { color: 'var(--tw-text-blue-600)' }
-                                }
-                              )
-                            ) : (
-                              <TbRobot
-                                className={`w-5 h-5 ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-blue-600 dark:text-blue-400'}`}
-                              />
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0 relative pr-10">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-base font-medium text-gray-900 dark:text-white pr-6 truncate">
-                              {agent.name}
-                            </h3>
-                            {isSelected && (
-                              <span className="px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 rounded">
-                                {t('active')}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 break-words">
-                            {agent.description || t('noDescription')}
-                          </p>
-                          {isCustomAgent && (
-                            <div
-                              className="absolute right-0 top-0"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Dropdown
-                                label=""
-                                dismissOnClick={true}
-                                renderTrigger={() => (
-                                  <button
-                                    className="p-1.5 text-gray-600 hover:text-gray-900 dark:text-gray-400
-                                    dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  >
-                                    <FiMoreVertical className="w-4 h-4" />
-                                  </button>
-                                )}
-                              >
-                                <Dropdown.Item
-                                  onClick={() => setEditingAgent(agent as CustomAgent)}
-                                  className="w-28"
-                                >
-                                  {t('edit')}
-                                </Dropdown.Item>
-                                <Dropdown.Item
-                                  onClick={() => handleDuplicateAgent(agent as CustomAgent)}
-                                >
-                                  {t('duplicate')}
-                                </Dropdown.Item>
-                                <Dropdown.Item
-                                  onClick={() => handleDeleteAgent(agent.id!)}
-                                  className="text-red-600 dark:text-red-400"
-                                >
-                                  {t('delete')}
-                                </Dropdown.Item>
-                              </Dropdown>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </>
+              <AgentList
+                agents={agents}
+                customAgents={customAgents}
+                selectedAgentId={selectedAgentId}
+                onSelectAgent={handleSelectAgent}
+                onAddNewAgent={() => setEditingAgent({} as CustomAgent)}
+                onEditAgent={setEditingAgent}
+                onDuplicateAgent={handleDuplicateAgent}
+                onDeleteAgent={handleDeleteAgent}
+              />
             )}
           </div>
         </Modal.Body>
