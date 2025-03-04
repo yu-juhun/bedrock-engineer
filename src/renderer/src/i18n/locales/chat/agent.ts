@@ -1,6 +1,17 @@
 export const agent = {
   en: {
     active: 'Active',
+    icon: 'Icon',
+    iconDescription: "Select an icon that represents the agent's role",
+    searchIcons: 'Search icons...',
+    iconCategory: {
+      general: 'General',
+      development: 'Development',
+      cloud: 'Cloud & Infrastructure',
+      devops: 'DevOps',
+      security: 'Security',
+      monitoring: 'Monitoring & Analytics'
+    },
     'What is Amazon Bedrock': 'What is Amazon Bedrock',
     'What is Amazon Bedrock description':
       'Search for the latest information about Amazon Bedrock and summarize what it can do in a concise manner.',
@@ -65,6 +76,17 @@ export const agent = {
   },
   ja: {
     active: 'アクティブ',
+    icon: 'アイコン',
+    iconDescription: 'エージェントの役割を表すアイコンを選択してください',
+    searchIcons: 'アイコンを検索...',
+    iconCategory: {
+      general: '一般',
+      development: '開発',
+      cloud: 'クラウド & インフラ',
+      devops: 'DevOps',
+      security: 'セキュリティ',
+      monitoring: 'モニタリング & 分析'
+    },
     'What is Amazon Bedrock': 'Amazon Bedrock とは',
     'What is Amazon Bedrock description':
       'Amazon Bedrock に関する最新情報を検索して、何ができるか簡潔にまとめてください。',

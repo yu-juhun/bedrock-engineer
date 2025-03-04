@@ -57,6 +57,7 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
       <BasicSection
         name={formData.name}
         description={formData.description}
+        icon={formData.icon}
         onChange={(field, value) => updateField(field, value)}
       />
 

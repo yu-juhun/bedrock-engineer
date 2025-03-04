@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { Modal, Dropdown } from 'flowbite-react'
 import { TbRobot } from 'react-icons/tb'
 import { AgentForm } from '../components/AgentForm/AgentForm'
+import { AGENT_ICONS } from '@renderer/components/icons/AgentIcons'
 
 export const useAgentSettingsModal = () => {
   const [show, setShow] = useState(false)
@@ -143,9 +144,19 @@ const AgentSettingsModal = React.memo(
                             ${isSelected ? 'bg-blue-100 dark:bg-blue-900/40' : 'bg-blue-50 dark:bg-blue-900/20'}
                             rounded-lg`}
                           >
-                            <TbRobot
-                              className={`w-5 h-5 ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-blue-600 dark:text-blue-400'}`}
-                            />
+                            {agent.icon ? (
+                              React.cloneElement(
+                                AGENT_ICONS.find((opt) => opt.value === agent.icon)
+                                  ?.icon as React.ReactElement,
+                                {
+                                  className: `w-5 h-5 ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-blue-600 dark:text-blue-400'}`
+                                }
+                              )
+                            ) : (
+                              <TbRobot
+                                className={`w-5 h-5 ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-blue-600 dark:text-blue-400'}`}
+                              />
+                            )}
                           </div>
                         </div>
                         <div className="flex-1 min-w-0 relative pr-10">

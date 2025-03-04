@@ -11,7 +11,8 @@ export interface AgentFormProps {
 export interface BasicSectionProps {
   name: string
   description: string
-  onChange: (field: 'name' | 'description', value: string) => void
+  icon?: string
+  onChange: (field: 'name' | 'description' | 'icon', value: string) => void
 }
 
 export interface SystemPromptSectionProps {
