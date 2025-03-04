@@ -200,7 +200,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     availableFailoverRegions: string[]
   }>({
     enableRegionFailover: true,
-    availableFailoverRegions: [...BEDROCK_SUPPORTED_REGIONS]
+    availableFailoverRegions: []
   })
 
   const userDataPath = window.store.get('userDataPath')
