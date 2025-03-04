@@ -23,6 +23,7 @@ export type Agent = {
   system: string
   scenarios: Scenario[]
   icon?: AgentIcon
+  iconColor?: string
 }
 
 export type AgentIcon =

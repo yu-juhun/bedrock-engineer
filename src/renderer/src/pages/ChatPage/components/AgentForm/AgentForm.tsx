@@ -58,6 +58,7 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
         name={formData.name}
         description={formData.description}
         icon={formData.icon}
+        iconColor={formData.iconColor}
         onChange={(field, value) => updateField(field, value)}
       />
 

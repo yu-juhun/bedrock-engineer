@@ -8,6 +8,7 @@ export const BasicSection: React.FC<BasicSectionProps> = ({
   name,
   description,
   icon,
+  iconColor,
   onChange
 }) => {
   const { t } = useTranslation()
@@ -42,7 +43,8 @@ export const BasicSection: React.FC<BasicSectionProps> = ({
               React.cloneElement(
                 AGENT_ICONS.find((opt) => opt.value === icon)?.icon as React.ReactElement,
                 {
-                  className: 'w-12 h-12'
+                  className: 'w-12 h-12',
+                  style: iconColor ? { color: iconColor } : undefined
                 }
               )
             ) : (
@@ -56,6 +58,27 @@ export const BasicSection: React.FC<BasicSectionProps> = ({
               className="absolute z-50 left-full top-full ml-2 -mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border
                 border-gray-200 dark:border-gray-700 p-2 w-[320px]"
             >
+              {/* Color Picker */}
+              <div className="p-2 border-b border-gray-200 dark:border-gray-700 pb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  {t('iconColor')}
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={iconColor || '#000000'}
+                    onChange={(e) => onChange('iconColor', e.target.value)}
+                    className="w-8 h-8 rounded cursor-pointer"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onChange('iconColor', undefined)}
+                    className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    {t('reset')}
+                  </button>
+                </div>
+              </div>
               <div className="relative">
                 <input
                   type="text"
@@ -85,7 +108,7 @@ export const BasicSection: React.FC<BasicSectionProps> = ({
                       <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2 px-1">
                         {t(`iconCategory.${category}`)}
                       </h3>
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="grid grid-cols-6 gap-2">
                         {categoryIcons.map((option) => (
                           <button
                             key={option.value}
@@ -94,7 +117,7 @@ export const BasicSection: React.FC<BasicSectionProps> = ({
                               onChange('icon', option.value)
                               setShowIconPicker(false)
                             }}
-                            className={`flex items-center justify-center p-3 rounded-lg hover:bg-gray-100
+                            className={`flex items-center justify-center p-2 rounded-lg hover:bg-gray-100
                               dark:hover:bg-gray-700 ${
                                 icon === option.value
                                   ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
@@ -102,7 +125,7 @@ export const BasicSection: React.FC<BasicSectionProps> = ({
                               }`}
                             title={option.label}
                           >
-                            <div className="w-12 h-12 flex items-center justify-center">
+                            <div className="w-6 h-6 flex items-center justify-center">
                               {React.cloneElement(option.icon as React.ReactElement, {
                                 className: 'w-8 h-8'
                               })}

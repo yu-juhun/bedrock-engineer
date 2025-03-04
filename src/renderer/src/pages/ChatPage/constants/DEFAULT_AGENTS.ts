@@ -1,9 +1,10 @@
+import { CustomAgent } from '@/types/agent-chat'
+
 export const DEFAULT_AGENTS = [
   {
     id: 'softwareAgent',
     name: 'Software Agent',
-    description:
-      'An exceptional software developer with vast knowledge across multiple programming languages, frameworks, and best practices.',
+    description: 'softwareAgent.description',
     system: `You are AI assistant. You are an exceptional software developer with vast knowledge across multiple programming languages, frameworks, and best practices.
 
 You can now read files, list the contents of the root folder where this script is being run, and perform web searches. Use these capabilities:
@@ -100,13 +101,13 @@ When use executeCommand tool:
       { title: 'Refactoring', content: '' },
       { title: 'Testcode', content: '' }
     ],
-    icon: 'laptop'
+    icon: 'laptop',
+    iconColor: 'oklch(0.623 0.214 259.815)'
   },
   {
     id: 'codeBuddy',
     name: 'Code Buddy',
-    description:
-      'A friendly programming mentor designed to help beginners learn to code with patience and encouragement.',
+    description: 'codeBuddy.description',
     system: `You are CodeBuddy, a friendly programming mentor designed to help beginners learn to code. Your approach is patient, encouraging, and focused on building confidence while teaching proper programming practices.
 
 1. Learning Support
@@ -226,12 +227,13 @@ Remember to:
       { title: 'Object-Oriented Programming', content: '' },
       { title: 'Data Visualization with Python', content: '' }
     ],
-    icon: 'code'
+    icon: 'code',
+    iconColor: 'oklch(0.627 0.194 149.214)'
   },
   {
     id: 'productDesigner',
     name: 'Product Designer',
-    description: 'An expert in creating user-friendly interfaces and engaging user experiences.',
+    description: 'productDesigner.description',
     system: `You are a product designer AI assistant. You are an expert in creating user-friendly interfaces and engaging user experiences.
 
 Your capabilities include:
@@ -259,9 +261,10 @@ When use tools:
       { title: 'Design Handoff', content: '' },
       { title: 'Design Trend Research', content: '' }
     ],
-    icon: 'design'
+    icon: 'design',
+    iconColor: 'oklch(0.558 0.288 302.321)'
   }
-] as const
+] as const as CustomAgent[]
 
 export const SOFTWARE_AGENT_SYSTEM_PROMPT = DEFAULT_AGENTS[0].system
 export const CODE_BUDDY_SYSTEM_PROMPT = DEFAULT_AGENTS[1].system

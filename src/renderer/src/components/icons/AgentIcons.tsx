@@ -35,6 +35,7 @@ export type AgentIconOption = {
   icon: React.ReactNode
   label: string
   category: 'general' | 'development' | 'cloud' | 'devops' | 'security' | 'monitoring'
+  color?: string
 }
 
 export const AGENT_ICONS: AgentIconOption[] = [
@@ -98,9 +99,13 @@ export const AGENT_ICONS: AgentIconOption[] = [
   { value: 'prometheus', icon: <SiPrometheus />, label: 'Prometheus', category: 'monitoring' }
 ]
 
-export const getIconByValue = (value: AgentIcon): React.ReactNode => {
+export const getIconByValue = (value: AgentIcon, color?: string): React.ReactNode => {
   const option = AGENT_ICONS.find((opt) => opt.value === value)
-  return option?.icon || <TbRobot />
+  const icon = option?.icon || <TbRobot />
+  if (color) {
+    return React.cloneElement(icon as React.ReactElement, { style: { color } })
+  }
+  return icon
 }
 
 export const getIconsByCategory = (category: AgentIconOption['category']): AgentIconOption[] => {

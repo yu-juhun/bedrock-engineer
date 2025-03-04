@@ -12,7 +12,11 @@ export interface BasicSectionProps {
   name: string
   description: string
   icon?: string
-  onChange: (field: 'name' | 'description' | 'icon', value: string) => void
+  iconColor?: string
+  onChange: (
+    field: 'name' | 'description' | 'icon' | 'iconColor',
+    value: string | undefined
+  ) => void
 }
 
 export interface SystemPromptSectionProps {

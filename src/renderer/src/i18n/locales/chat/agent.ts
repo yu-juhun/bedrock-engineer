@@ -3,6 +3,8 @@ export const agent = {
     active: 'Active',
     icon: 'Icon',
     iconDescription: "Select an icon that represents the agent's role",
+    iconColor: 'Icon Color',
+    reset: 'Reset',
     searchIcons: 'Search icons...',
     iconCategory: {
       general: 'General',
@@ -78,6 +80,8 @@ export const agent = {
     active: 'アクティブ',
     icon: 'アイコン',
     iconDescription: 'エージェントの役割を表すアイコンを選択してください',
+    iconColor: 'アイコンの色',
+    reset: 'リセット',
     searchIcons: 'アイコンを検索...',
     iconCategory: {
       general: '一般',

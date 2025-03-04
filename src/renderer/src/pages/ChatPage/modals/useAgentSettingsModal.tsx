@@ -149,7 +149,12 @@ const AgentSettingsModal = React.memo(
                                 AGENT_ICONS.find((opt) => opt.value === agent.icon)
                                   ?.icon as React.ReactElement,
                                 {
-                                  className: `w-5 h-5 ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-blue-600 dark:text-blue-400'}`
+                                  className: `w-5 h-5`,
+                                  style: (agent as CustomAgent).iconColor
+                                    ? { color: (agent as CustomAgent).iconColor }
+                                    : isSelected
+                                      ? { color: 'var(--tw-text-blue-700)' }
+                                      : { color: 'var(--tw-text-blue-600)' }
                                 }
                               )
                             ) : (
