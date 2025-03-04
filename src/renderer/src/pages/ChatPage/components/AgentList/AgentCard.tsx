@@ -77,33 +77,37 @@ export const AgentCard: React.FC<AgentCardProps> = ({
         <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 break-words">
           {agent.description || t('noDescription')}
         </p>
-        {isCustomAgent && (
-          <div className="absolute right-0 top-0" onClick={(e) => e.stopPropagation()}>
-            <Dropdown
-              label=""
-              dismissOnClick={true}
-              renderTrigger={() => (
-                <button
-                  className="p-1.5 text-gray-600 hover:text-gray-900 dark:text-gray-400
+        <div className="absolute right-0 top-0" onClick={(e) => e.stopPropagation()}>
+          <Dropdown
+            label=""
+            dismissOnClick={true}
+            renderTrigger={() => (
+              <button
+                className="p-1.5 text-gray-600 hover:text-gray-900 dark:text-gray-400
                     dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  <FiMoreVertical className="w-4 h-4" />
-                </button>
-              )}
-            >
+              >
+                <FiMoreVertical className="w-4 h-4" />
+              </button>
+            )}
+          >
+            {isCustomAgent && (
               <Dropdown.Item onClick={() => onEdit?.(agent)} className="w-28">
                 {t('edit')}
               </Dropdown.Item>
-              <Dropdown.Item onClick={() => onDuplicate?.(agent)}>{t('duplicate')}</Dropdown.Item>
+            )}
+            <Dropdown.Item onClick={() => onDuplicate?.(agent)} className="w-28">
+              {t('duplicate')}
+            </Dropdown.Item>
+            {isCustomAgent && (
               <Dropdown.Item
                 onClick={() => onDelete?.(agent.id!)}
                 className="text-red-600 dark:text-red-400"
               >
                 {t('delete')}
               </Dropdown.Item>
-            </Dropdown>
-          </div>
-        )}
+            )}
+          </Dropdown>
+        </div>
       </div>
     </div>
   )

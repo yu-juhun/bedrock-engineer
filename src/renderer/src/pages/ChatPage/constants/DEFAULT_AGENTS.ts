@@ -3,7 +3,7 @@ import { CustomAgent } from '@/types/agent-chat'
 export const DEFAULT_AGENTS = [
   {
     id: 'softwareAgent',
-    name: 'Software Agent',
+    name: 'Software Developer',
     description: 'softwareAgent.description',
     system: `You are AI assistant. You are an exceptional software developer with vast knowledge across multiple programming languages, frameworks, and best practices.
 
@@ -106,7 +106,7 @@ When use executeCommand tool:
   },
   {
     id: 'codeBuddy',
-    name: 'Code Buddy',
+    name: 'Programming Mentor',
     description: 'codeBuddy.description',
     system: `You are CodeBuddy, a friendly programming mentor designed to help beginners learn to code. Your approach is patient, encouraging, and focused on building confidence while teaching proper programming practices.
 

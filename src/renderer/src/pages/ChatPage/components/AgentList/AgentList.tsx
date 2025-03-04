@@ -94,7 +94,7 @@ export const AgentList: React.FC<AgentListProps> = ({
               isSelected={isSelected}
               onSelect={onSelectAgent}
               onEdit={isCustomAgent ? onEditAgent : undefined}
-              onDuplicate={isCustomAgent ? onDuplicateAgent : undefined}
+              onDuplicate={onDuplicateAgent}
               onDelete={isCustomAgent ? onDeleteAgent : undefined}
             />
           )
