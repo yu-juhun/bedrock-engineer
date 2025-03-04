@@ -6,13 +6,22 @@ import { useAgentForm } from './useAgentForm'
 import { BasicSection } from './BasicSection'
 import { SystemPromptSection } from './SystemPromptSection'
 import { ScenariosSection } from './ScenariosSection'
+import { TagsSection } from './TagsSection'
 import { useAgentGenerator } from '../../hooks/useAgentGenerator'
 import { useScenarioGenerator } from '../../hooks/useScenarioGenerator'
 import toast from 'react-hot-toast'
+import { FiSave } from 'react-icons/fi'
 
-export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel }) => {
+export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave }) => {
   const { t } = useTranslation()
-  const { projectPath, allowedCommands, knowledgeBases, bedrockAgents } = useSetting()
+  const { projectPath, allowedCommands, knowledgeBases, bedrockAgents, agents } = useSetting()
+  const availableTags = React.useMemo(() => {
+    const tagSet = new Set<string>()
+    agents.forEach((agent) => {
+      agent.tags?.forEach((tag) => tagSet.add(tag))
+    })
+    return Array.from(tagSet).sort()
+  }, [agents])
   const { formData, updateField, handleSubmit } = useAgentForm(agent, onSave)
   const { generateAgentSystemPrompt, generatedAgentSystemPrompt, isGenerating } =
     useAgentGenerator()
@@ -85,23 +94,21 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
         onAutoGenerate={handleGenerateScenarios}
       />
 
-      <div className="flex justify-end space-x-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800
-            border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700
-            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900"
-        >
-          {t('cancel')}
-        </button>
+      <TagsSection
+        tags={formData.tags || []}
+        availableTags={availableTags}
+        onChange={(tags) => updateField('tags', tags)}
+      />
+
+      <div className="flex justify-end pt-4 pb-4 space-x-2">
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-700 border border-transparent
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-700 border border-transparent
             rounded-md shadow-sm hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2
             focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-900"
         >
-          {t('save')}
+          <FiSave />
+          <p>{t('save')}</p>
         </button>
       </div>
     </form>

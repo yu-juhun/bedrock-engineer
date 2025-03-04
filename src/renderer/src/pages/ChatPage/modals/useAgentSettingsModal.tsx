@@ -33,8 +33,18 @@ const AgentSettingsModal = React.memo(
   ({ isOpen, onClose, selectedAgentId, onSelectAgent }: AgentSettingModalProps) => {
     const [editingAgent, setEditingAgent] = useState<CustomAgent | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
+    const [selectedTags, setSelectedTags] = useState<string[]>([])
     const { customAgents, saveCustomAgents, agents } = useSetting()
     const { t } = useTranslation()
+
+    // 全エージェントから利用可能なタグを収集
+    const availableTags = React.useMemo(() => {
+      const tagSet = new Set<string>()
+      agents.forEach((agent) => {
+        agent.tags?.forEach((tag) => tagSet.add(tag))
+      })
+      return Array.from(tagSet).sort()
+    }, [agents])
 
     const handleSaveAgent = (agent: CustomAgent) => {
       const updatedAgents = editingAgent?.id
@@ -66,9 +76,12 @@ const AgentSettingsModal = React.memo(
       }
     }
 
-    const filteredAgents = [...agents].filter((agent) =>
-      agent.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filteredAgents = [...agents].filter((agent) => {
+      const nameMatch = agent.name.toLowerCase().includes(searchQuery.toLowerCase())
+      const tagMatch =
+        selectedTags.length === 0 || selectedTags.every((tag) => agent.tags?.includes(tag))
+      return nameMatch && tagMatch
+    })
 
     return (
       <Modal
@@ -94,6 +107,7 @@ const AgentSettingsModal = React.memo(
                 agent={editingAgent}
                 onSave={handleSaveAgent}
                 onCancel={() => setEditingAgent(null)}
+                availableTags={availableTags}
               />
             ) : (
               <>
@@ -122,6 +136,31 @@ const AgentSettingsModal = React.memo(
                   >
                     {t('addNewAgent')}
                   </button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-4 mb-6">
+                  {availableTags.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => {
+                        setSelectedTags((prev) =>
+                          prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                        )
+                      }}
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                        ${
+                          selectedTags.includes(tag)
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
+                    >
+                      {tag}
+                      {selectedTags.includes(tag) && (
+                        <span className="ml-2 text-xs" aria-hidden="true">
+                          ×
+                        </span>
+                      )}
+                    </button>
+                  ))}
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
                   {filteredAgents.map((agent) => {

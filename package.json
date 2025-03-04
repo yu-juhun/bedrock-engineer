@@ -35,6 +35,7 @@
     "@codesandbox/sandpack-react": "2.18.3",
     "@electron-toolkit/preload": "3.0.1",
     "@electron-toolkit/utils": "3.0.0",
+    "@headlessui/react": "^2.2.0",
     "@iconify-json/logos": "1.2.0",
     "@monaco-editor/react": "4.6.0",
     "@reactour/tour": "3.7.0",

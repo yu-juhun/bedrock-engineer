@@ -14,6 +14,12 @@ export const agent = {
       security: 'Security',
       monitoring: 'Monitoring & Analytics'
     },
+    tagsDescription:
+      'You can set tags as identifiers to make it easier to search for agents in the list.',
+    remove: 'Remove',
+    enterTag: 'Enter Tag',
+    addTag: 'Add',
+    availableTags: 'Available Tags',
     'What is Amazon Bedrock': 'What is Amazon Bedrock',
     'What is Amazon Bedrock description':
       'Search for the latest information about Amazon Bedrock and summarize what it can do in a concise manner.',
@@ -46,7 +52,6 @@ export const agent = {
     showPreview: 'Show Preview',
     previewResult: 'Placeholder replacement result:',
     copy: 'Copy',
-    cancel: 'Cancel',
     save: 'Save',
     optional: '(Optional)',
     namePlaceholder: 'e.g., Programming Mentor',
@@ -91,6 +96,11 @@ export const agent = {
       security: 'セキュリティ',
       monitoring: 'モニタリング & 分析'
     },
+    tagsDescription: 'エージェント一覧から検索しやすくする識別子としてタグを設定できます。',
+    remove: '削除する',
+    enterTag: 'タグを入力',
+    addTag: '追加',
+    availableTags: '利用可能なタグ',
     'What is Amazon Bedrock': 'Amazon Bedrock とは',
     'What is Amazon Bedrock description':
       'Amazon Bedrock に関する最新情報を検索して、何ができるか簡潔にまとめてください。',
@@ -121,7 +131,6 @@ export const agent = {
     showPreview: 'プレビューを表示',
     previewResult: 'プレースホルダーを置換した結果:',
     copy: 'コピー',
-    cancel: 'キャンセル',
     save: '保存',
     optional: '（オプション）',
     namePlaceholder: '例: プログラミングメンター',

@@ -3,9 +3,10 @@ import { CommandConfig } from '../../modals/useToolSettingModal'
 import { BedrockAgent } from '../../modals/useToolSettingModal/BedrockAgentSettingForm'
 
 export interface AgentFormProps {
-  agent?: CustomAgent
+  agent: CustomAgent
   onSave: (agent: CustomAgent) => void
-  onCancel: () => void
+  onCancel?: () => void
+  availableTags?: string[]
 }
 
 export interface BasicSectionProps {

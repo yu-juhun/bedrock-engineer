@@ -30,7 +30,7 @@ export const BasicSection: React.FC<BasicSectionProps> = ({
   return (
     <div className="flex gap-8 min-h-[140px]">
       {/* Left: Icon Section */}
-      <div className="w-[140px] shrink-0 flex items-center justify-center">
+      <div className="w-[160px] shrink-0 flex items-center justify-center">
         <div className="relative flex items-center justify-center">
           <button
             type="button"

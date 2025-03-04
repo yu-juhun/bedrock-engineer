@@ -121,13 +121,11 @@ export default function ChatPage() {
         <div className="flex-1 flex flex-col overflow-y-auto">
           {/* ヘッダー */}
           <div className="flex justify-between items-center mb-4">
-            {agents.length > 1 ? (
-              <AgentSelector
-                agents={agents}
-                selectedAgent={selectedAgentId}
-                onOpenSettings={openAgentSettingsModal}
-              />
-            ) : null}
+            <AgentSelector
+              agents={agents}
+              selectedAgent={selectedAgentId}
+              onOpenSettings={openAgentSettingsModal}
+            />
 
             <div className="flex items-center gap-2">
               <span
