@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Modal } from 'flowbite-react'
 import { AgentForm } from '../components/AgentForm/AgentForm'
 import { AgentList } from '../components/AgentList'
+import toast from 'react-hot-toast'
 
 export const useAgentSettingsModal = () => {
   const [show, setShow] = useState(false)
@@ -30,7 +31,7 @@ interface AgentSettingModalProps {
 const AgentSettingsModal = React.memo(
   ({ isOpen, onClose, selectedAgentId, onSelectAgent }: AgentSettingModalProps) => {
     const [editingAgent, setEditingAgent] = useState<CustomAgent | null>(null)
-    const { customAgents, saveCustomAgents, agents } = useSetting()
+    const { customAgents, saveCustomAgents, agents, loadSharedAgents } = useSetting()
     const { t } = useTranslation()
 
     const handleSaveAgent = (agent: CustomAgent) => {
@@ -60,6 +61,31 @@ const AgentSettingsModal = React.memo(
       if (onSelectAgent) {
         onSelectAgent(agentId)
         onClose()
+      }
+    }
+
+    // Handler to save agent as a shared file
+    const handleSaveAsShared = async (agent: CustomAgent) => {
+      try {
+        const result = await window.file.saveSharedAgent(agent)
+        if (result.success) {
+          // Show success notification or toast here if needed
+          console.log('Agent saved as shared file:', result.filePath)
+
+          // Load the updated shared agents to refresh the list in the UI
+          await loadSharedAgents()
+
+          // Show success message
+          toast.success(t('agentSavedAsShared'), {
+            duration: 5000
+          })
+        } else {
+          console.error('Failed to save agent as shared file:', result.error)
+          toast.error(result.error || t('failedToSaveShared'))
+        }
+      } catch (error) {
+        console.error('Error saving shared agent:', error)
+        toast.error(t('failedToSaveShared'))
       }
     }
 
@@ -98,6 +124,7 @@ const AgentSettingsModal = React.memo(
                 onEditAgent={setEditingAgent}
                 onDuplicateAgent={handleDuplicateAgent}
                 onDeleteAgent={handleDeleteAgent}
+                onSaveAsShared={handleSaveAsShared}
               />
             )}
           </div>

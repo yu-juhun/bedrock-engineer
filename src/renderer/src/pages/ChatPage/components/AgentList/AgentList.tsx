@@ -14,6 +14,7 @@ interface AgentListProps {
   onEditAgent: (agent: CustomAgent) => void
   onDuplicateAgent: (agent: CustomAgent) => void
   onDeleteAgent: (agentId: string) => void
+  onSaveAsShared?: (agent: CustomAgent) => void
 }
 
 export const AgentList: React.FC<AgentListProps> = ({
@@ -24,7 +25,8 @@ export const AgentList: React.FC<AgentListProps> = ({
   onAddNewAgent,
   onEditAgent,
   onDuplicateAgent,
-  onDeleteAgent
+  onDeleteAgent,
+  onSaveAsShared
 }) => {
   const { t } = useTranslation()
   const { searchQuery, setSearchQuery, selectedTags, availableTags, filteredAgents, toggleTag } =
@@ -85,6 +87,8 @@ export const AgentList: React.FC<AgentListProps> = ({
         {filteredAgents.map((agent) => {
           const isCustomAgent = customAgents.some((a) => a.id === agent.id)
           const isSelected = agent.id === selectedAgentId
+          // Shared agents can't be edited or deleted
+          const isEditable = isCustomAgent && !agent.isShared
 
           return (
             <AgentCard
@@ -93,9 +97,10 @@ export const AgentList: React.FC<AgentListProps> = ({
               isCustomAgent={isCustomAgent}
               isSelected={isSelected}
               onSelect={onSelectAgent}
-              onEdit={isCustomAgent ? onEditAgent : undefined}
+              onEdit={isEditable ? onEditAgent : undefined}
               onDuplicate={onDuplicateAgent}
-              onDelete={isCustomAgent ? onDeleteAgent : undefined}
+              onDelete={isEditable ? onDeleteAgent : undefined}
+              onSaveAsShared={onSaveAsShared}
             />
           )
         })}

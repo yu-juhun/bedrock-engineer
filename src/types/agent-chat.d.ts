@@ -73,7 +73,7 @@ export type AgentIcon =
 
 export type CustomAgent = Agent & {
   isCustom?: boolean
-  icon?: AgentIcon
+  isShared?: boolean
 }
 
 export type AgentSettings = {

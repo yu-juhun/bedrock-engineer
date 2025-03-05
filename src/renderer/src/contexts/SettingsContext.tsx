@@ -141,6 +141,8 @@ export interface SettingsContextType {
   // Custom Agents Settings
   customAgents: CustomAgent[]
   saveCustomAgents: (agents: CustomAgent[]) => void
+  sharedAgents: CustomAgent[]
+  loadSharedAgents: () => Promise<void>
 
   // Selected Agent Settings
   selectedAgentId: string
@@ -214,6 +216,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Custom Agents Settings
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([])
+  const [sharedAgents, setSharedAgents] = useState<CustomAgent[]>([])
 
   // Selected Agent Settings
   const [selectedAgentId, setStateSelectedAgentId] = useState<string>('softwareAgent')
@@ -369,6 +372,26 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [awsRegion, awsAccessKeyId, awsSecretAccessKey])
 
+  // Load shared agents when component mounts or project path changes
+  useEffect(() => {
+    // Load shared agents right away
+    loadSharedAgents()
+  }, [projectPath])
+
+  // Function to load shared agents from project directory
+  const loadSharedAgents = async () => {
+    try {
+      const { agents, error } = await window.file.readSharedAgents()
+      if (error) {
+        console.error('Error loading shared agents:', error)
+      } else {
+        setSharedAgents(agents || [])
+      }
+    } catch (error) {
+      console.error('Failed to load shared agents:', error)
+    }
+  }
+
   useEffect(() => {
     if (currentLLM && currentLLM.toolUse === false) {
       // currentLLM が ToolUse をサポートしないモデルだった場合ツールを全て disabled にする
@@ -518,9 +541,42 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [t, projectPath, allowedCommands, knowledgeBases, bedrockAgents])
 
   const baseAgents = getBaseAgents()
+  // Make sure there are no duplicate IDs between agents from different sources
   const allAgents = useMemo(() => {
-    return [...baseAgents, ...customAgents]
-  }, [baseAgents, customAgents])
+    // Create a mapping of IDs to count occurrences
+    const idCounts = new Map<string, number>()
+
+    // First pass - count all IDs
+    ;[...baseAgents, ...customAgents, ...sharedAgents].forEach((agent) => {
+      if (agent.id) {
+        idCounts.set(agent.id, (idCounts.get(agent.id) || 0) + 1)
+      }
+    })
+
+    // Clone and fix duplicate IDs by adding a suffix
+    const result = [
+      ...baseAgents,
+      ...customAgents,
+      // Apply special handling for shared agents which may have duplicates
+      ...sharedAgents.map((agent) => {
+        // If this ID is unique or already has 'shared-' prefix, keep it as is
+        if (
+          (agent.id && idCounts.get(agent.id) === 1) ||
+          (agent.id && agent.id.startsWith('shared-'))
+        ) {
+          return agent
+        }
+
+        // Otherwise, generate a new ID with timestamp to make it unique
+        return {
+          ...agent,
+          id: `shared-${agent.id || ''}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`
+        }
+      })
+    ]
+
+    return result
+  }, [baseAgents, customAgents, sharedAgents])
   const currentAgent = allAgents.find((a) => a.id === selectedAgentId)
   const systemPrompt = currentAgent?.system
     ? replacePlaceholders(currentAgent?.system, {
@@ -625,6 +681,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Custom Agents Settings
     customAgents,
     saveCustomAgents,
+    sharedAgents,
+    loadSharedAgents,
 
     // Selected Agent Settings
     selectedAgentId,

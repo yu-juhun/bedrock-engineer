@@ -80,7 +80,11 @@ export const agent = {
     duplicate: 'Duplicate',
     delete: 'Delete',
     more: 'More options',
-    inputSystemPrompt: 'Input System Prompt:'
+    inputSystemPrompt: 'Input System Prompt:',
+    shared: 'Shared',
+    saveAsShared: 'Save as Shared File',
+    agentSavedAsShared: 'Agent saved as a shared file successfully',
+    failedToSaveShared: 'Failed to save agent as shared file'
   },
   ja: {
     active: 'アクティブ',
@@ -160,6 +164,11 @@ export const agent = {
     duplicate: '複製する',
     delete: '削除する',
     more: 'その他のオプション',
-    inputSystemPrompt: 'システムプロンプトを入力:'
+    inputSystemPrompt: 'システムプロンプトを入力:',
+    shared: '共有',
+    saveAsShared: '共有ファイルとして保存',
+    agentSavedAsShared:
+      'エージェントが共有ファイルとして正常に保存されました。現在の作業ディレクトリの .bedrock-engineer/agents/ を確認してください。',
+    failedToSaveShared: '共有ファイルとして保存できませんでした'
   }
 }

@@ -14,6 +14,7 @@ interface AgentCardProps {
   onEdit?: (agent: CustomAgent) => void
   onDuplicate?: (agent: CustomAgent) => void
   onDelete?: (agentId: string) => void
+  onSaveAsShared?: (agent: CustomAgent) => void
 }
 
 export const AgentCard: React.FC<AgentCardProps> = ({
@@ -23,7 +24,8 @@ export const AgentCard: React.FC<AgentCardProps> = ({
   onSelect,
   onEdit,
   onDuplicate,
-  onDelete
+  onDelete,
+  onSaveAsShared
 }) => {
   const { t } = useTranslation()
 
@@ -68,46 +70,60 @@ export const AgentCard: React.FC<AgentCardProps> = ({
           <h3 className="text-base font-medium text-gray-900 dark:text-white pr-6 truncate">
             {agent.name}
           </h3>
-          {isSelected && (
-            <span className="px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 rounded">
-              {t('active')}
-            </span>
-          )}
+          <div className="flex items-center gap-1">
+            {isSelected && (
+              <span className="px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 rounded">
+                {t('active')}
+              </span>
+            )}
+            {agent.isShared && (
+              <span className="px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40 rounded">
+                {t('shared')}
+              </span>
+            )}
+          </div>
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 break-words">
           {agent.description || t('noDescription')}
         </p>
-        <div className="absolute right-0 top-0" onClick={(e) => e.stopPropagation()}>
-          <Dropdown
-            label=""
-            dismissOnClick={true}
-            renderTrigger={() => (
-              <button
-                className="p-1.5 text-gray-600 hover:text-gray-900 dark:text-gray-400
+        {!agent.isShared && (
+          <div className="absolute right-0 top-0" onClick={(e) => e.stopPropagation()}>
+            <Dropdown
+              label=""
+              dismissOnClick={true}
+              renderTrigger={() => (
+                <button
+                  className="p-1.5 text-gray-600 hover:text-gray-900 dark:text-gray-400
                     dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <FiMoreVertical className="w-4 h-4" />
-              </button>
-            )}
-          >
-            {isCustomAgent && (
-              <Dropdown.Item onClick={() => onEdit?.(agent)} className="w-28">
-                {t('edit')}
+                >
+                  <FiMoreVertical className="w-4 h-4" />
+                </button>
+              )}
+            >
+              {isCustomAgent && !agent.isShared && (
+                <Dropdown.Item onClick={() => onEdit?.(agent)} className="w-48">
+                  {t('edit')}
+                </Dropdown.Item>
+              )}
+              <Dropdown.Item onClick={() => onDuplicate?.(agent)} className="w-48">
+                {t('duplicate')}
               </Dropdown.Item>
-            )}
-            <Dropdown.Item onClick={() => onDuplicate?.(agent)} className="w-28">
-              {t('duplicate')}
-            </Dropdown.Item>
-            {isCustomAgent && (
-              <Dropdown.Item
-                onClick={() => onDelete?.(agent.id!)}
-                className="text-red-600 dark:text-red-400"
-              >
-                {t('delete')}
-              </Dropdown.Item>
-            )}
-          </Dropdown>
-        </div>
+              {!agent.isShared && onSaveAsShared && (
+                <Dropdown.Item onClick={() => onSaveAsShared(agent)} className="w-48">
+                  {t('saveAsShared')}
+                </Dropdown.Item>
+              )}
+              {isCustomAgent && !agent.isShared && (
+                <Dropdown.Item
+                  onClick={() => onDelete?.(agent.id!)}
+                  className="text-red-600 dark:text-red-400 w-48"
+                >
+                  {t('delete')}
+                </Dropdown.Item>
+              )}
+            </Dropdown>
+          </div>
+        )}
       </div>
     </div>
   )

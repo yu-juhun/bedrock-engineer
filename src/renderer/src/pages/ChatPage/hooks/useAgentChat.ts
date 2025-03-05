@@ -94,7 +94,6 @@ export const useAgentChat = (
       }
     } else if (enableHistory) {
       // 履歴保存が有効な場合のみ新しいセッションを作成
-      // TODO: agentId によって履歴を復元できる機能は後日実装する
       const newSessionId = window.chatHistory.createSession('defaultAgent', modelId, systemPrompt)
       setCurrentSessionId(newSessionId)
     }
