@@ -84,19 +84,27 @@ export const useAgentChat = (
 
   // セッションの初期化
   useEffect(() => {
-    if (sessionId) {
-      const session = window.chatHistory.getSession(sessionId)
-      if (session) {
-        // 既存の通信があれば中断
-        abortCurrentRequest()
-        setMessages(session.messages as Message[])
-        setCurrentSessionId(sessionId)
+    const initSession = async () => {
+      if (sessionId) {
+        const session = window.chatHistory.getSession(sessionId)
+        if (session) {
+          // 既存の通信があれば中断
+          abortCurrentRequest()
+          setMessages(session.messages as Message[])
+          setCurrentSessionId(sessionId)
+        }
+      } else if (enableHistory) {
+        // 履歴保存が有効な場合のみ新しいセッションを作成
+        const newSessionId = await window.chatHistory.createSession(
+          'defaultAgent',
+          modelId,
+          systemPrompt
+        )
+        setCurrentSessionId(newSessionId)
       }
-    } else if (enableHistory) {
-      // 履歴保存が有効な場合のみ新しいセッションを作成
-      const newSessionId = window.chatHistory.createSession('defaultAgent', modelId, systemPrompt)
-      setCurrentSessionId(newSessionId)
     }
+
+    initSession()
   }, [sessionId, enableHistory])
 
   // コンポーネントのアンマウント時にアクティブな通信を中断
@@ -121,7 +129,7 @@ export const useAgentChat = (
 
   // メッセージの永続化を行うラッパー関数
   const persistMessage = useCallback(
-    (message: Message) => {
+    async (message: Message) => {
       if (!enableHistory) return
 
       if (currentSessionId && message.role && message.content) {
@@ -135,7 +143,7 @@ export const useAgentChat = (
             tools: enabledTools
           }
         }
-        window.chatHistory.addMessage(currentSessionId, chatMessage)
+        await window.chatHistory.addMessage(currentSessionId, chatMessage)
       }
     },
     [currentSessionId, modelId, enabledTools, enableHistory]
@@ -176,7 +184,7 @@ export const useAgentChat = (
           const newMessage = { role, content }
           setMessages([...currentMessages, newMessage])
           currentMessages.push(newMessage)
-          persistMessage(newMessage)
+          await persistMessage(newMessage)
           console.log(currentMessages)
 
           const stopReason = json.messageStop.stopReason
@@ -238,7 +246,7 @@ export const useAgentChat = (
         content: [{ text: error.message }]
       }
       setMessages([...currentMessages, errorMessage])
-      persistMessage(errorMessage)
+      await persistMessage(errorMessage)
       throw error
     } finally {
       // 使用済みの AbortController をクリア
@@ -305,7 +313,7 @@ export const useAgentChat = (
     }
     currentMessages.push(toolResultMessage)
     setMessages((prev) => [...prev, toolResultMessage])
-    persistMessage(toolResultMessage)
+    await persistMessage(toolResultMessage)
 
     const stopReason = await streamChat(
       {
@@ -359,7 +367,7 @@ export const useAgentChat = (
 
       currentMessages.push(userMessage)
       setMessages((prev) => [...prev, userMessage])
-      persistMessage(userMessage)
+      await persistMessage(userMessage)
 
       await streamChat(
         {
@@ -429,12 +437,16 @@ export const useAgentChat = (
   }
 
   // チャットをクリアする機能
-  const clearChat = useCallback(() => {
+  const clearChat = useCallback(async () => {
     // 進行中の通信を中断
     abortCurrentRequest()
 
     // 新しいセッションを作成
-    const newSessionId = window.chatHistory.createSession('defaultAgent', modelId, systemPrompt)
+    const newSessionId = await window.chatHistory.createSession(
+      'defaultAgent',
+      modelId,
+      systemPrompt
+    )
     setCurrentSessionId(newSessionId)
 
     // メッセージをクリア
