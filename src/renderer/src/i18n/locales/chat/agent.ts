@@ -20,6 +20,7 @@ export const agent = {
     enterTag: 'Enter Tag',
     addTag: 'Add',
     availableTags: 'Available Tags',
+    autoSelect: 'Auto Select',
     'What is Amazon Bedrock': 'What is Amazon Bedrock',
     'What is Amazon Bedrock description':
       'Search for the latest information about Amazon Bedrock and summarize what it can do in a concise manner.',
@@ -106,6 +107,7 @@ export const agent = {
     enterTag: 'タグを入力',
     addTag: '追加',
     availableTags: '利用可能なタグ',
+    autoSelect: '自動選択',
     'What is Amazon Bedrock': 'Amazon Bedrock とは',
     'What is Amazon Bedrock description':
       'Amazon Bedrock に関する最新情報を検索して、何ができるか簡潔にまとめてください。',

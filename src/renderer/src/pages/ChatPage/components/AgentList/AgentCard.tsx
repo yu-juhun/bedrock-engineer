@@ -41,7 +41,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
       <div className="flex-shrink-0 mr-4">
         <div
           className={`w-10 h-10 flex items-center justify-center
-            ${isSelected ? 'bg-blue-100 dark:bg-blue-900/40' : 'bg-blue-50 dark:bg-blue-900/20'}
+            ${!isCustomAgent ? 'bg-gray-200 dark:bg-gray-900/40' : 'bg-blue-100 dark:bg-blue-900/40'}
             rounded-lg`}
         >
           {agent.icon ? (
