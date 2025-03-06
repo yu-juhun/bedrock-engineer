@@ -141,6 +141,8 @@ export interface SettingsContextType {
   setAwsAccessKeyId: (accessKeyId: string) => void
   awsSecretAccessKey: string
   setAwsSecretAccessKey: (secretAccessKey: string) => void
+  awsSessionToken: string
+  setAwsSessionToken: (sessionToken: string) => void
 
   // Custom Agents Settings
   customAgents: CustomAgent[]
@@ -215,6 +217,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [awsRegion, setStateAwsRegion] = useState<string>('')
   const [awsAccessKeyId, setStateAwsAccessKeyId] = useState<string>('')
   const [awsSecretAccessKey, setStateAwsSecretAccessKey] = useState<string>('')
+  const [awsSessionToken, setStateAwsSessionToken] = useState<string>('')
 
   // Custom Agents Settings
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([])
@@ -290,6 +293,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setStateAwsRegion(awsConfig.region || '')
       setStateAwsAccessKeyId(awsConfig.accessKeyId || '')
       setStateAwsSecretAccessKey(awsConfig.secretAccessKey || '')
+      setStateAwsSessionToken(awsConfig.sessionToken || '')
     }
 
     // Load Custom Agents
@@ -442,7 +446,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setAwsRegion = (region: string) => {
     setStateAwsRegion(region)
-    saveAwsConfig(region, awsAccessKeyId, awsSecretAccessKey)
+    saveAwsConfig(region, awsAccessKeyId, awsSecretAccessKey, awsSessionToken)
 
     // availableFailoverRegions をリセット
     setBedrockSettings({
@@ -457,19 +461,25 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setAwsAccessKeyId = (accessKeyId: string) => {
     setStateAwsAccessKeyId(accessKeyId)
-    saveAwsConfig(awsRegion, accessKeyId, awsSecretAccessKey)
+    saveAwsConfig(awsRegion, accessKeyId, awsSecretAccessKey, awsSessionToken)
   }
 
   const setAwsSecretAccessKey = (secretAccessKey: string) => {
     setStateAwsSecretAccessKey(secretAccessKey)
-    saveAwsConfig(awsRegion, awsAccessKeyId, secretAccessKey)
+    saveAwsConfig(awsRegion, awsAccessKeyId, secretAccessKey, awsSessionToken)
+  }
+  
+  const setAwsSessionToken = (sessionToken: string) => {
+    setStateAwsSessionToken(sessionToken)
+    saveAwsConfig(awsRegion, awsAccessKeyId, awsSecretAccessKey, sessionToken)
   }
 
-  const saveAwsConfig = (region: string, accessKeyId: string, secretAccessKey: string) => {
+  const saveAwsConfig = (region: string, accessKeyId: string, secretAccessKey: string, sessionToken: string) => {
     window.store.set('aws', {
       region,
       accessKeyId,
-      secretAccessKey
+      secretAccessKey,
+      sessionToken
     })
   }
 
@@ -678,6 +688,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setAwsAccessKeyId,
     awsSecretAccessKey,
     setAwsSecretAccessKey,
+    awsSessionToken,
+    setAwsSessionToken,
 
     // Custom Agents Settings
     customAgents,

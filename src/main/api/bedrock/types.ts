@@ -11,6 +11,7 @@ export type AWSCredentials = {
   region: string
   accessKeyId: string
   secretAccessKey: string
+  sessionToken?: string
 }
 
 export type InferenceParams = {

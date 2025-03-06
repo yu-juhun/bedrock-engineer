@@ -52,11 +52,12 @@ export function getAlternateRegionOnThrottling(
 
 export async function getAccountId(credentials: AWSCredentials) {
   try {
-    const { region, accessKeyId, secretAccessKey } = credentials
+    const { region, accessKeyId, secretAccessKey, sessionToken } = credentials
     const sts = new STSClient({
       credentials: {
         accessKeyId,
-        secretAccessKey
+        secretAccessKey,
+        ...(sessionToken && { sessionToken })
       },
       region
     })

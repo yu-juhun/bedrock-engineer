@@ -4,33 +4,36 @@ import { BedrockAgentRuntimeClient } from '@aws-sdk/client-bedrock-agent-runtime
 import type { AWSCredentials } from './types'
 
 export function createRuntimeClient(credentials: AWSCredentials) {
-  const { region, accessKeyId, secretAccessKey } = credentials
+  const { region, accessKeyId, secretAccessKey, sessionToken } = credentials
   return new BedrockRuntimeClient({
     credentials: {
       accessKeyId,
-      secretAccessKey
+      secretAccessKey,
+      ...(sessionToken && { sessionToken })
     },
     region
   })
 }
 
 export function createBedrockClient(credentials: AWSCredentials) {
-  const { region, accessKeyId, secretAccessKey } = credentials
+  const { region, accessKeyId, secretAccessKey, sessionToken } = credentials
   return new BedrockClient({
     credentials: {
       accessKeyId,
-      secretAccessKey
+      secretAccessKey,
+      ...(sessionToken && { sessionToken })
     },
     region
   })
 }
 
 export function createAgentRuntimeClient(credentials: AWSCredentials) {
-  const { region, accessKeyId, secretAccessKey } = credentials
+  const { region, accessKeyId, secretAccessKey, sessionToken } = credentials
   return new BedrockAgentRuntimeClient({
     credentials: {
       accessKeyId,
-      secretAccessKey
+      secretAccessKey,
+      ...(sessionToken && { sessionToken })
     },
     region
   })
