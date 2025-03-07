@@ -1,4 +1,5 @@
 import { Message } from '@aws-sdk/client-bedrock-runtime'
+import type { AwsCredentialIdentity } from "@smithy/types";
 
 export type CallConverseAPIProps = {
   modelId: string
@@ -8,10 +9,8 @@ export type CallConverseAPIProps = {
 }
 
 export type AWSCredentials = {
-  region: string
-  accessKeyId: string
-  secretAccessKey: string
-  sessionToken?: string
+  credentials: AwsCredentialIdentity;
+  region: string;
 }
 
 export type InferenceParams = {

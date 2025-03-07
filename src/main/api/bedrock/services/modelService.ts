@@ -1,6 +1,6 @@
 import { getDefaultPromptRouter, getModelsForRegion } from '../models'
 import { getAccountId } from '../utils/awsUtils'
-import type { ServiceContext } from '../types'
+import type { AWSCredentials, ServiceContext } from '../types'
 import { BedrockSupportRegion } from '../../../../types/llm'
 
 export class ModelService {
@@ -10,14 +10,14 @@ export class ModelService {
   constructor(private context: ServiceContext) {}
 
   async listModels() {
-    const credentials = this.context.store.get('aws')
-    const { region, accessKeyId, secretAccessKey } = credentials
-    if (!region || !accessKeyId || !secretAccessKey) {
+    const awsCredentials: AWSCredentials = this.context.store.get('aws')
+    const { credentials, region } = awsCredentials
+    if (!credentials.accessKeyId || !credentials.secretAccessKey || !region) {
       console.warn('AWS credentials not configured')
       return []
     }
 
-    const cacheKey = `${region}-${accessKeyId}`
+    const cacheKey = `${region}-${credentials.accessKeyId}`
     const cachedData = this.modelCache[cacheKey]
 
     if (
@@ -31,7 +31,7 @@ export class ModelService {
     try {
       const models = getModelsForRegion(region as BedrockSupportRegion)
 
-      const accountId = await getAccountId(credentials)
+      const accountId = await getAccountId(awsCredentials)
       const promptRouterModels = accountId ? getDefaultPromptRouter(accountId, region) : []
       const result = [...models, ...promptRouterModels]
       this.modelCache[cacheKey] = [...result, { _timestamp: Date.now() } as any]

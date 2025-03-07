@@ -147,7 +147,7 @@ export const AWSSection: React.FC<AWSSectionProps> = ({
           />
 
           <SettingInput
-            label={t('AWS Session Token')}
+            label={t('AWS Session Token (optional)')}
             type="password"
             placeholder="****************************************"
             value={awsSessionToken}

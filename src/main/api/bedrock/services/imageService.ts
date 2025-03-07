@@ -1,5 +1,5 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime'
-import type { ServiceContext } from '../types'
+import type { AWSCredentials, ServiceContext } from '../types'
 import type {
   AspectRatio,
   GenerateImageRequest,
@@ -111,18 +111,14 @@ export class ImageService {
   ]
 
   constructor(private context: ServiceContext) {
-    const { region, accessKeyId, secretAccessKey } = this.context.store.get('aws')
-    if (!accessKeyId || !secretAccessKey) {
+    const awsCredentials: AWSCredentials = this.context.store.get('aws')
+    const { credentials, region } = awsCredentials
+    
+    if (!credentials.accessKeyId || !credentials.secretAccessKey || !region) {
       console.warn('AWS credentials not configured')
     }
 
-    this.runtimeClient = new BedrockRuntimeClient({
-      credentials: {
-        accessKeyId,
-        secretAccessKey
-      },
-      region
-    })
+    this.runtimeClient = new BedrockRuntimeClient({ credentials, region })
   }
 
   private getModelType(modelId: ImageGeneratorModel): ModelType {

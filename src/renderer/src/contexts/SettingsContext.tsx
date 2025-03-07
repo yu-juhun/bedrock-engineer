@@ -12,6 +12,7 @@ import {
   PRODUCT_DESIGNER_SYSTEM_PROMPT
 } from '@renderer/pages/ChatPage/constants/DEFAULT_AGENTS'
 import { InferenceParameters, LLM, BEDROCK_SUPPORTED_REGIONS } from '@/types/llm'
+import type { AwsCredentialIdentity } from "@smithy/types";
 
 const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
   maxTokens: 4096,
@@ -446,7 +447,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setAwsRegion = (region: string) => {
     setStateAwsRegion(region)
-    saveAwsConfig(region, awsAccessKeyId, awsSecretAccessKey, awsSessionToken)
+    const credentials: AwsCredentialIdentity = {
+      accessKeyId: awsAccessKeyId,
+      secretAccessKey: awsSecretAccessKey,
+      sessionToken: !awsSessionToken ? undefined : awsSessionToken
+    }
+    saveAwsConfig(credentials, region)
 
     // availableFailoverRegions をリセット
     setBedrockSettings({
@@ -461,26 +467,36 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setAwsAccessKeyId = (accessKeyId: string) => {
     setStateAwsAccessKeyId(accessKeyId)
-    saveAwsConfig(awsRegion, accessKeyId, awsSecretAccessKey, awsSessionToken)
+    const credentials: AwsCredentialIdentity = {
+      accessKeyId,
+      secretAccessKey: awsSecretAccessKey,
+      sessionToken: !awsSessionToken ? undefined : awsSessionToken
+    }
+    saveAwsConfig(credentials, awsRegion)
   }
 
   const setAwsSecretAccessKey = (secretAccessKey: string) => {
     setStateAwsSecretAccessKey(secretAccessKey)
-    saveAwsConfig(awsRegion, awsAccessKeyId, secretAccessKey, awsSessionToken)
-  }
-  
-  const setAwsSessionToken = (sessionToken: string) => {
-    setStateAwsSessionToken(sessionToken)
-    saveAwsConfig(awsRegion, awsAccessKeyId, awsSecretAccessKey, sessionToken)
+    const credentials: AwsCredentialIdentity = {
+      accessKeyId: awsAccessKeyId,
+      secretAccessKey,
+      sessionToken: !awsSessionToken ? undefined : awsSessionToken
+    }
+    saveAwsConfig(credentials, awsRegion)
   }
 
-  const saveAwsConfig = (region: string, accessKeyId: string, secretAccessKey: string, sessionToken: string) => {
-    window.store.set('aws', {
-      region,
-      accessKeyId,
-      secretAccessKey,
-      sessionToken
-    })
+  const setAwsSessionToken = (sessionToken: string) => {
+    setStateAwsSessionToken(sessionToken)
+    const credentials: AwsCredentialIdentity = {
+      accessKeyId: awsAccessKeyId,
+      secretAccessKey: awsSecretAccessKey,
+      sessionToken: !sessionToken ? undefined : sessionToken
+    }
+    saveAwsConfig(credentials, awsRegion)
+  }
+
+  const saveAwsConfig = (credentials: AwsCredentialIdentity, region: string) => {
+    window.store.set('aws', { credentials, region })
   }
 
   const saveCustomAgents = (agents: CustomAgent[]) => {
@@ -591,11 +607,11 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const currentAgent = allAgents.find((a) => a.id === selectedAgentId)
   const systemPrompt = currentAgent?.system
     ? replacePlaceholders(currentAgent?.system, {
-        projectPath,
-        allowedCommands: allowedCommands,
-        knowledgeBases: knowledgeBases,
-        bedrockAgents: bedrockAgents
-      })
+      projectPath,
+      allowedCommands: allowedCommands,
+      knowledgeBases: knowledgeBases,
+      bedrockAgents: bedrockAgents
+    })
     : ''
 
   const setTools = (newTools: ToolState[]) => {
