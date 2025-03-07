@@ -14,9 +14,11 @@ interface AWSSectionProps {
   awsRegion: string
   awsAccessKeyId: string
   awsSecretAccessKey: string
+  awsSessionToken: string
   onUpdateRegion: (region: string) => void
   onUpdateAccessKeyId: (id: string) => void
   onUpdateSecretAccessKey: (key: string) => void
+  onUpdateSessionToken: (token: string) => void
 
   // Bedrock Settings
   currentLLM: LLM
@@ -40,9 +42,11 @@ export const AWSSection: React.FC<AWSSectionProps> = ({
   awsRegion,
   awsAccessKeyId,
   awsSecretAccessKey,
+  awsSessionToken,
   onUpdateRegion,
   onUpdateAccessKeyId,
   onUpdateSecretAccessKey,
+  onUpdateSessionToken,
 
   // Bedrock Settings
   currentLLM,
@@ -140,6 +144,14 @@ export const AWSSection: React.FC<AWSSectionProps> = ({
             placeholder="****************************************"
             value={awsSecretAccessKey}
             onChange={(e) => onUpdateSecretAccessKey(e.target.value)}
+          />
+
+          <SettingInput
+            label={t('AWS Session Token (optional)')}
+            type="password"
+            placeholder="****************************************"
+            value={awsSessionToken}
+            onChange={(e) => onUpdateSessionToken(e.target.value)}
           />
 
           <SettingSelect
