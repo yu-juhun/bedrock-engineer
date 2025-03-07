@@ -118,7 +118,7 @@ export class ImageService {
       console.warn('AWS credentials not configured')
     }
 
-    this.runtimeClient = new BedrockRuntimeClient({ credentials, region })
+    this.runtimeClient = new BedrockRuntimeClient(awsCredentials)
   }
 
   private getModelType(modelId: ImageGeneratorModel): ModelType {

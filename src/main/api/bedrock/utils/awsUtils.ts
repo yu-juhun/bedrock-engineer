@@ -52,8 +52,7 @@ export function getAlternateRegionOnThrottling(
 
 export async function getAccountId(awsCredentials: AWSCredentials) {
   try {
-    const { credentials, region } = awsCredentials
-    const sts = new STSClient({ credentials, region })
+    const sts = new STSClient(awsCredentials)
     const command = new GetCallerIdentityCommand({})
     const res = await sts.send(command)
     return res.Account
