@@ -113,7 +113,7 @@ export class ImageService {
   constructor(private context: ServiceContext) {
     const awsCredentials: AWSCredentials = this.context.store.get('aws')
     const { credentials, region } = awsCredentials
-    
+
     if (!credentials.accessKeyId || !credentials.secretAccessKey || !region) {
       console.warn('AWS credentials not configured')
     }
