@@ -12,7 +12,7 @@ export class ModelService {
   async listModels() {
     const awsCredentials: AWSCredentials = this.context.store.get('aws')
     const { credentials, region } = awsCredentials
-    if (!credentials.accessKeyId || !credentials.secretAccessKey || !region) {
+    if (!credentials || !credentials.accessKeyId || !credentials.secretAccessKey || !region) {
       console.warn('AWS credentials not configured')
       return []
     }
