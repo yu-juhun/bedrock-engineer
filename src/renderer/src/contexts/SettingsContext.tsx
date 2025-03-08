@@ -294,6 +294,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setStateAwsAccessKeyId(awsConfig.accessKeyId || '')
       setStateAwsSecretAccessKey(awsConfig.secretAccessKey || '')
       setStateAwsSessionToken(awsConfig.sessionToken || '')
+      console.log({ awsConfig })
     }
 
     // Load Custom Agents
@@ -516,7 +517,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const saveAwsConfig = (credentials: AwsCredentialIdentity, region: string) => {
     window.store.set('aws', {
-      accessKey: credentials.accessKeyId,
+      accessKeyId: credentials.accessKeyId,
       secretAccessKey: credentials.secretAccessKey,
       sessionToken: credentials.sessionToken,
       region

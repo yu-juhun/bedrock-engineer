@@ -37,6 +37,7 @@ type StoreScheme = {
     region: string
     accessKeyId: string
     secretAccessKey: string
+    sessionToken?: string
   }
   customAgents: CustomAgent[]
   selectedAgentId: string
