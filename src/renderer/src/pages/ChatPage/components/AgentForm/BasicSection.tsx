@@ -260,6 +260,12 @@ export const BasicSection: React.FC<BasicSectionProps> = ({
                     {(
                       [
                         'general',
+                        'lifestyle',
+                        'health',
+                        'education',
+                        'travel',
+                        'food',
+                        'shopping',
                         'development',
                         'cloud',
                         'devops',
