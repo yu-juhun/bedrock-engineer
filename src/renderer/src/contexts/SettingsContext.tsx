@@ -8,7 +8,7 @@ import { replacePlaceholders } from '@renderer/pages/ChatPage/utils/placeholder'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_AGENTS } from '@renderer/pages/ChatPage/constants/DEFAULT_AGENTS'
 import { InferenceParameters, LLM, BEDROCK_SUPPORTED_REGIONS } from '@/types/llm'
-import type { AwsCredentialIdentity } from "@smithy/types";
+import type { AwsCredentialIdentity } from '@smithy/types'
 
 const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
   maxTokens: 4096,
@@ -515,7 +515,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }
 
   const saveAwsConfig = (credentials: AwsCredentialIdentity, region: string) => {
-    window.store.set('aws', { credentials, region })
+    window.store.set('aws', {
+      accessKey: credentials.accessKeyId,
+      secretAccessKey: credentials.secretAccessKey,
+      sessionToken: credentials.sessionToken,
+      region
+    })
   }
 
   const saveCustomAgents = (agents: CustomAgent[]) => {
@@ -606,11 +611,11 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const currentAgent = allAgents.find((a) => a.id === selectedAgentId)
   const systemPrompt = currentAgent?.system
     ? replacePlaceholders(currentAgent?.system, {
-      projectPath,
-      allowedCommands: allowedCommands,
-      knowledgeBases: knowledgeBases,
-      bedrockAgents: bedrockAgents
-    })
+        projectPath,
+        allowedCommands: allowedCommands,
+        knowledgeBases: knowledgeBases,
+        bedrockAgents: bedrockAgents
+      })
     : ''
 
   const setTools = (newTools: ToolState[]) => {
