@@ -280,7 +280,7 @@ export const useAgentChat = (
               toolResults.push({
                 toolResult: {
                   toolUseId: toolUse.toolUseId,
-                  content: [{ json: toolResult }],
+                  content: [{ json: toolResult as any }],
                   status: 'success'
                 }
               })
@@ -288,7 +288,7 @@ export const useAgentChat = (
               toolResults.push({
                 toolResult: {
                   toolUseId: toolUse.toolUseId,
-                  content: [{ text: toolResult }],
+                  content: [{ text: toolResult as any }],
                   status: 'success'
                 }
               })
