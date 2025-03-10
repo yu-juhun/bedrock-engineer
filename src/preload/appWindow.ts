@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
 
-export const window = {
+export const appWindow = {
   isFocused: (): Promise<boolean> => ipcRenderer.invoke('window:isFocused')
 }

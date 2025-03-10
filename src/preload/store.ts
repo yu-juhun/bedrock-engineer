@@ -3,6 +3,7 @@ import { LLM, InferenceParameters } from '../types/llm'
 import { AgentChatConfig, KnowledgeBase, SendMsgKey, ToolState } from '../types/agent-chat'
 import { CustomAgent } from '../types/agent-chat'
 import { CommandSettings } from '../main/api/command/types'
+import { BedrockAgent } from '../types/agent'
 
 const DEFAULT_SHELL = '/bin/bash'
 const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
@@ -12,17 +13,17 @@ const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
 }
 
 type StoreScheme = {
-  userDataPath?: string // Add userDataPath to store
+  userDataPath?: string
   projectPath?: string
   llm?: LLM
   inferenceParams: InferenceParameters
   language: 'ja' | 'en'
   agentChatConfig: AgentChatConfig
   tools: ToolState[]
-  websiteGenerator: {
-    knowledgeBaseId: string
-    enableKnowledgeBase: boolean
-    modelId: string
+  websiteGenerator?: {
+    knowledgeBases?: KnowledgeBase[]
+    enableKnowledgeBase?: boolean
+    enableSearch?: boolean
   }
   tavilySearch: {
     apikey: string
@@ -43,6 +44,12 @@ type StoreScheme = {
   selectedAgentId: string
   knowledgeBases: KnowledgeBase[]
   command: CommandSettings
+  notification?: boolean
+  bedrockSettings?: {
+    enableRegionFailover: boolean
+    availableFailoverRegions: string[]
+  }
+  bedrockAgents?: BedrockAgent[]
 }
 
 const electronStore = new Store<StoreScheme>()
