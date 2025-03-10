@@ -1,6 +1,6 @@
 import { CustomAgent, KnowledgeBase } from '@/types/agent-chat'
 import { CommandConfig } from '../../modals/useToolSettingModal'
-import { BedrockAgent } from '../../modals/useToolSettingModal/BedrockAgentSettingForm'
+import { BedrockAgent } from '@/types/agent'
 
 export interface AgentFormProps {
   agent: CustomAgent

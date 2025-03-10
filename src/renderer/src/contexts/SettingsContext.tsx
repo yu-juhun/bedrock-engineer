@@ -3,12 +3,12 @@ import { KnowledgeBase, Scenario, SendMsgKey, ToolState } from 'src/types/agent-
 import { listModels } from '@renderer/lib/api'
 import { CustomAgent } from '@/types/agent-chat'
 import { Tool } from '@aws-sdk/client-bedrock-runtime'
-import { BedrockAgent } from '../pages/ChatPage/modals/useToolSettingModal/BedrockAgentSettingForm'
 import { replacePlaceholders } from '@renderer/pages/ChatPage/utils/placeholder'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_AGENTS } from '@renderer/pages/ChatPage/constants/DEFAULT_AGENTS'
 import { InferenceParameters, LLM, BEDROCK_SUPPORTED_REGIONS } from '@/types/llm'
 import type { AwsCredentialIdentity } from '@smithy/types'
+import { BedrockAgent } from '@/types/agent'
 
 const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
   maxTokens: 4096,
@@ -204,7 +204,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     availableFailoverRegions: []
   })
 
-  const userDataPath = window.store.get('userDataPath')
+  const userDataPath = window.store.get('userDataPath') || ''
 
   // Project Settings
   const [projectPath, setProjectPath] = useState<string>('')
