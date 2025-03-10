@@ -92,6 +92,10 @@ export interface SettingsContextType {
   sendMsgKey: SendMsgKey
   updateSendMsgKey: (key: SendMsgKey) => void
 
+  // Agent Chat Settings
+  contextLength: number
+  updateContextLength: (length: number) => void
+
   // Notification Settings
   notification: boolean
   setNotification: (enabled: boolean) => void
@@ -180,6 +184,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Advanced Settings
   const [sendMsgKey, setSendMsgKey] = useState<SendMsgKey>('Enter')
 
+  // Agent Chat Settings
+  const [contextLength, setContextLength] = useState<number>(30)
+
   // Notification Settings
   const [notification, setStateNotification] = useState<boolean>(true)
 
@@ -250,6 +257,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Load Advanced Settings
     const advancedSetting = window.store.get('advancedSetting')
     setSendMsgKey(advancedSetting?.keybinding?.sendMsgKey)
+
+    // Load Agent Chat Settings
+    const agentChatSetting = window.store.get('agentChatSetting')
+    if (agentChatSetting?.contextLength !== undefined) {
+      setContextLength(agentChatSetting.contextLength)
+    }
 
     // Load Notification Settings
     const notificationSetting = window.store.get('notification')
@@ -417,6 +430,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSendMsgKey(key)
     window.store.set('advancedSetting', {
       keybinding: { sendMsgKey: key }
+    })
+  }
+
+  const updateContextLength = (length: number) => {
+    setContextLength(length)
+    window.store.set('agentChatSetting', {
+      contextLength: length
     })
   }
 
@@ -670,6 +690,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Advanced Settings
     sendMsgKey,
     updateSendMsgKey,
+
+    // Agent Chat Settings
+    contextLength,
+    updateContextLength,
 
     // Notification Settings
     notification,
