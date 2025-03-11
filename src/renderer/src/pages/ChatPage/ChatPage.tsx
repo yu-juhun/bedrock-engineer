@@ -41,7 +41,8 @@ export default function ChatPage() {
     currentSessionId,
     setCurrentSessionId,
     clearChat,
-    setMessages
+    setMessages,
+    stopGeneration
   } = useAgentChat(
     llm?.modelId,
     systemPrompt,
@@ -224,6 +225,7 @@ export default function ChatPage() {
                   onSelectDirectory={selectDirectory}
                   onOpenIgnoreModal={handleOpenIgnoreFileModal}
                   onClearChat={handleClearChat}
+                  onStopGeneration={stopGeneration}
                   hasMessages={messages.length > 0}
                 />
               </div>
