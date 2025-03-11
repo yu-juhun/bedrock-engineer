@@ -1,5 +1,5 @@
 import Store from 'electron-store'
-import { LLM, InferenceParameters } from '../types/llm'
+import { LLM, InferenceParameters, ThinkingMode } from '../types/llm'
 import { AgentChatConfig, KnowledgeBase, SendMsgKey, ToolState } from '../types/agent-chat'
 import { CustomAgent } from '../types/agent-chat'
 import { CommandSettings } from '../main/api/command/types'
@@ -24,6 +24,9 @@ type StoreScheme = {
 
   /** 言語モデルの推論パラメータ（温度、最大トークン数など） */
   inferenceParams: InferenceParameters
+
+  /** 思考モードの設定（Claude 3.7 Sonnet用） */
+  thinkingMode?: ThinkingMode
 
   /** アプリケーションの表示言語設定（日本語または英語） */
   language: 'ja' | 'en'

@@ -82,13 +82,30 @@ export class ConverseService {
     // 推論パラメータを取得
     const inferenceParams = this.context.store.get('inferenceParams')
 
+    const thinkingMode = this.context.store.get('thinkingMode')
+
+    // Claude 3.7 Sonnet でThinking Modeが有効な場合、additionalModelRequestFieldsを追加
+    let additionalModelRequestFields: Record<string, any> | undefined = undefined
+
+    // thinkingモードが有効かつmodelIdがClaude 3.7 Sonnetの場合のみ設定
+    if (modelId.includes('anthropic.claude-3-7-sonnet') && thinkingMode && thinkingMode.enabled) {
+      additionalModelRequestFields = {
+        thinking: {
+          type: thinkingMode.type,
+          budget_tokens: thinkingMode.budget_tokens
+        }
+      }
+      inferenceParams.topP = undefined
+    }
+
     // コマンドパラメータを作成
     const commandParams: ConverseCommandInput | ConverseStreamCommandInput = {
       modelId,
       messages: sanitizedMessages,
       system,
       toolConfig,
-      inferenceConfig: inferenceParams
+      inferenceConfig: inferenceParams,
+      additionalModelRequestFields
     }
 
     return { commandParams, processedMessages }

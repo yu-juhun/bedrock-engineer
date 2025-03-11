@@ -14,10 +14,17 @@ export type AWSCredentials = {
   region: string
 }
 
+export interface ThinkingMode {
+  enabled: boolean
+  type: 'enabled'
+  budget_tokens: number
+}
+
 export type InferenceParams = {
   maxTokens: number
   temperature: number
-  topP: number
+  topP?: number
+  thinking?: ThinkingMode
 }
 
 export interface Store {

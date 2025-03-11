@@ -16,6 +16,20 @@ export const BEDROCK_SUPPORTED_REGIONS = [
 // Create a union type from the array
 export type BedrockSupportRegion = (typeof BEDROCK_SUPPORTED_REGIONS)[number]
 
+// Define thinking mode budget tokens
+export enum ThinkingModeBudget {
+  NORMAL = 4096,
+  DEEP = 16384,
+  DEEPER = 32768
+}
+
+// Thinking mode type
+export interface ThinkingMode {
+  enabled: boolean
+  type: 'enabled'
+  budget_tokens: ThinkingModeBudget
+}
+
 // Enhanced LLM interface with additional type safety
 export interface LLM {
   readonly modelId: string // Make it readonly for immutability
@@ -23,6 +37,7 @@ export interface LLM {
   readonly toolUse: boolean
   readonly regions: readonly BedrockSupportRegion[] // Use the specific region type
   readonly maxTokensLimit?: number // Optional parameter for model-specific limits
+  readonly supportsThinking?: boolean // Whether the model supports extended thinking
 }
 
 // Type guard for LLM validation
@@ -35,6 +50,7 @@ export const isValidLLM = (llm: LLM): boolean => {
     llm.regions.every((region) => BEDROCK_SUPPORTED_REGIONS.includes(region))
   )
 }
+
 export interface InferenceParameters {
   maxTokens: number
   temperature: number
