@@ -245,8 +245,10 @@ app.whenReady().then(() => {
   )
   ipcMain.handle('open-directory', async () => {
     const path = await handleFileOpen({
-      title: 'openDirectory',
-      properties: ['openDirectory']
+      title: 'Select Directory',
+      properties: ['openDirectory', 'createDirectory'],
+      message: 'Select a directory for your project',
+      buttonLabel: 'Select Directory'
     })
 
     // If path was selected and it differs from the current project path,
