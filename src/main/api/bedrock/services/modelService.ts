@@ -4,7 +4,7 @@ import type { ServiceContext } from '../types'
 import { BedrockSupportRegion } from '../../../../types/llm'
 
 export class ModelService {
-  private static readonly CACHE_LIFETIME = 1000 * 60 * 60 // 1 hour
+  private static readonly CACHE_LIFETIME = 1000 * 60 * 5 // 5 min
   private modelCache: { [key: string]: any } = {}
 
   constructor(private context: ServiceContext) {}
