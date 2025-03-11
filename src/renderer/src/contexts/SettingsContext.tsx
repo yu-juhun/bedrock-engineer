@@ -445,16 +445,25 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }
 
   useEffect(() => {
-    if (currentLLM && currentLLM.toolUse === false) {
-      // currentLLM が ToolUse をサポートしないモデルだった場合ツールを全て disabled にする
-      const updatedTools = window.tools.map((tool) => ({ ...tool, enabled: false }))
-      setStateTools(updatedTools)
-      window.store.set('tools', updatedTools)
-    }
-    if (currentLLM && currentLLM.toolUse === true) {
-      const updatedTools = window.tools.map((tool) => ({ ...tool, enabled: true }))
-      setStateTools(updatedTools)
-      window.store.set('tools', updatedTools)
+    if (currentLLM) {
+      // Update tools based on toolUse support
+      if (currentLLM.toolUse === false) {
+        // currentLLM が ToolUse をサポートしないモデルだった場合ツールを全て disabled にする
+        const updatedTools = window.tools.map((tool) => ({ ...tool, enabled: false }))
+        setStateTools(updatedTools)
+        window.store.set('tools', updatedTools)
+      } else if (currentLLM.toolUse === true) {
+        const updatedTools = window.tools.map((tool) => ({ ...tool, enabled: true }))
+        setStateTools(updatedTools)
+        window.store.set('tools', updatedTools)
+      }
+
+      // Update maxTokens based on model's maxTokensLimit
+      if (currentLLM.maxTokensLimit) {
+        const updatedParams = { ...inferenceParams, maxTokens: currentLLM.maxTokensLimit }
+        setInferenceParams(updatedParams)
+        window.store.set('inferenceParams', updatedParams)
+      }
     }
   }, [currentLLM])
 
