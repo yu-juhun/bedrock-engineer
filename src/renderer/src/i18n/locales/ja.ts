@@ -18,6 +18,16 @@ const SettingPage = {
   'Project Setting': 'プロジェクト設定',
   'Agent Chat': 'エージェントチャット',
   'Tavily Search API Key': 'Tavily 検索 API キー',
+  tavilySearchApiKeyPlaceholder: 'tvly-xxxxxxxxxxxxxxx',
+  tavilySearchUrl: 'https://tavily.com/',
+  'Learn more about Tavily Search, go to':
+    'Tavily Searchについて詳しく知るには、こちらをご覧ください',
+  'Context Length (number of messages to include in API requests)':
+    'コンテキスト長（APIリクエストに含めるメッセージ数）',
+  minContextLength: '1',
+  contextLengthPlaceholder: '10',
+  'Limiting context length reduces token usage but may affect conversation continuity':
+    'コンテキスト長を制限するとトークン使用量は減りますが、会話の連続性に影響する可能性があります',
   'Amazon Bedrock': 'Amazon Bedrock',
   'LLM (Large Language Model)': 'LLM（大規模言語モデル）',
   'Inference Parameters': '推論パラメータ',

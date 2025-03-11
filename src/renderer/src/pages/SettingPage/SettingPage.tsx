@@ -22,6 +22,8 @@ export const SettingPage: React.FC = () => {
     availableModels,
     sendMsgKey,
     updateSendMsgKey,
+    contextLength,
+    updateContextLength,
     tavilySearchApiKey,
     setTavilySearchApiKey,
     awsRegion,
@@ -68,6 +70,8 @@ export const SettingPage: React.FC = () => {
       <AgentChatSection
         tavilySearchApiKey={tavilySearchApiKey}
         onUpdateTavilySearchApiKey={setTavilySearchApiKey}
+        contextLength={contextLength}
+        onUpdateContextLength={updateContextLength}
       />
 
       <AWSSection

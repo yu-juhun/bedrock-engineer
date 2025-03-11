@@ -92,6 +92,10 @@ export interface SettingsContextType {
   sendMsgKey: SendMsgKey
   updateSendMsgKey: (key: SendMsgKey) => void
 
+  // Agent Chat Settings
+  contextLength: number
+  updateContextLength: (length: number) => void
+
   // Notification Settings
   notification: boolean
   setNotification: (enabled: boolean) => void
@@ -172,6 +176,10 @@ export interface SettingsContextType {
   // Shell Settings
   shell: string
   setShell: (shell: string) => void
+
+  // Ignore Files Settings
+  ignoreFiles: string[]
+  setIgnoreFiles: (files: string[]) => void
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
@@ -179,6 +187,9 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Advanced Settings
   const [sendMsgKey, setSendMsgKey] = useState<SendMsgKey>('Enter')
+
+  // Agent Chat Settings
+  const [contextLength, setContextLength] = useState<number>(30)
 
   // Notification Settings
   const [notification, setStateNotification] = useState<boolean>(true)
@@ -244,6 +255,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Shell Settings
   const [shell, setStateShell] = useState<string>(DEFAULT_SHELL)
+
+  // Ignore Files Settings
+  const [ignoreFiles, setStateIgnoreFiles] = useState<string[]>([
+    '.git',
+    '.vscode',
+    'node_modules',
+    '.github'
+  ])
 
   // Initialize all settings
   useEffect(() => {
@@ -367,6 +386,33 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         shell: DEFAULT_SHELL
       })
     }
+
+    // Load Ignore Files Settings および Context Length
+    const agentChatConfig = window.store.get('agentChatConfig') || {}
+
+    // ignoreFiles の設定
+    if (agentChatConfig?.ignoreFiles) {
+      setStateIgnoreFiles(agentChatConfig.ignoreFiles)
+    } else {
+      // 初期値を設定
+      const initialIgnoreFiles = ['.git', '.vscode', 'node_modules', '.github']
+      setStateIgnoreFiles(initialIgnoreFiles)
+      agentChatConfig.ignoreFiles = initialIgnoreFiles
+    }
+
+    // contextLength の設定
+    const defaultContextLength = 30
+
+    // agentChatConfig に contextLength が未設定の場合はデフォルト値を設定
+    if (agentChatConfig.contextLength === undefined) {
+      agentChatConfig.contextLength = defaultContextLength
+    }
+
+    // contextLength の状態を更新
+    setContextLength(agentChatConfig.contextLength || defaultContextLength)
+
+    // 設定を保存
+    window.store.set('agentChatConfig', agentChatConfig)
   }, [])
 
   useEffect(() => {
@@ -417,6 +463,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSendMsgKey(key)
     window.store.set('advancedSetting', {
       keybinding: { sendMsgKey: key }
+    })
+  }
+
+  const updateContextLength = (length: number) => {
+    setContextLength(length)
+    const agentChatConfig = window.store.get('agentChatConfig') || {}
+    window.store.set('agentChatConfig', {
+      ...agentChatConfig,
+      contextLength: length
     })
   }
 
@@ -661,6 +716,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     })
   }
 
+  const setIgnoreFiles = useCallback((files: string[]) => {
+    setStateIgnoreFiles(files)
+    const agentChatConfig = window.store.get('agentChatConfig') || {}
+    window.store.set('agentChatConfig', {
+      ...agentChatConfig,
+      ignoreFiles: files
+    })
+  }, [])
+
   const setNotification = useCallback((enabled: boolean) => {
     setStateNotification(enabled)
     window.store.set('notification', enabled)
@@ -670,6 +734,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Advanced Settings
     sendMsgKey,
     updateSendMsgKey,
+
+    // Agent Chat Settings
+    contextLength,
+    updateContextLength,
 
     // Notification Settings
     notification,
@@ -741,7 +809,11 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // Shell Settings
     shell,
-    setShell
+    setShell,
+
+    // Ignore Files Settings
+    ignoreFiles,
+    setIgnoreFiles
   }
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>

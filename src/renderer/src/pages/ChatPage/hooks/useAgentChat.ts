@@ -56,6 +56,53 @@ function removeTraces(messages) {
   })
 }
 
+// Context長を制限する関数
+function limitContextLength(messages: Message[], contextLength: number): Message[] {
+  if (!contextLength || contextLength <= 0 || messages.length <= contextLength) {
+    return messages
+  }
+
+  // ToolUseとToolResultのペアを特定するためのマップ
+  const toolUseIdMap = new Map<string, boolean>()
+  const toolResultIdMap = new Map<string, boolean>()
+
+  // 最新のメッセージから必要なToolUseIdとToolResultIdを収集
+  const recentMessages = messages.slice(-contextLength)
+  recentMessages.forEach((message) => {
+    if (message.content) {
+      message.content.forEach((block) => {
+        if (block.toolUse?.toolUseId) {
+          toolUseIdMap.set(block.toolUse.toolUseId, true)
+        }
+        if (block.toolResult?.toolUseId) {
+          toolResultIdMap.set(block.toolResult.toolUseId, true)
+        }
+      })
+    }
+  })
+
+  // 古いメッセージから必要なToolUseとToolResultを含むメッセージを見つける
+  const olderMessages = messages.slice(0, -contextLength)
+  const requiredOlderMessages = olderMessages.filter((message) => {
+    if (!message.content) return false
+
+    return message.content.some((block) => {
+      // ToolResultに対応するToolUseが最新メッセージに含まれている場合
+      if (block.toolResult?.toolUseId && toolUseIdMap.has(block.toolResult.toolUseId)) {
+        return true
+      }
+      // ToolUseに対応するToolResultが最新メッセージに含まれている場合
+      if (block.toolUse?.toolUseId && toolResultIdMap.has(block.toolUse.toolUseId)) {
+        return true
+      }
+      return false
+    })
+  })
+
+  // 必要なToolUseとToolResultを含む古いメッセージと最新のメッセージを結合
+  return [...requiredOlderMessages, ...recentMessages]
+}
+
 export const useAgentChat = (
   modelId: string,
   systemPrompt?: string,
@@ -71,7 +118,7 @@ export const useAgentChat = (
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(sessionId)
   const abortController = useRef<AbortController | null>(null)
   const { t } = useTranslation()
-  const { notification } = useSettings()
+  const { notification, contextLength } = useSettings()
 
   // 通信を中断する関数
   const abortCurrentRequest = useCallback(() => {
@@ -158,7 +205,9 @@ export const useAgentChat = (
     // 新しい AbortController を作成
     abortController.current = new AbortController()
 
-    props.messages = removeTraces(props.messages)
+    // Context長に基づいてメッセージを制限
+    const limitedMessages = limitContextLength(currentMessages, contextLength)
+    props.messages = removeTraces(limitedMessages)
 
     const generator = streamChatCompletion(props, abortController.current.signal)
 
