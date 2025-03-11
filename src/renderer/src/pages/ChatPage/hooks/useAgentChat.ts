@@ -129,6 +129,82 @@ export const useAgentChat = (
     setLoading(false)
   }, [])
 
+  // 通信を中断し、不完全なtoolUse/toolResultペアを削除する関数
+  const stopGeneration = useCallback(() => {
+    if (abortController.current) {
+      abortController.current.abort()
+      abortController.current = null
+
+      if (messages.length > 0) {
+        // メッセージのコピーを作成
+        const updatedMessages = [...messages]
+
+        // toolUseIdを収集して、完全なペアを特定する
+        const toolUseIds = new Map<string, { useIndex: number; resultIndex: number }>()
+
+        // すべてのメッセージをスキャンしてtoolUseIdを収集
+        updatedMessages.forEach((msg, msgIndex) => {
+          if (!msg.content) return
+
+          msg.content.forEach((content) => {
+            // toolUseを見つけた場合
+            if ('toolUse' in content && content.toolUse?.toolUseId) {
+              const toolUseId = content.toolUse.toolUseId
+              const entry = toolUseIds.get(toolUseId) || { useIndex: -1, resultIndex: -1 }
+              entry.useIndex = msgIndex
+              toolUseIds.set(toolUseId, entry)
+            }
+
+            // toolResultを見つけた場合
+            if ('toolResult' in content && content.toolResult?.toolUseId) {
+              const toolUseId = content.toolResult.toolUseId
+              const entry = toolUseIds.get(toolUseId) || { useIndex: -1, resultIndex: -1 }
+              entry.resultIndex = msgIndex
+              toolUseIds.set(toolUseId, entry)
+            }
+          })
+        })
+
+        // 削除するメッセージのインデックスを収集（後ろから削除するため降順でソート）
+        const indicesToDelete = new Set<number>()
+
+        // メッセージを削除する前に、不完全なペアの最新のメッセージを特定
+        toolUseIds.forEach(({ useIndex, resultIndex }) => {
+          // toolUseだけがある場合（toolResultがない）
+          if (useIndex >= 0 && resultIndex === -1) {
+            indicesToDelete.add(useIndex)
+          }
+        })
+
+        // 削除するインデックスを降順にソートして、削除時のインデックスのずれを防ぐ
+        const sortedIndicesToDelete = [...indicesToDelete].sort((a, b) => b - a)
+
+        // 削除するメッセージがある場合のみ処理を実行
+        if (sortedIndicesToDelete.length > 0) {
+          // 特定したメッセージを削除
+          for (const index of sortedIndicesToDelete) {
+            updatedMessages.splice(index, 1)
+
+            // メッセージ履歴からも削除
+            if (currentSessionId) {
+              window.chatHistory.deleteMessage(currentSessionId, index)
+            }
+          }
+
+          // 更新されたメッセージ配列を設定
+          setMessages(updatedMessages)
+          toast.success(t('Generation stopped'))
+        } else {
+          // 不完全なペアがない場合は単に停止メッセージを表示
+          toast.success(t('Generation stopped'))
+        }
+      }
+    }
+
+    setLoading(false)
+    setExecutingTool(null)
+  }, [messages, currentSessionId, t])
+
   // セッションの初期化
   useEffect(() => {
     const initSession = async () => {
@@ -519,6 +595,7 @@ export const useAgentChat = (
     setMessages,
     currentSessionId,
     setCurrentSessionId: setSession, // 中断処理付きのセッション切り替え関数を返す
-    clearChat
+    clearChat,
+    stopGeneration // 停止ボタン用の関数をエクスポート
   }
 }
