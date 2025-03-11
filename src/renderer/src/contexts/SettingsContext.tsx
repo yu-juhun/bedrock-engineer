@@ -176,6 +176,10 @@ export interface SettingsContextType {
   // Shell Settings
   shell: string
   setShell: (shell: string) => void
+
+  // Ignore Files Settings
+  ignoreFiles: string[]
+  setIgnoreFiles: (files: string[]) => void
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
@@ -252,17 +256,19 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Shell Settings
   const [shell, setStateShell] = useState<string>(DEFAULT_SHELL)
 
+  // Ignore Files Settings
+  const [ignoreFiles, setStateIgnoreFiles] = useState<string[]>([
+    '.git',
+    '.vscode',
+    'node_modules',
+    '.github'
+  ])
+
   // Initialize all settings
   useEffect(() => {
     // Load Advanced Settings
     const advancedSetting = window.store.get('advancedSetting')
     setSendMsgKey(advancedSetting?.keybinding?.sendMsgKey)
-
-    // Load Agent Chat Settings
-    const agentChatSetting = window.store.get('agentChatSetting')
-    if (agentChatSetting?.contextLength !== undefined) {
-      setContextLength(agentChatSetting.contextLength)
-    }
 
     // Load Notification Settings
     const notificationSetting = window.store.get('notification')
@@ -380,6 +386,33 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         shell: DEFAULT_SHELL
       })
     }
+
+    // Load Ignore Files Settings および Context Length
+    const agentChatConfig = window.store.get('agentChatConfig') || {}
+
+    // ignoreFiles の設定
+    if (agentChatConfig?.ignoreFiles) {
+      setStateIgnoreFiles(agentChatConfig.ignoreFiles)
+    } else {
+      // 初期値を設定
+      const initialIgnoreFiles = ['.git', '.vscode', 'node_modules', '.github']
+      setStateIgnoreFiles(initialIgnoreFiles)
+      agentChatConfig.ignoreFiles = initialIgnoreFiles
+    }
+
+    // contextLength の設定
+    const defaultContextLength = 30
+
+    // agentChatConfig に contextLength が未設定の場合はデフォルト値を設定
+    if (agentChatConfig.contextLength === undefined) {
+      agentChatConfig.contextLength = defaultContextLength
+    }
+
+    // contextLength の状態を更新
+    setContextLength(agentChatConfig.contextLength || defaultContextLength)
+
+    // 設定を保存
+    window.store.set('agentChatConfig', agentChatConfig)
   }, [])
 
   useEffect(() => {
@@ -435,7 +468,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const updateContextLength = (length: number) => {
     setContextLength(length)
-    window.store.set('agentChatSetting', {
+    const agentChatConfig = window.store.get('agentChatConfig') || {}
+    window.store.set('agentChatConfig', {
+      ...agentChatConfig,
       contextLength: length
     })
   }
@@ -681,6 +716,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     })
   }
 
+  const setIgnoreFiles = useCallback((files: string[]) => {
+    setStateIgnoreFiles(files)
+    const agentChatConfig = window.store.get('agentChatConfig') || {}
+    window.store.set('agentChatConfig', {
+      ...agentChatConfig,
+      ignoreFiles: files
+    })
+  }, [])
+
   const setNotification = useCallback((enabled: boolean) => {
     setStateNotification(enabled)
     window.store.set('notification', enabled)
@@ -765,7 +809,11 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // Shell Settings
     shell,
-    setShell
+    setShell,
+
+    // Ignore Files Settings
+    ignoreFiles,
+    setIgnoreFiles
   }
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>

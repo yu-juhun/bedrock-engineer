@@ -1,6 +1,7 @@
 import { Modal } from 'flowbite-react'
 import React from 'react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useSettings } from '@renderer/contexts/SettingsContext'
 
 export const useIgnoreFileModal = () => {
   const [show, setShow] = useState(false)
@@ -21,23 +22,22 @@ interface IgnoreFileModalProps {
   onClose: () => void
 }
 const IgnoreFileModal = React.memo(({ isOpen, onClose }: IgnoreFileModalProps) => {
-  const [ignoreFiles, setStateIgnoreFiles] = useState<string>()
+  // SettingsContext から ignoreFiles と setIgnoreFiles を取得
+  const { ignoreFiles, setIgnoreFiles } = useSettings()
+  const [ignoreFilesText, setIgnoreFilesText] = useState<string>(ignoreFiles.join('\n'))
 
-  useEffect(() => {
-    const config = window.store.get('agentChatConfig')
-    if (config?.ignoreFiles) {
-      setStateIgnoreFiles(config.ignoreFiles.join('\n'))
+  // 表示が開かれた時に最新の設定を取得
+  React.useEffect(() => {
+    if (isOpen) {
+      setIgnoreFilesText(ignoreFiles.join('\n'))
     }
-  }, [])
+  }, [isOpen, ignoreFiles])
 
-  const setIgnoreFiles = (str: string) => {
-    setStateIgnoreFiles(str)
+  // テキスト入力を処理して配列に変換
+  const handleIgnoreFilesChange = (str: string) => {
+    setIgnoreFilesText(str)
     const arr = str.split('\n').filter((item) => item.trim() !== '')
-    const config = window.store.get('agentChatConfig')
-    window.store.set('agentChatConfig', {
-      ...config,
-      ignoreFiles: arr
-    })
+    setIgnoreFiles(arr)
   }
 
   return (
@@ -51,8 +51,8 @@ const IgnoreFileModal = React.memo(({ isOpen, onClose }: IgnoreFileModalProps) =
         <textarea
           className={`block w-full p-4 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 mt-2 dark:bg-gray-800 dark:text-white`}
           placeholder={`.git\n.vscode\nor other files...`}
-          value={ignoreFiles}
-          onChange={(e) => setIgnoreFiles(e.target.value)}
+          value={ignoreFilesText}
+          onChange={(e) => handleIgnoreFilesChange(e.target.value)}
           required
           rows={10}
         />
