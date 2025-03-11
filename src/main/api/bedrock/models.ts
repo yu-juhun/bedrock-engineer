@@ -136,7 +136,7 @@ export const usModels: LLM[] = [
     modelId: 'us.deepseek.r1-v1:0',
     modelName: 'DeepSeek R1 (US cross-region)',
     toolUse: false,
-    regions: ['us-west-2']
+    regions: usRegions
   }
 ]
 
