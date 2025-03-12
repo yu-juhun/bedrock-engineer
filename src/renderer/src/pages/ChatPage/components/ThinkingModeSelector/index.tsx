@@ -3,6 +3,7 @@ import { useSettings } from '@renderer/contexts/SettingsContext'
 import { ThinkingModeBudget } from '@/types/llm'
 import { LuBrain } from 'react-icons/lu'
 import { useTranslation } from 'react-i18next'
+import { FiChevronDown } from 'react-icons/fi'
 
 type ThinkingModeSelectorProps = {
   className?: string
@@ -47,18 +48,17 @@ export const ThinkingModeSelector: React.FC<ThinkingModeSelectorProps> = ({ clas
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 
-          dark:text-gray-300 rounded-md hover:text-gray-500 dark:hover:text-gray-400 
-          transition-colors"
+        className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300 rounded-md transition-colors"
         title={t('thinkingMode.title')}
       >
         <LuBrain className="size-4 text-purple-600 dark:text-purple-400" />
-        <span>{getSelectedLabel()}</span>
+        <span className="whitespace-nowrap">{getSelectedLabel()}</span>
+        <FiChevronDown className="text-gray-400 dark:text-gray-500" size={16} />
       </button>
 
       {isOpen && (
         <div
-          className="absolute z-10 w-48 bottom-full mb-1 bg-white dark:bg-gray-900 rounded-lg shadow-lg 
+          className="absolute z-20 w-40 bottom-full mb-1 bg-white dark:bg-gray-900 rounded-lg shadow-lg 
           border border-gray-200 dark:border-gray-700 py-1"
         >
           {options.map((option) => (

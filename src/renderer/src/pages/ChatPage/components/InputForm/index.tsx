@@ -4,9 +4,6 @@ import { ToolSettings } from './ToolSettings'
 import { DirectorySelector } from './DirectorySelector'
 import { SendMsgKey } from '@/types/agent-chat'
 import { FiTrash2 } from 'react-icons/fi'
-import { ModelSelector } from '../ModelSelector'
-import { ThinkingModeSelector } from '../ThinkingModeSelector'
-import { useSettings } from '@renderer/contexts/SettingsContext'
 
 type InputFormProps = {
   userInput: string
@@ -37,20 +34,14 @@ export const InputForm: React.FC<InputFormProps> = ({
 }) => {
   const [isComposing, setIsComposing] = useState(false)
 
-  const { currentLLM } = useSettings()
-
   return (
-    <div className="flex gap-2 fixed bottom-0 left-20 right-5 bottom-3 pt-3">
+    <div className="flex gap-2 fixed bottom-0 left-[5rem] right-5 bottom-3 pt-3">
       <div className="relative w-full">
         <div className="flex justify-between mb-2">
           {/* left */}
           <div className="flex flex-col justify-end gap-2 mb-1">
             <div className="flex gap-2">
               <ToolSettings onOpenToolSettings={onOpenToolSettings} />
-              <ModelSelector openable={true} />
-              {currentLLM.modelId.includes('anthropic.claude-3-7-sonnet') && (
-                <ThinkingModeSelector />
-              )}
             </div>
             <DirectorySelector
               projectPath={projectPath}

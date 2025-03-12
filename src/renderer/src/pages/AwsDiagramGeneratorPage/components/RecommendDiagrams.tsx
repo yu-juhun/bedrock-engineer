@@ -35,7 +35,7 @@ export const RecommendDiagrams: React.FC<RecommendDiagramsProps> = ({
   }
 
   return (
-    <div className="flex gap-2 flex-wrap">
+    <div className="flex gap-2 flex-nowrap min-w-0 whitespace-nowrap">
       {recommendations?.map((recommendation, index) => (
         <motion.button
           initial={{ opacity: 0, scale: 0 }}
@@ -56,6 +56,8 @@ export const RecommendDiagrams: React.FC<RecommendDiagramsProps> = ({
             dark:hover:border-gray-500
             transition-colors
             duration-200
+            whitespace-nowrap
+            flex-shrink-0
           "
           onClick={() => onSelect(recommendation.value)}
         >
