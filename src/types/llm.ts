@@ -18,9 +18,11 @@ export type BedrockSupportRegion = (typeof BEDROCK_SUPPORTED_REGIONS)[number]
 
 // Define thinking mode budget tokens
 export enum ThinkingModeBudget {
-  NORMAL = 4096,
-  DEEP = 16384,
-  DEEPER = 32768
+  NONE = 0, // No thinking mode
+  QUICK = 1024, // Quick thinking mode
+  NORMAL = 4096, // Normal thinking mode
+  DEEP = 16384, // Deep thinking mode
+  DEEPER = 32768 // Deeper thinking mode
 }
 
 // Thinking mode type

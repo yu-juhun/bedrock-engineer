@@ -75,6 +75,8 @@ export const ThinkingModeSettings = () => {
             block w-full p-2.5
           "
         >
+          <option value={ThinkingModeBudget.NONE.toString()}>{t('None (0 tokens)')}</option>
+          <option value={ThinkingModeBudget.QUICK.toString()}>{t('Quick (1K tokens)')}</option>
           <option value={ThinkingModeBudget.NORMAL.toString()}>{t('Normal (4K tokens)')}</option>
           <option value={ThinkingModeBudget.DEEP.toString()}>{t('Deep (16K tokens)')}</option>
           <option value={ThinkingModeBudget.DEEPER.toString()}>{t('Deeper (32K tokens)')}</option>

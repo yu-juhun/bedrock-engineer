@@ -33,6 +33,8 @@ export const ThinkingModeSelector: React.FC<ThinkingModeSelectorProps> = ({ clas
   }
 
   const options = [
+    { label: t('thinkingMode.none'), value: ThinkingModeBudget.NONE },
+    { label: t('thinkingMode.quick'), value: ThinkingModeBudget.QUICK },
     { label: t('thinkingMode.normal'), value: ThinkingModeBudget.NORMAL },
     { label: t('thinkingMode.deep'), value: ThinkingModeBudget.DEEP },
     { label: t('thinkingMode.deeper'), value: ThinkingModeBudget.DEEPER }
@@ -58,7 +60,7 @@ export const ThinkingModeSelector: React.FC<ThinkingModeSelectorProps> = ({ clas
 
       {isOpen && (
         <div
-          className="absolute z-20 w-40 bottom-full mb-1 bg-white dark:bg-gray-900 rounded-lg shadow-lg 
+          className="absolute z-20 w-72 bottom-full mb-1 bg-white dark:bg-gray-900 rounded-lg shadow-lg 
           border border-gray-200 dark:border-gray-700 py-1"
         >
           {options.map((option) => (
@@ -79,7 +81,7 @@ export const ThinkingModeSelector: React.FC<ThinkingModeSelectorProps> = ({ clas
                 transition-colors
               `}
             >
-              <span className="text-sm">{option.label}</span>
+              <span className="text-sm whitespace-nowrap">{option.label}</span>
             </div>
           ))}
         </div>
