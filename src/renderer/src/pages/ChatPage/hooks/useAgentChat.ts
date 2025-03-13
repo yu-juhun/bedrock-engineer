@@ -212,6 +212,9 @@ export const useAgentChat = (
     const generator = streamChatCompletion(props, abortController.current.signal)
 
     let s = ''
+    let reasoningContentText = ''
+    let reasoningContentSignature = ''
+    let redactedContent
     let input = ''
     let role: ConversationRole = 'assistant' // デフォルト値を設定
     let toolUse: ToolUseBlockStart | undefined = undefined
@@ -253,29 +256,149 @@ export const useAgentChat = (
               toolUse: { name: toolUse?.name, toolUseId: toolUse?.toolUseId, input: parseInput }
             })
           } else {
-            content.push({ text: s })
+            if (s.length > 0) {
+              const contentBlocks =
+                reasoningContentText.length > 0
+                  ? [
+                      {
+                        reasoningContent: {
+                          reasoningText: {
+                            text: reasoningContentText,
+                            signature: reasoningContentSignature
+                          }
+                        }
+                      },
+                      { text: s }
+                    ]
+                  : [{ text: s }]
+              content.push(...contentBlocks)
+            }
           }
           input = ''
         } else if (json.contentBlockDelta) {
           const text = json.contentBlockDelta.delta?.text
           if (text) {
             s = s + text
-            setMessages([...currentMessages, { role, content: [{ text: s }] }])
+
+            const getContentBloacks = () => {
+              if (redactedContent) {
+                return [
+                  {
+                    reasoningContent: {
+                      redactedContent: redactedContent
+                    }
+                  },
+                  { text: s }
+                ]
+              } else if (reasoningContentText.length > 0) {
+                return [
+                  {
+                    reasoningContent: {
+                      reasoningText: {
+                        text: reasoningContentText,
+                        signature: reasoningContentSignature
+                      }
+                    }
+                  },
+                  { text: s }
+                ]
+              } else {
+                return [{ text: s }]
+              }
+            }
+
+            const contentBlocks = getContentBloacks()
+            setMessages([...currentMessages, { role, content: contentBlocks }])
+          }
+
+          const reasoningContent = json.contentBlockDelta.delta?.reasoningContent
+          if (reasoningContent) {
+            if (reasoningContent?.text || reasoningContent?.signature) {
+              reasoningContentText = reasoningContentText + (reasoningContent?.text || '')
+              reasoningContentSignature = reasoningContent?.signature || ''
+
+              setMessages([
+                ...currentMessages,
+                {
+                  role: 'assistant',
+                  content: [
+                    {
+                      reasoningContent: {
+                        reasoningText: {
+                          text: reasoningContentText,
+                          signature: reasoningContentSignature
+                        }
+                      }
+                    },
+                    { text: s }
+                  ]
+                }
+              ])
+            } else if (reasoningContent.redactedContent) {
+              redactedContent = reasoningContent.redactedContent
+              setMessages([
+                ...currentMessages,
+                {
+                  role: 'assistant',
+                  content: [
+                    {
+                      reasoningContent: {
+                        redactedContent: reasoningContent.redactedContent
+                      }
+                    },
+                    { text: s }
+                  ]
+                }
+              ])
+            }
           }
 
           if (toolUse) {
             input = input + json.contentBlockDelta.delta?.toolUse?.input
 
-            setMessages([
-              ...currentMessages,
-              {
-                role,
-                content: [
+            const getContentBloacks = () => {
+              if (redactedContent) {
+                return [
+                  {
+                    reasoningContent: {
+                      redactedContent: redactedContent
+                    }
+                  },
                   { text: s },
                   {
                     toolUse: { name: toolUse?.name, toolUseId: toolUse?.toolUseId, input: input }
                   }
                 ]
+              } else if (reasoningContentText.length > 0) {
+                return [
+                  {
+                    reasoningContent: {
+                      reasoningText: {
+                        text: reasoningContentText,
+                        signature: reasoningContentSignature
+                      }
+                    }
+                  },
+                  { text: s },
+                  {
+                    toolUse: { name: toolUse?.name, toolUseId: toolUse?.toolUseId, input: input }
+                  }
+                ]
+              } else {
+                return [
+                  { text: s },
+                  {
+                    toolUse: { name: toolUse?.name, toolUseId: toolUse?.toolUseId, input: input }
+                  }
+                ]
+              }
+            }
+
+            setMessages([
+              ...currentMessages,
+              {
+                role,
+                content: getContentBloacks()
               }
             ])
           }

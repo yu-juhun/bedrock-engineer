@@ -338,7 +338,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setStateAwsAccessKeyId(awsConfig.accessKeyId || '')
       setStateAwsSecretAccessKey(awsConfig.secretAccessKey || '')
       setStateAwsSessionToken(awsConfig.sessionToken || '')
-      console.log({ awsConfig })
     }
 
     // Load Custom Agents

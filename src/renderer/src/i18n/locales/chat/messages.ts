@@ -14,7 +14,9 @@ export const messages = {
     'agent settings': 'Agent Settings',
     'system prompt caption': 'System prompt defines how the agent behaves and responds.',
     'tool setting': 'Tool Settings',
-    'ignore file settings': 'Ignore File Settings'
+    'ignore file settings': 'Ignore File Settings',
+    'Thought process': 'Thought Process',
+    thinking: 'Thinking...'
   },
   ja: {
     'request error':
@@ -30,6 +32,8 @@ export const messages = {
     'agent settings': 'エージェント設定',
     'system prompt caption': 'システムプロンプトは、エージェントの振る舞いや応答方法を定義します。',
     'tool setting': 'ツール設定',
-    'ignore file settings': '除外ファイル設定'
+    'ignore file settings': '除外ファイル設定',
+    'Thought process': '思考プロセス',
+    thinking: '思考中...'
   }
 }

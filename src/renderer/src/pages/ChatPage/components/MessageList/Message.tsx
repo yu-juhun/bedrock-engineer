@@ -11,9 +11,15 @@ import { MdErrorOutline } from 'react-icons/md'
 import { FiTrash2, FiCopy } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
+import { ReasoningContent } from '../CodeBlocks/Reasoning/ReasoningContent'
+
+// 拡張されたMessageタイプ
+type ExtendedMessage = Message & {
+  status?: 'idle' | 'streaming' | 'complete' | 'error'
+}
 
 type ChatMessageProps = {
-  message: Message
+  message: ExtendedMessage
   onDeleteMessage?: () => void
 }
 
@@ -157,6 +163,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDeleteMessa
             return (
               <div key={index} className="relative">
                 <CodeRenderer text={c.text} />
+              </div>
+            )
+          } else if ('reasoningContent' in c) {
+            // reasoningContentオブジェクトをそのまま渡す
+            const isLoading = message.role === 'assistant' && message.status === 'streaming'
+
+            return (
+              <div key={index} className="relative">
+                <ReasoningContent content={c.reasoningContent} isLoading={isLoading} />
               </div>
             )
           } else if ('toolUse' in c) {
