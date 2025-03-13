@@ -21,6 +21,7 @@ type ExtendedMessage = Message & {
 type ChatMessageProps = {
   message: ExtendedMessage
   onDeleteMessage?: () => void
+  reasoning: boolean
 }
 
 // Helper function to convert various image data formats to data URL
@@ -56,7 +57,11 @@ function convertImageToDataUrl(imageData: any, format: string = 'png'): string {
   return ''
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDeleteMessage }) => {
+export const ChatMessage: React.FC<ChatMessageProps> = ({
+  message,
+  onDeleteMessage,
+  reasoning
+}) => {
   const { t } = useTranslation()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const avatarRef = useRef<HTMLDivElement>(null)
@@ -166,9 +171,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, onDeleteMessa
               </div>
             )
           } else if ('reasoningContent' in c) {
-            // reasoningContentオブジェクトをそのまま渡す
-            const isLoading = message.role === 'assistant' && message.status === 'streaming'
-
+            const isLoading =
+              reasoning && !!message.content?.length && message.content[1].text === ''
             return (
               <div key={index} className="relative">
                 <ReasoningContent content={c.reasoningContent} isLoading={isLoading} />

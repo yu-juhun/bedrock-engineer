@@ -12,7 +12,7 @@ module.exports = {
     extend: {
       animation: {
         'pulse-slide': 'pulseSlide 1.5s ease-in-out infinite',
-        'gradient-x': 'gradient-x 3s ease infinite'
+        'gradient-x': 'gradient-x 5s ease infinite'
       },
       keyframes: {
         pulseSlide: {

@@ -37,6 +37,7 @@ export default function ChatPage() {
   const {
     messages,
     loading,
+    reasoning,
     handleSubmit,
     currentSessionId,
     setCurrentSessionId,
@@ -206,6 +207,7 @@ export default function ChatPage() {
                     <MessageList
                       messages={messages}
                       loading={loading}
+                      reasoning={reasoning}
                       deleteMessage={handleDeleteMessage}
                     />
                   </div>

@@ -114,6 +114,7 @@ export const useAgentChat = (
 
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
+  const [reasoning, setReasoning] = useState(false)
   const [executingTool, setExecutingTool] = useState<ToolName | null>(null)
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(sessionId)
   const abortController = useRef<AbortController | null>(null)
@@ -351,6 +352,7 @@ export const useAgentChat = (
             }
           }
           input = ''
+          setReasoning(false)
         } else if (json.contentBlockDelta) {
           const text = json.contentBlockDelta.delta?.text
           if (text) {
@@ -389,6 +391,7 @@ export const useAgentChat = (
 
           const reasoningContent = json.contentBlockDelta.delta?.reasoningContent
           if (reasoningContent) {
+            setReasoning(true)
             if (reasoningContent?.text || reasoningContent?.signature) {
               reasoningContentText = reasoningContentText + (reasoningContent?.text || '')
               reasoningContentSignature = reasoningContent?.signature || ''
@@ -713,6 +716,7 @@ export const useAgentChat = (
   return {
     messages,
     loading,
+    reasoning,
     executingTool,
     handleSubmit,
     setMessages,

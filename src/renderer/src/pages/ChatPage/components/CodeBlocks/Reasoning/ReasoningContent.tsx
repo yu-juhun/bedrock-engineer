@@ -1,23 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
 import { MdExpandMore } from 'react-icons/md'
 
 interface ReasoningContentProps {
   content: any
   isLoading?: boolean
-}
-
-// ローディングアニメーション
-const LoadingIndicator: React.FC = () => {
-  const { t } = useTranslation()
-  return (
-    <div className="flex items-center space-x-2 mt-3">
-      <div className="h-0.5 flex-grow bg-gray-200 dark:bg-gray-700 overflow-hidden">
-        <div className="h-full bg-blue-500 w-1/3 animate-pulse-slide"></div>
-      </div>
-      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{t('thinking')}</span>
-    </div>
-  )
 }
 
 // スクロールイベントをデバウンスする関数
@@ -33,18 +19,31 @@ function debounce<T extends (...args: any[]) => any>(
   }
 }
 
+// 秒数表示のためのユーティリティ関数
+const formatElapsedSeconds = (seconds: number): string => {
+  return `${seconds}s`
+}
+
 export const ReasoningContent: React.FC<ReasoningContentProps> = ({
   content,
   isLoading = false
 }) => {
   // デフォルトでは閉じた状態
-  const [isExpanded, setIsExpanded] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(false)
   // ユーザーが手動でスクロールしたかどうかのフラグ
   const [userHasScrolled, setUserHasScrolled] = useState(false)
   // 前回のスクロール更新時間を追跡
   const lastScrollTimeRef = useRef<number>(0)
   // アニメーションフレーム用のID
   const scrollAnimationRef = useRef<number | null>(null)
+  // 経過秒数を追跡する
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  // 思考時間のカウンターを表示するかどうか
+  const [showThinkingCounter, setShowThinkingCounter] = useState(false)
+  // 思考開始時間を追跡する
+  const thinkingStartTimeRef = useRef<number | null>(null)
+  // 秒数表示のトランジション状態
+  const [counterTransition, setCounterTransition] = useState(false)
 
   // テキストコンテンツを抽出（再帰的に処理）- メモ化
   const extractTextContent = useCallback((data: any): string => {
@@ -225,25 +224,84 @@ export const ReasoningContent: React.FC<ReasoningContentProps> = ({
     }
   }, [cancelScrollAnimation])
 
+  // 思考時間の追跡と秒数表示を管理
+  useEffect(() => {
+    let secondsTimer: ReturnType<typeof setInterval> | null = null
+    let initialDelayTimer: ReturnType<typeof setTimeout> | null = null
+
+    if (isLoading) {
+      // ローディング開始時に思考開始時間を記録
+      if (thinkingStartTimeRef.current === null) {
+        thinkingStartTimeRef.current = Date.now()
+      }
+
+      // 5秒後に秒数カウンターの表示を開始
+      initialDelayTimer = setTimeout(() => {
+        if (isLoading) {
+          setShowThinkingCounter(true)
+
+          // 1秒ごとに秒数を更新
+          secondsTimer = setInterval(() => {
+            const currentTime = Date.now()
+            const startTime = thinkingStartTimeRef.current || currentTime
+            const seconds = Math.floor((currentTime - startTime) / 1000)
+
+            // トランジションアニメーションのために
+            setCounterTransition(true)
+            setTimeout(() => {
+              setElapsedSeconds(seconds)
+              setCounterTransition(false)
+            }, 150) // 150msのトランジション時間
+          }, 1000)
+        }
+      }, 5000) // 5秒後に秒数表示を開始
+    } else {
+      // ローディングが終わったらリセット
+      thinkingStartTimeRef.current = null
+      setShowThinkingCounter(false)
+      setElapsedSeconds(0)
+    }
+
+    // クリーンアップ関数
+    return () => {
+      if (initialDelayTimer) clearTimeout(initialDelayTimer)
+      if (secondsTimer) clearInterval(secondsTimer)
+    }
+  }, [isLoading])
+
   // データが空の場合かつローディング中でなければ表示しない
   if (!textContent && !isLoading) {
     return null
   }
 
+  const ReasoningText = useCallback(() => {
+    if (!isLoading) {
+      return <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Reasoning</span>
+    }
+
+    return (
+      <div className="flex items-center space-x-2">
+        <span className="text-xs font-medium bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-400 bg-[length:200%_100%] animate-gradient-x bg-clip-text text-transparent">
+          Reasoning
+        </span>
+        {showThinkingCounter && (
+          <span
+            className={`text-xs text-gray-500 dark:text-gray-400 transition-opacity duration-150 ease-in-out`}
+          >
+            {formatElapsedSeconds(elapsedSeconds)}
+          </span>
+        )}
+      </div>
+    )
+  }, [isLoading, showThinkingCounter, elapsedSeconds, counterTransition])
+
   return (
     <div>
-      {/* クリッカブルなテキスト - assistantと同じ位置に揃える */}
       <div
         className="flex items-center space-x-1 cursor-pointer mb-1"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        {isLoading ? (
-          <span className="text-xs font-medium bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-400 bg-[length:200%_100%] animate-gradient-x bg-clip-text text-transparent">
-            Reasoning
-          </span>
-        ) : (
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Reasoning</span>
-        )}
+        <ReasoningText />
         <MdExpandMore
           className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''} text-gray-500 text-xs`}
           size={14}
@@ -267,7 +325,6 @@ export const ReasoningContent: React.FC<ReasoningContentProps> = ({
               {textContent}
             </div>
           )}
-          {isLoading && <LoadingIndicator />}
         </div>
       </div>
     </div>
