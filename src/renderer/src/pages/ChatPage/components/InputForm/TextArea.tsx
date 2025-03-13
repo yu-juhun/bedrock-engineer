@@ -172,23 +172,57 @@ export const TextArea: React.FC<TextAreaProps> = ({
       e.stopPropagation()
       setDragActive(false)
 
-      const files = Array.from(e.dataTransfer.files).filter((file) => {
-        const type = file.type.split('/')[1].toLowerCase()
-        if (!['png', 'jpeg', 'jpg', 'gif', 'webp'].includes(type)) {
-          toast.error(t('textarea.imageValidation.unsupportedFormat', { format: type }))
+      const allFiles = Array.from(e.dataTransfer.files)
+
+      // 画像ファイルと非画像ファイルを分ける
+      const imageFiles = allFiles.filter((file) => {
+        const fileType = file.type.split('/')[0]
+        return fileType === 'image'
+      })
+
+      const nonImageFiles = allFiles.filter((file) => {
+        const fileType = file.type.split('/')[0]
+        return fileType !== 'image'
+      })
+
+      // 画像ファイルを処理
+      const validImageFiles = imageFiles.filter((file) => {
+        const type = file.type.split('/')[1]?.toLowerCase()
+        if (!type || !['png', 'jpeg', 'jpg', 'gif', 'webp'].includes(type)) {
+          toast.error(
+            t('textarea.imageValidation.unsupportedFormat', { format: type || 'unknown' })
+          )
           return false
         }
         return true
       })
 
-      if (attachedImages.length + files.length > 20) {
+      if (attachedImages.length + validImageFiles.length > 20) {
         toast.error(t('textarea.imageValidation.tooManyImages'))
         return
       }
 
-      files.forEach(validateAndProcessImage)
+      validImageFiles.forEach(validateAndProcessImage)
+
+      // 非画像ファイルのパスをテキストエリアに追加
+      if (nonImageFiles.length > 0) {
+        const filePaths = nonImageFiles.map((file) => file.path || file.name).join('\n')
+
+        // 現在のカーソル位置またはテキスト末尾に挿入
+        if (textareaRef.current) {
+          const cursorPos = textareaRef.current.selectionStart
+          const currentValue = value
+          const newValue =
+            currentValue.substring(0, cursorPos) + filePaths + currentValue.substring(cursorPos)
+
+          onChange(newValue)
+        } else {
+          // テキストエリア参照がない場合は末尾に追加
+          onChange(value + (value ? '\n' : '') + filePaths)
+        }
+      }
     },
-    [attachedImages.length, validateAndProcessImage, t]
+    [attachedImages.length, validateAndProcessImage, t, value, onChange]
   )
 
   const removeImage = (index: number) => {
