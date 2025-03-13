@@ -220,7 +220,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Thinking Mode Settings
   const defaultThinkingMode: ThinkingMode = {
-    enabled: true,
     type: 'enabled',
     budget_tokens: ThinkingModeBudget.NORMAL
   }

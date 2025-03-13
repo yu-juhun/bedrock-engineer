@@ -27,8 +27,8 @@ export const ThinkingModeSelector: React.FC<ThinkingModeSelectorProps> = ({ clas
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Only show for Claude 3.7 Sonnet and when thinking mode is enabled
-  if (!currentLLM.supportsThinking || !thinkingMode?.enabled) {
+  // Only show for Claude 3.7 Sonnet
+  if (!currentLLM.supportsThinking) {
     return null
   }
 
@@ -60,7 +60,7 @@ export const ThinkingModeSelector: React.FC<ThinkingModeSelectorProps> = ({ clas
 
       {isOpen && (
         <div
-          className="absolute z-20 w-72 bottom-full mb-1 bg-white dark:bg-gray-900 rounded-lg shadow-lg 
+          className="absolute z-20 w-72 bottom-full mb-1 bg-white dark:bg-gray-900 rounded-lg shadow-lg
           border border-gray-200 dark:border-gray-700 py-1"
         >
           {options.map((option) => (
@@ -68,8 +68,7 @@ export const ThinkingModeSelector: React.FC<ThinkingModeSelectorProps> = ({ clas
               key={option.value}
               onClick={() => {
                 updateThinkingMode({
-                  enabled: true,
-                  type: 'enabled',
+                  type: option.value === 0 ? 'disabled' : 'enabled',
                   budget_tokens: option.value
                 })
                 setIsOpen(false)

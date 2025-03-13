@@ -7,19 +7,11 @@ export const ThinkingModeSettings = () => {
   const { t } = useTranslation()
   const supportsThinking = currentLLM?.supportsThinking || false
 
-  const handleToggleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateThinkingMode({
-      enabled: e.target.checked,
-      type: 'enabled',
-      budget_tokens: thinkingMode?.budget_tokens || ThinkingModeBudget.NORMAL
-    })
-  }
-
   const handleBudgetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const budget_tokens = Number(e.target.value)
     updateThinkingMode({
-      enabled: thinkingMode?.enabled || false,
-      type: 'enabled',
-      budget_tokens: Number(e.target.value)
+      type: budget_tokens === 0 ? 'disabled' : 'enabled',
+      budget_tokens: budget_tokens
     })
   }
 
@@ -36,22 +28,6 @@ export const ThinkingModeSettings = () => {
         <p className="text-xs text-gray-500 dark:text-gray-400">
           {t('Thinking mode allows Claude to work through complex problems step by step.')}
         </p>
-
-        <div className="flex items-center space-x-2">
-          <input
-            id="enable-thinking-mode"
-            type="checkbox"
-            checked={thinkingMode?.enabled || false}
-            onChange={handleToggleChange}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-          />
-          <label
-            htmlFor="enable-thinking-mode"
-            className="text-sm text-gray-700 dark:text-gray-300"
-          >
-            {t('Enable Thinking Mode')}
-          </label>
-        </div>
       </div>
 
       <div className="space-y-1">
@@ -64,7 +40,6 @@ export const ThinkingModeSettings = () => {
         <select
           value={thinkingMode?.budget_tokens?.toString() || ThinkingModeBudget.NORMAL.toString()}
           onChange={handleBudgetChange}
-          disabled={!thinkingMode?.enabled}
           className="
             bg-white dark:bg-gray-800
             border border-gray-300 dark:border-gray-600

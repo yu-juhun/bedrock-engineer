@@ -83,12 +83,13 @@ export class ConverseService {
     const inferenceParams = this.context.store.get('inferenceParams')
 
     const thinkingMode = this.context.store.get('thinkingMode')
+    console.log({ thinkingMode })
 
     // Claude 3.7 Sonnet でThinking Modeが有効な場合、additionalModelRequestFieldsを追加
     let additionalModelRequestFields: Record<string, any> | undefined = undefined
 
     // thinkingモードが有効かつmodelIdがClaude 3.7 Sonnetの場合のみ設定
-    if (modelId.includes('anthropic.claude-3-7-sonnet') && thinkingMode && thinkingMode.enabled) {
+    if (modelId.includes('anthropic.claude-3-7-sonnet') && thinkingMode?.type === 'enabled') {
       additionalModelRequestFields = {
         thinking: {
           type: thinkingMode.type,
@@ -260,7 +261,7 @@ export class ConverseService {
       return null
     }
 
-    const availableRegions = bedrockSettings.availableRegions || []
+    const availableRegions = bedrockSettings.availableFailoverRegions || []
     const alternateRegion = getAlternateRegionOnThrottling(
       awsConfig.region,
       props.modelId,

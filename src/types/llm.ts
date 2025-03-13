@@ -27,8 +27,7 @@ export enum ThinkingModeBudget {
 
 // Thinking mode type
 export interface ThinkingMode {
-  enabled: boolean
-  type: 'enabled'
+  type: 'enabled' | 'disabled'
   budget_tokens: ThinkingModeBudget
 }
 
@@ -56,5 +55,5 @@ export const isValidLLM = (llm: LLM): boolean => {
 export interface InferenceParameters {
   maxTokens: number
   temperature: number
-  topP: number
+  topP?: number
 }

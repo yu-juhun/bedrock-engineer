@@ -27,7 +27,7 @@ interface AWSSectionProps {
   inferenceParams: {
     maxTokens: number
     temperature: number
-    topP: number
+    topP?: number
   }
   bedrockSettings: {
     enableRegionFailover: boolean
