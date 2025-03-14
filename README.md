@@ -98,7 +98,7 @@ Choose an agent from the menu in the top left. By default, it includes a Softwar
 
 ### Customize Agents
 
-Click the ⚙️ icon in the top right to customize agent settings. Enter the agent's name, description, and system prompt. The system prompt is a crucial element that determines the agent's behavior. By clearly defining the agent's purpose, regulations, role, and when to use available tools, you can obtain more appropriate responses.
+Click the agent icon in the top left to customize agent settings. Enter the agent's name, description, and system prompt. The system prompt is a crucial element that determines the agent's behavior. By clearly defining the agent's purpose, regulations, role, and when to use available tools, you can obtain more appropriate responses.
 
 ![custom-agents](./assets/custom-agents.png)
 
