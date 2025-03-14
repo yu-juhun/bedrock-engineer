@@ -6,13 +6,7 @@ import { Tool } from '@aws-sdk/client-bedrock-runtime'
 import { replacePlaceholders } from '@renderer/pages/ChatPage/utils/placeholder'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_AGENTS } from '@renderer/pages/ChatPage/constants/DEFAULT_AGENTS'
-import {
-  InferenceParameters,
-  LLM,
-  BEDROCK_SUPPORTED_REGIONS,
-  ThinkingMode,
-  ThinkingModeBudget
-} from '@/types/llm'
+import { InferenceParameters, LLM, BEDROCK_SUPPORTED_REGIONS, ThinkingMode } from '@/types/llm'
 import type { AwsCredentialIdentity } from '@smithy/types'
 import { BedrockAgent } from '@/types/agent'
 
@@ -218,18 +212,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [inferenceParams, setInferenceParams] =
     useState<InferenceParameters>(DEFAULT_INFERENCE_PARAMS)
 
-  // Thinking Mode Settings
-  const defaultThinkingMode: ThinkingMode = {
-    type: 'enabled',
-    budget_tokens: ThinkingModeBudget.NORMAL
-  }
-  const [thinkingMode, setThinkingMode] = useState<ThinkingMode>(defaultThinkingMode)
+  const [thinkingMode, setThinkingMode] = useState<ThinkingMode>()
 
   const [bedrockSettings, setBedrockSettings] = useState<{
     enableRegionFailover: boolean
     availableFailoverRegions: string[]
   }>({
-    enableRegionFailover: true,
+    enableRegionFailover: false,
     availableFailoverRegions: []
   })
 
@@ -304,6 +293,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const storedInferenceParams = window.store.get('inferenceParams')
     if (storedInferenceParams) {
       setInferenceParams(storedInferenceParams)
+    }
+
+    // Load thinking mode
+    const thinkingMode = window.store.get('thinkingMode')
+    if (thinkingMode) {
+      setThinkingMode(thinkingMode)
     }
 
     // Load Thinking Mode Settings
@@ -424,7 +419,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     // contextLength の設定
-    const defaultContextLength = 30
+    const defaultContextLength = 60
 
     // agentChatConfig に contextLength が未設定の場合はデフォルト値を設定
     if (agentChatConfig.contextLength === undefined) {

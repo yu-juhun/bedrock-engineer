@@ -83,7 +83,6 @@ export class ConverseService {
     const inferenceParams = this.context.store.get('inferenceParams')
 
     const thinkingMode = this.context.store.get('thinkingMode')
-    console.log({ thinkingMode })
 
     // Claude 3.7 Sonnet でThinking Modeが有効な場合、additionalModelRequestFieldsを追加
     let additionalModelRequestFields: Record<string, any> | undefined = undefined

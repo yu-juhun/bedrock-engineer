@@ -1,5 +1,5 @@
 import Store from 'electron-store'
-import { LLM, InferenceParameters, ThinkingMode } from '../types/llm'
+import { LLM, InferenceParameters, ThinkingMode, ThinkingModeBudget } from '../types/llm'
 import { AgentChatConfig, KnowledgeBase, SendMsgKey, ToolState } from '../types/agent-chat'
 import { CustomAgent } from '../types/agent-chat'
 import { CommandSettings } from '../main/api/command/types'
@@ -10,6 +10,15 @@ const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
   maxTokens: 4096,
   temperature: 0.5,
   topP: 0.9
+}
+const DEFAULT_THINKING_MODE = {
+  type: 'enabled',
+  budget_tokens: ThinkingModeBudget.NORMAL
+}
+
+const DEFAULT_BEDROCK_SETTINGS = {
+  enableRegionFailover: false,
+  availableFailoverRegions: []
 }
 
 type StoreScheme = {
@@ -151,6 +160,12 @@ const init = () => {
     electronStore.set('inferenceParams', DEFAULT_INFERENCE_PARAMS)
   }
 
+  // thinkingMode の初期化
+  const thinkingMode = electronStore.get('thinkingMode')
+  if (!thinkingMode) {
+    electronStore.set('thinkingMode', DEFAULT_THINKING_MODE)
+  }
+
   // Initialize custom agents if not present
   const customAgents = electronStore.get('customAgents')
   if (!customAgents) {
@@ -188,6 +203,12 @@ const init = () => {
       ...commandSettings,
       shell: DEFAULT_SHELL
     })
+  }
+
+  // Initialize bedrockSettings
+  const bedrockSettings = electronStore.get('bedrockSettings')
+  if (!bedrockSettings) {
+    electronStore.set('bedrockSettings', DEFAULT_BEDROCK_SETTINGS)
   }
 }
 
