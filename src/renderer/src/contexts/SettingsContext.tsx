@@ -199,7 +199,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [sendMsgKey, setSendMsgKey] = useState<SendMsgKey>('Enter')
 
   // Agent Chat Settings
-  const [contextLength, setContextLength] = useState<number>(30)
+  const [contextLength, setContextLength] = useState<number>(60)
 
   // Notification Settings
   const [notification, setStateNotification] = useState<boolean>(true)

@@ -7,7 +7,6 @@ module.exports = {
     './src/renderer/index.html',
     flowbite.content()
   ],
-  // TODO: tailwind の extend が効かない問題は後で調査する
   theme: {
     extend: {
       animation: {

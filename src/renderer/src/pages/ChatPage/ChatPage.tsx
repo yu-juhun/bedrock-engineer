@@ -203,7 +203,7 @@ export default function ChatPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="py-4">
+                  <div className="py-8">
                     <MessageList
                       messages={messages}
                       loading={loading}

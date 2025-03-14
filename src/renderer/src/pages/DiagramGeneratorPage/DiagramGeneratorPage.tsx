@@ -13,7 +13,7 @@ import { WebLoader } from '../../components/WebLoader'
 import { DeepSearchButton } from '@renderer/components/DeepSearchButton'
 import { extractDrawioXml } from './utils/xmlParser'
 
-export default function AwsDiagramGeneratorPage() {
+export default function DiagramGeneratorPage() {
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
 
   const [userInput, setUserInput] = useState('')
@@ -201,7 +201,7 @@ Here is example diagramm's xml:
 
       <div className="flex-1 rounded-lg">
         {loading ? (
-          <div className="flex h-[95%] justify-center items-center">
+          <div className="flex h-[95%] justify-center items-center flex-col">
             {executingTool === 'tavilySearch' ? <WebLoader /> : <Loader />}
           </div>
         ) : (
@@ -224,7 +224,7 @@ Here is example diagramm's xml:
       <div className="flex gap-2 fixed bottom-0 left-[5rem] right-5 bottom-3">
         <div className="relative w-full">
           <div className="flex gap-2 justify-between pb-2">
-            <div className="overflow-x-auto flex-grow max-w-[70%]">
+            <div className="overflow-x-auto flex-grow w-full">
               <RecommendDiagrams
                 loading={recommendLoading}
                 recommendations={recommendDiagrams}

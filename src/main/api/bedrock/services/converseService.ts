@@ -96,7 +96,8 @@ export class ConverseService {
           budget_tokens: thinkingMode.budget_tokens
         }
       }
-      inferenceParams.topP = undefined
+      inferenceParams.topP = undefined // reasoning は topP は不要
+      inferenceParams.temperature = 1 // reasoning は temperature を 1 必須
     }
 
     // コマンドパラメータを作成
