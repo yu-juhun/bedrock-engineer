@@ -334,20 +334,29 @@ export const useAgentChat = (
             })
           } else {
             if (s.length > 0) {
-              const contentBlocks =
-                reasoningContentText.length > 0
-                  ? [
-                      {
-                        reasoningContent: {
-                          reasoningText: {
-                            text: reasoningContentText,
-                            signature: reasoningContentSignature
-                          }
-                        }
-                      },
-                      { text: s }
-                    ]
-                  : [{ text: s }]
+              const getReasoningBlock = () => {
+                if (reasoningContentText.length > 0) {
+                  return {
+                    reasoningContent: {
+                      reasoningText: {
+                        text: reasoningContentText,
+                        signature: reasoningContentSignature
+                      }
+                    }
+                  }
+                } else if (reasoningContentSignature.length > 0) {
+                  return {
+                    reasoningContent: {
+                      redactedContent: redactedContent
+                    }
+                  }
+                } else {
+                  return null
+                }
+              }
+
+              const reasoningBlock = getReasoningBlock()
+              const contentBlocks = reasoningBlock ? [reasoningBlock, { text: s }] : [{ text: s }]
               content.push(...contentBlocks)
             }
           }
