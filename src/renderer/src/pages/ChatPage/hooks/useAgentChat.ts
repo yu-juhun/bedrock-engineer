@@ -114,6 +114,7 @@ export const useAgentChat = (
 
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
+  const [reasoning, setReasoning] = useState(false)
   const [executingTool, setExecutingTool] = useState<ToolName | null>(null)
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(sessionId)
   const abortController = useRef<AbortController | null>(null)
@@ -288,6 +289,9 @@ export const useAgentChat = (
     const generator = streamChatCompletion(props, abortController.current.signal)
 
     let s = ''
+    let reasoningContentText = ''
+    let reasoningContentSignature = ''
+    let redactedContent
     let input = ''
     let role: ConversationRole = 'assistant' // デフォルト値を設定
     let toolUse: ToolUseBlockStart | undefined = undefined
@@ -329,29 +333,160 @@ export const useAgentChat = (
               toolUse: { name: toolUse?.name, toolUseId: toolUse?.toolUseId, input: parseInput }
             })
           } else {
-            content.push({ text: s })
+            if (s.length > 0) {
+              const getReasoningBlock = () => {
+                if (reasoningContentText.length > 0) {
+                  return {
+                    reasoningContent: {
+                      reasoningText: {
+                        text: reasoningContentText,
+                        signature: reasoningContentSignature
+                      }
+                    }
+                  }
+                } else if (reasoningContentSignature.length > 0) {
+                  return {
+                    reasoningContent: {
+                      redactedContent: redactedContent
+                    }
+                  }
+                } else {
+                  return null
+                }
+              }
+
+              const reasoningBlock = getReasoningBlock()
+              const contentBlocks = reasoningBlock ? [reasoningBlock, { text: s }] : [{ text: s }]
+              content.push(...contentBlocks)
+            }
           }
           input = ''
+          setReasoning(false)
         } else if (json.contentBlockDelta) {
           const text = json.contentBlockDelta.delta?.text
           if (text) {
             s = s + text
-            setMessages([...currentMessages, { role, content: [{ text: s }] }])
+
+            const getContentBloacks = () => {
+              if (redactedContent) {
+                return [
+                  {
+                    reasoningContent: {
+                      redactedContent: redactedContent
+                    }
+                  },
+                  { text: s }
+                ]
+              } else if (reasoningContentText.length > 0) {
+                return [
+                  {
+                    reasoningContent: {
+                      reasoningText: {
+                        text: reasoningContentText,
+                        signature: reasoningContentSignature
+                      }
+                    }
+                  },
+                  { text: s }
+                ]
+              } else {
+                return [{ text: s }]
+              }
+            }
+
+            const contentBlocks = getContentBloacks()
+            setMessages([...currentMessages, { role, content: contentBlocks }])
+          }
+
+          const reasoningContent = json.contentBlockDelta.delta?.reasoningContent
+          if (reasoningContent) {
+            setReasoning(true)
+            if (reasoningContent?.text || reasoningContent?.signature) {
+              reasoningContentText = reasoningContentText + (reasoningContent?.text || '')
+              reasoningContentSignature = reasoningContent?.signature || ''
+
+              setMessages([
+                ...currentMessages,
+                {
+                  role: 'assistant',
+                  content: [
+                    {
+                      reasoningContent: {
+                        reasoningText: {
+                          text: reasoningContentText,
+                          signature: reasoningContentSignature
+                        }
+                      }
+                    },
+                    { text: s }
+                  ]
+                }
+              ])
+            } else if (reasoningContent.redactedContent) {
+              redactedContent = reasoningContent.redactedContent
+              setMessages([
+                ...currentMessages,
+                {
+                  role: 'assistant',
+                  content: [
+                    {
+                      reasoningContent: {
+                        redactedContent: reasoningContent.redactedContent
+                      }
+                    },
+                    { text: s }
+                  ]
+                }
+              ])
+            }
           }
 
           if (toolUse) {
             input = input + json.contentBlockDelta.delta?.toolUse?.input
 
-            setMessages([
-              ...currentMessages,
-              {
-                role,
-                content: [
+            const getContentBloacks = () => {
+              if (redactedContent) {
+                return [
+                  {
+                    reasoningContent: {
+                      redactedContent: redactedContent
+                    }
+                  },
                   { text: s },
                   {
                     toolUse: { name: toolUse?.name, toolUseId: toolUse?.toolUseId, input: input }
                   }
                 ]
+              } else if (reasoningContentText.length > 0) {
+                return [
+                  {
+                    reasoningContent: {
+                      reasoningText: {
+                        text: reasoningContentText,
+                        signature: reasoningContentSignature
+                      }
+                    }
+                  },
+                  { text: s },
+                  {
+                    toolUse: { name: toolUse?.name, toolUseId: toolUse?.toolUseId, input: input }
+                  }
+                ]
+              } else {
+                return [
+                  { text: s },
+                  {
+                    toolUse: { name: toolUse?.name, toolUseId: toolUse?.toolUseId, input: input }
+                  }
+                ]
+              }
+            }
+
+            setMessages([
+              ...currentMessages,
+              {
+                role,
+                content: getContentBloacks()
               }
             ])
           }
@@ -590,6 +725,7 @@ export const useAgentChat = (
   return {
     messages,
     loading,
+    reasoning,
     executingTool,
     handleSubmit,
     setMessages,

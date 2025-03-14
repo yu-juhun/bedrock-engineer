@@ -6,7 +6,7 @@ import { Tool } from '@aws-sdk/client-bedrock-runtime'
 import { replacePlaceholders } from '@renderer/pages/ChatPage/utils/placeholder'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_AGENTS } from '@renderer/pages/ChatPage/constants/DEFAULT_AGENTS'
-import { InferenceParameters, LLM, BEDROCK_SUPPORTED_REGIONS } from '@/types/llm'
+import { InferenceParameters, LLM, BEDROCK_SUPPORTED_REGIONS, ThinkingMode } from '@/types/llm'
 import type { AwsCredentialIdentity } from '@smithy/types'
 import { BedrockAgent } from '@/types/agent'
 
@@ -106,6 +106,10 @@ export interface SettingsContextType {
   availableModels: LLM[]
   llmError: any
 
+  // Thinking Mode Settings
+  thinkingMode?: ThinkingMode
+  updateThinkingMode: (mode: ThinkingMode) => void
+
   // Inference Parameters
   inferenceParams: InferenceParameters
   updateInferenceParams: (params: Partial<InferenceParameters>) => void
@@ -189,7 +193,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [sendMsgKey, setSendMsgKey] = useState<SendMsgKey>('Enter')
 
   // Agent Chat Settings
-  const [contextLength, setContextLength] = useState<number>(30)
+  const [contextLength, setContextLength] = useState<number>(60)
 
   // Notification Settings
   const [notification, setStateNotification] = useState<boolean>(true)
@@ -200,18 +204,21 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     modelId: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
     modelName: 'Claude 3.5 Sonnet v2',
     toolUse: true,
-    regions: BEDROCK_SUPPORTED_REGIONS
+    regions: BEDROCK_SUPPORTED_REGIONS,
+    supportsThinking: false
   }
   const [currentLLM, setCurrentLLM] = useState<LLM>(defaultModel)
   const [availableModels, setAvailableModels] = useState<LLM[]>([])
   const [inferenceParams, setInferenceParams] =
     useState<InferenceParameters>(DEFAULT_INFERENCE_PARAMS)
 
+  const [thinkingMode, setThinkingMode] = useState<ThinkingMode>()
+
   const [bedrockSettings, setBedrockSettings] = useState<{
     enableRegionFailover: boolean
     availableFailoverRegions: string[]
   }>({
-    enableRegionFailover: true,
+    enableRegionFailover: false,
     availableFailoverRegions: []
   })
 
@@ -288,6 +295,18 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setInferenceParams(storedInferenceParams)
     }
 
+    // Load thinking mode
+    const thinkingMode = window.store.get('thinkingMode')
+    if (thinkingMode) {
+      setThinkingMode(thinkingMode)
+    }
+
+    // Load Thinking Mode Settings
+    const storedThinkingMode = window.store.get('thinkingMode')
+    if (storedThinkingMode) {
+      setThinkingMode(storedThinkingMode)
+    }
+
     // Load Bedrock Settings
     const storedBedrockSettings = window.store.get('bedrockSettings')
     if (storedBedrockSettings) {
@@ -313,7 +332,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setStateAwsAccessKeyId(awsConfig.accessKeyId || '')
       setStateAwsSecretAccessKey(awsConfig.secretAccessKey || '')
       setStateAwsSessionToken(awsConfig.sessionToken || '')
-      console.log({ awsConfig })
     }
 
     // Load Custom Agents
@@ -401,7 +419,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     // contextLength の設定
-    const defaultContextLength = 30
+    const defaultContextLength = 60
 
     // agentChatConfig に contextLength が未設定の場合はデフォルト値を設定
     if (agentChatConfig.contextLength === undefined) {
@@ -488,7 +506,17 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const models = await listModels()
       if (models) {
-        setAvailableModels(models as LLM[])
+        // Add thinking mode support to Claude 3.7 Sonnet
+        const enhancedModels = (models as LLM[]).map((model) => {
+          if (model.modelId.includes('anthropic.claude-3-7-sonnet')) {
+            return {
+              ...model,
+              supportsThinking: true
+            }
+          }
+          return model
+        })
+        setAvailableModels(enhancedModels)
       }
     } catch (e: any) {
       console.log(e)
@@ -506,6 +534,11 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const updatedParams = { ...inferenceParams, ...params }
     setInferenceParams(updatedParams)
     window.store.set('inferenceParams', updatedParams)
+  }
+
+  const updateThinkingMode = (mode: ThinkingMode) => {
+    setThinkingMode(mode)
+    window.store.set('thinkingMode', mode)
   }
 
   const updateBedrockSettings = (settings: Partial<typeof bedrockSettings>) => {
@@ -757,6 +790,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     updateLLM,
     availableModels,
     llmError,
+
+    // Thinking Mode Settings
+    thinkingMode,
+    updateThinkingMode,
 
     // Inference Parameters
     inferenceParams,

@@ -6,6 +6,7 @@ import { SettingSection } from '../SettingSection'
 import { SettingInput } from '../SettingInput'
 import { SettingSelect } from '../SettingSelect'
 import { IAMPolicyModal } from '../IAMPolicyModal'
+import { ThinkingModeSettings } from '../ThinkingModeSettings'
 import { AWS_REGIONS } from '@renderer/constants/aws-regions'
 import { LLM } from '@/types/llm'
 
@@ -26,7 +27,7 @@ interface AWSSectionProps {
   inferenceParams: {
     maxTokens: number
     temperature: number
-    topP: number
+    topP?: number
   }
   bedrockSettings: {
     enableRegionFailover: boolean
@@ -286,6 +287,8 @@ export const AWSSection: React.FC<AWSSectionProps> = ({
               onUpdateInferenceParams({ topP: parseFloat(e.target.value) })
             }}
           />
+
+          <ThinkingModeSettings />
         </div>
       </SettingSection>
 

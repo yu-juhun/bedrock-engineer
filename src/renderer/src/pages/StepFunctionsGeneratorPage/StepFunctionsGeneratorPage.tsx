@@ -117,7 +117,7 @@ function StepFunctionsGeneratorPage() {
 
       <div className="grid grid-cols-2 gap-2">
         {/* LEFT */}
-        <div className="border h-[80vh] flex flex-col resize-x bg-white rounded-md dark:bg-gray-800 dark:border-black">
+        <div className="border h-[75vh] flex flex-col resize-x bg-white rounded-md dark:bg-gray-800 dark:border-black">
           <div className="border-b p-1">
             <h1 className="text-xs italic dark:text-gray-200">Editor</h1>
           </div>
@@ -125,7 +125,7 @@ function StepFunctionsGeneratorPage() {
         </div>
 
         {/* RIGHT */}
-        <div className="border h-[80vh] flex flex-col resize-x bg-white rounded-md dark:bg-gray-800 dark:border-black">
+        <div className="border h-[75vh] flex flex-col resize-x bg-white rounded-md dark:bg-gray-800 dark:border-black">
           <div className="border-b p-1 flex justify-between">
             <h1 className="text-xs italic dark:text-gray-200">Visualizer</h1>
           </div>
@@ -138,18 +138,19 @@ function StepFunctionsGeneratorPage() {
       </div>
 
       {/* Buttom Input Field Block */}
-      <div className="flex gap-2 fixed bottom-0 left-20 right-5 bottom-3">
+      <div className="flex gap-2 fixed bottom-0 left-[5rem] right-5 bottom-3">
         <div className="relative w-full">
           <div className="flex gap-2 justify-between mb-4">
-            <div className="flex flex-wrap gap-2">
-              {examples.map((e, index) => {
-                return (
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.2 }}
-                    key={e.title}
-                    className="
+            <div className="overflow-x-auto flex-grow max-w-[100%]">
+              <div className="flex flex-nowrap gap-2 min-w-0 whitespace-nowrap">
+                {examples.map((e, index) => {
+                  return (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.2 }}
+                      key={e.title}
+                      className="
                       cursor-pointer
                       rounded-full
                       border
@@ -163,15 +164,18 @@ function StepFunctionsGeneratorPage() {
                       dark:hover:border-gray-500
                       transition-colors
                       duration-200
+                      whitespace-nowrap
+                      flex-shrink-0
                     "
-                    onClick={() => {
-                      setUserInput(e.value)
-                    }}
-                  >
-                    {e.title}
-                  </motion.button>
-                )
-              })}
+                      onClick={() => {
+                        setUserInput(e.value)
+                      }}
+                    >
+                      {e.title}
+                    </motion.button>
+                  )
+                })}
+              </div>
             </div>
           </div>
 

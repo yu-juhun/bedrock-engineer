@@ -4,7 +4,6 @@ import { ToolSettings } from './ToolSettings'
 import { DirectorySelector } from './DirectorySelector'
 import { SendMsgKey } from '@/types/agent-chat'
 import { FiTrash2, FiStopCircle } from 'react-icons/fi'
-import { ModelSelector } from '../ModelSelector'
 import { useTranslation } from 'react-i18next'
 
 type InputFormProps = {
@@ -40,14 +39,13 @@ export const InputForm: React.FC<InputFormProps> = ({
   const { t } = useTranslation()
 
   return (
-    <div className="flex gap-2 fixed bottom-0 left-20 right-5 bottom-3 pt-3">
+    <div className="flex gap-2 fixed bottom-0 left-[5rem] right-5 bottom-3 pt-3">
       <div className="relative w-full">
         <div className="flex justify-between mb-2">
           {/* left */}
           <div className="flex flex-col justify-end gap-2 mb-1">
             <div className="flex gap-2">
               <ToolSettings onOpenToolSettings={onOpenToolSettings} />
-              <ModelSelector openable={true} />
             </div>
             <DirectorySelector
               projectPath={projectPath}

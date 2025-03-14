@@ -1,4 +1,5 @@
 import { Message } from '@aws-sdk/client-bedrock-runtime'
+import { ConfigStore } from '../../../preload/store'
 
 export type CallConverseAPIProps = {
   modelId: string
@@ -14,18 +15,19 @@ export type AWSCredentials = {
   region: string
 }
 
+export interface ThinkingMode {
+  enabled: boolean
+  type: 'enabled'
+  budget_tokens: number
+}
+
 export type InferenceParams = {
   maxTokens: number
   temperature: number
-  topP: number
-}
-
-export interface Store {
-  get(key: 'aws'): AWSCredentials
-  get(key: 'inferenceParams'): InferenceParams
-  get(key: string): any
+  topP?: number
+  thinking?: ThinkingMode
 }
 
 export type ServiceContext = {
-  store: Store
+  store: ConfigStore
 }

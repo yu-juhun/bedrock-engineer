@@ -37,6 +37,7 @@ export default function ChatPage() {
   const {
     messages,
     loading,
+    reasoning,
     handleSubmit,
     currentSessionId,
     setCurrentSessionId,
@@ -184,7 +185,7 @@ export default function ChatPage() {
 
             {/* メッセージエリア - スクロール可能 */}
             <div className="flex-1 flex flex-col min-h-0">
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto mb-2">
                 {messages.length === 0 ? (
                   <div className="flex flex-col pt-12 h-full w-full justify-center items-center content-center align-center gap-1">
                     <div className="flex flex-row gap-3 items-center mb-2">
@@ -202,10 +203,11 @@ export default function ChatPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="py-4">
+                  <div className="py-8">
                     <MessageList
                       messages={messages}
                       loading={loading}
+                      reasoning={reasoning}
                       deleteMessage={handleDeleteMessage}
                     />
                   </div>
