@@ -361,26 +361,35 @@ app.whenReady().then(() => {
 
   // Logger IPC handler
   ipcMain.on('logger:log', (_event, logData) => {
-    const { level, message, ...meta } = logData
+    const { level, message, process: processType, category, ...meta } = logData
+
+    // If a category is specified, use a category logger
+    const logger = category ? createCategoryLogger(category) : log
+
+    // Include process type in metadata for filtering
+    const metaWithProcess = {
+      ...meta,
+      process: processType || 'unknown'
+    }
 
     switch (level) {
       case 'error':
-        log.error(message, meta)
+        logger.error(message, metaWithProcess)
         break
       case 'warn':
-        log.warn(message, meta)
+        logger.warn(message, metaWithProcess)
         break
       case 'info':
-        log.info(message, meta)
+        logger.info(message, metaWithProcess)
         break
       case 'debug':
-        log.debug(message, meta)
+        logger.debug(message, metaWithProcess)
         break
       case 'verbose':
-        log.verbose(message, meta)
+        logger.verbose(message, metaWithProcess)
         break
       default:
-        log.info(message, meta)
+        logger.info(message, metaWithProcess)
     }
   })
 

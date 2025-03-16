@@ -44,11 +44,13 @@ export const createLoggerInstance = () => {
 
 /**
  * Initialize the logger with the current configuration
+ * @returns The created logger instance
  */
-export const initLogger = (): void => {
+export const initLogger = () => {
   if (!logger) {
     logger = createLoggerInstance()
   }
+  return logger
 }
 
 /**
