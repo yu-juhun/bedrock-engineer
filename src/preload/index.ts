@@ -6,6 +6,7 @@ import { file } from './file'
 import { tools } from './tools/tools'
 import { chatHistory } from './chat-history'
 import { appWindow } from './appWindow'
+import { rendererLogger, createRendererCategoryLogger } from './logger'
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
@@ -19,6 +20,10 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('tools', tools)
     contextBridge.exposeInMainWorld('chatHistory', chatHistory)
     contextBridge.exposeInMainWorld('appWindow', appWindow)
+    contextBridge.exposeInMainWorld('logger', {
+      log: rendererLogger,
+      createCategoryLogger: createRendererCategoryLogger
+    })
   } catch (error) {
     console.error(error)
   }
@@ -37,4 +42,9 @@ if (process.contextIsolated) {
   window.chatHistory = chatHistory
   // @ts-ignore (define in dts)
   window.appWindow = appWindow
+  // @ts-ignore (define in dts)
+  window.logger = {
+    log: rendererLogger,
+    createCategoryLogger: createRendererCategoryLogger
+  }
 }

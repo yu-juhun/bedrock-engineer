@@ -10,9 +10,20 @@ import { store } from '../preload/store'
 import fs from 'fs'
 import { CustomAgent } from '../types/agent-chat'
 import yaml from 'js-yaml'
+import {
+  initLoggerConfig,
+  initLogger,
+  registerGlobalErrorHandlers,
+  log,
+  createCategoryLogger
+} from '../common/logger'
 
 // No need to track project path anymore as we always read from disk
 Store.initRenderer()
+
+// Initialize category loggers
+const apiLogger = createCategoryLogger('api')
+const agentsLogger = createCategoryLogger('agents')
 
 function createMenu(window: BrowserWindow) {
   const isMac = process.platform === 'darwin'
@@ -192,8 +203,8 @@ async function createWindow(): Promise<void> {
   store.set('apiEndpoint', `http://localhost:${port}`)
 
   api.listen(port, () => {
-    console.log({
-      API_ENDPOINT: 'http://localhost' + port
+    apiLogger.info('API server started', {
+      endpoint: `http://localhost:${port}`
     })
   })
 
@@ -207,13 +218,27 @@ async function createWindow(): Promise<void> {
   }
 }
 
+// Get userDataPath early to ensure it's available for logger initialization
+const userDataPath = app.getPath('userData')
+// Initialize logger configuration and instance early
+initLoggerConfig(userDataPath)
+// Create the logger instance explicitly after configuration is set
+initLogger()
+registerGlobalErrorHandlers()
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set userDataPath in store
-  store.set('userDataPath', app.getPath('userData'))
-  console.log('User Data Path:', app.getPath('userData'))
+  store.set('userDataPath', userDataPath)
+
+  log.info('Application started', {
+    version: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    userDataPath
+  })
 
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
@@ -228,10 +253,15 @@ app.whenReady().then(() => {
   // Initial load of shared agents (optional - for logging purposes only)
   loadSharedAgents()
     .then((result) => {
-      console.log(`Found ${result.agents.length} shared agents at startup`)
+      agentsLogger.info(`Found shared agents at startup`, {
+        count: result.agents.length,
+        agentIds: result.agents.map((agent) => agent.id)
+      })
     })
     .catch((err) => {
-      console.error('Failed to load shared agents:', err)
+      agentsLogger.error('Failed to load shared agents', {
+        error: err instanceof Error ? err.message : String(err)
+      })
     })
 
   // IPC test
@@ -257,8 +287,12 @@ app.whenReady().then(() => {
       store.set('projectPath', path)
       // Project path is stored in electron-store
       // Preload agents in the background for initial data
+      log.info('Project path changed', { newPath: path })
       loadSharedAgents().then((result) => {
-        console.log(`Loaded ${result.agents.length} shared agents for new project path`)
+        agentsLogger.info(`Loaded shared agents for new project path`, {
+          count: result.agents.length,
+          path
+        })
       })
     }
 
@@ -273,7 +307,10 @@ app.whenReady().then(() => {
       const base64 = data.toString('base64')
       return `data:image/${ext};base64,${base64}`
     } catch (error) {
-      console.error('Failed to read image:', error)
+      log.error('Failed to read image', {
+        path,
+        error: error instanceof Error ? error.message : String(error)
+      })
       throw error
     }
   })
@@ -314,8 +351,36 @@ app.whenReady().then(() => {
         }
       }
     } catch (error) {
-      console.error('Error fetching website:', error)
+      log.error('Error fetching website', {
+        url,
+        error: error instanceof Error ? error.message : String(error)
+      })
       throw error
+    }
+  })
+
+  // Logger IPC handler
+  ipcMain.on('logger:log', (_event, logData) => {
+    const { level, message, ...meta } = logData
+
+    switch (level) {
+      case 'error':
+        log.error(message, meta)
+        break
+      case 'warn':
+        log.warn(message, meta)
+        break
+      case 'info':
+        log.info(message, meta)
+        break
+      case 'debug':
+        log.debug(message, meta)
+        break
+      case 'verbose':
+        log.verbose(message, meta)
+        break
+      default:
+        log.info(message, meta)
     }
   })
 
@@ -333,7 +398,7 @@ app.whenReady().then(() => {
 
       // Project path from store is used
 
-      console.log('Loading shared agents from disk')
+      agentsLogger.debug('Loading shared agents from disk', { projectPath })
       const agentsDir = resolve(projectPath, '.bedrock-engineer/agents')
 
       // Check if the directory exists
@@ -378,7 +443,10 @@ app.whenReady().then(() => {
           agent.isShared = true
           return agent
         } catch (err) {
-          console.error(`Error reading agent file ${file}:`, err)
+          agentsLogger.error(`Error reading agent file`, {
+            file,
+            error: err instanceof Error ? err.message : String(err)
+          })
           return null
         }
       })
@@ -488,8 +556,11 @@ app.whenReady().then(() => {
   })
   createWindow()
 
-  // Electron Store save config.json in this directory
-  console.log({ userDataDir: app.getPath('userData') })
+  // Log where Electron Store saves config.json
+  log.debug('Electron Store configuration directory', {
+    userDataDir: app.getPath('userData'),
+    configFile: `${app.getPath('userData')}/config.json`
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

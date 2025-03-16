@@ -28,7 +28,7 @@ export enum ThinkingModeBudget {
 // Thinking mode type
 export interface ThinkingMode {
   type: 'enabled' | 'disabled'
-  budget_tokens: ThinkingModeBudget
+  budget_tokens?: ThinkingModeBudget // Make it optional when type is 'disabled'
 }
 
 // Enhanced LLM interface with additional type safety

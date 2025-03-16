@@ -118,11 +118,13 @@ export interface SettingsContextType {
   bedrockSettings: {
     enableRegionFailover: boolean
     availableFailoverRegions: string[]
+    autoDisableThinkingOnError: boolean
   }
   updateBedrockSettings: (
     settings: Partial<{
       enableRegionFailover: boolean
       availableFailoverRegions: string[]
+      autoDisableThinkingOnError: boolean
     }>
   ) => void
 
@@ -217,9 +219,11 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [bedrockSettings, setBedrockSettings] = useState<{
     enableRegionFailover: boolean
     availableFailoverRegions: string[]
+    autoDisableThinkingOnError: boolean
   }>({
     enableRegionFailover: false,
-    availableFailoverRegions: []
+    availableFailoverRegions: [],
+    autoDisableThinkingOnError: false
   })
 
   const userDataPath = window.store.get('userDataPath') || ''

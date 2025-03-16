@@ -12,6 +12,10 @@ import { createRuntimeClient } from '../client'
 import { processImageContent } from '../utils/imageUtils'
 import { getAlternateRegionOnThrottling } from '../utils/awsUtils'
 import type { CallConverseAPIProps, ServiceContext } from '../types'
+import { createCategoryLogger } from '../../../../common/logger'
+
+// Create category logger for converse service
+const converseLogger = createCategoryLogger('bedrock:converse')
 
 /**
  * Bedrock Converse APIと連携するサービスクラス
@@ -31,6 +35,14 @@ export class ConverseService {
       // リクエストパラメータの準備
       const { commandParams } = await this.prepareCommandParameters(props)
       const runtimeClient = createRuntimeClient(this.context.store.get('aws'))
+      const awsConfig = this.context.store.get('aws')
+
+      // APIリクエスト前にログ出力
+      converseLogger.debug('Sending converse request', {
+        modelId: props.modelId,
+        region: awsConfig.region,
+        messageCount: props.messages.length
+      })
 
       // APIリクエストを送信
       const command = new ConverseCommand(commandParams)
@@ -51,6 +63,14 @@ export class ConverseService {
       // リクエストパラメータの準備
       const { commandParams } = await this.prepareCommandParameters(props)
       const runtimeClient = createRuntimeClient(this.context.store.get('aws'))
+      const awsConfig = this.context.store.get('aws')
+
+      // APIリクエスト前にログ出力
+      converseLogger.debug('Sending stream converse request', {
+        modelId: props.modelId,
+        region: awsConfig.region,
+        messageCount: props.messages.length
+      })
 
       // APIリクエストを送信
       const command = new ConverseStreamCommand(commandParams)
@@ -97,6 +117,15 @@ export class ConverseService {
       }
       inferenceParams.topP = undefined // reasoning は topP は不要
       inferenceParams.temperature = 1 // reasoning は temperature を 1 必須
+
+      // Thinking Mode有効時の特別なログ出力
+      converseLogger.debug('Enabling Thinking Mode', {
+        modelId,
+        thinkingType: thinkingMode.type,
+        budgetTokens: thinkingMode.budget_tokens,
+        messageCount: messages.length,
+        assistantMessages: messages.filter((m) => m.role === 'assistant').length
+      })
     }
 
     // コマンドパラメータを作成
@@ -137,8 +166,10 @@ export class ConverseService {
     )
 
     if (emptyTextFieldMsgs.length > 0) {
-      console.log('Found empty text fields in content blocks before sanitization:')
-      console.log(JSON.stringify(emptyTextFieldMsgs, null, 2))
+      converseLogger.debug('Found empty text fields in content blocks before sanitization', {
+        emptyTextFieldMsgs: JSON.stringify(emptyTextFieldMsgs),
+        count: emptyTextFieldMsgs.length
+      })
     }
   }
 
@@ -211,10 +242,22 @@ export class ConverseService {
   ): Promise<T> {
     // スロットリングまたはサービス利用不可の場合
     if (error.name === 'ThrottlingException' || error.name === 'ServiceUnavailableException') {
-      console.log({ retry: retries, error, errorName: error.name })
+      converseLogger.warn(`${error.name} occurred - retrying`, {
+        retry: retries,
+        errorName: error.name,
+        message: error.message,
+        modelId: props.modelId,
+        method: methodName
+      })
 
       // 最大リトライ回数を超えた場合はエラーをスロー
       if (retries >= ConverseService.MAX_RETRIES) {
+        converseLogger.error('Maximum retries reached for Bedrock API request', {
+          maxRetries: ConverseService.MAX_RETRIES,
+          errorName: error.name,
+          modelId: props.modelId,
+          method: methodName
+        })
         throw error
       }
 
@@ -235,14 +278,22 @@ export class ConverseService {
 
     // バリデーションエラーの場合
     if (error.name === 'ValidationException') {
-      console.error(`ValidationException in ${methodName}:`, {
+      // その他のバリデーションエラー
+      converseLogger.error(`ValidationException in ${methodName}`, {
         errorMessage: error.message,
-        errorDetails: error.$metadata
-        // メッセージスナップショットはここでは利用できないため除去
+        errorDetails: error.$metadata,
+        modelId: props.modelId
+      })
+    } else {
+      // その他のエラー
+      converseLogger.error(`Error in ${methodName}`, {
+        errorName: error.name,
+        errorMessage: error.message,
+        modelId: props.modelId,
+        stack: error.stack
       })
     }
 
-    console.log({ error })
     throw error
   }
 
@@ -273,10 +324,10 @@ export class ConverseService {
       return null
     }
 
-    console.log({
-      message: 'Switching to alternate region due to throttling',
+    converseLogger.info('Switching to alternate region due to throttling', {
       currentRegion: awsConfig.region,
-      alternateRegion
+      alternateRegion,
+      modelId: props.modelId
     })
 
     try {
@@ -297,8 +348,14 @@ export class ConverseService {
         const command = new ConverseStreamCommand(commandParams)
         return (await alternateClient.send(command)) as T
       }
-    } catch (alternateError) {
-      console.log({ alternateRegionError: alternateError })
+    } catch (alternateError: any) {
+      converseLogger.error('Error in alternate region request', {
+        region: alternateRegion,
+        modelId: props.modelId,
+        errorName: alternateError?.name,
+        errorMessage: alternateError?.message,
+        stack: alternateError?.stack
+      })
       return null // 別リージョンでもエラーの場合は null を返し、通常の再試行へ
     }
   }

@@ -16,9 +16,8 @@ export type AWSCredentials = {
 }
 
 export interface ThinkingMode {
-  enabled: boolean
-  type: 'enabled'
-  budget_tokens: number
+  type: 'enabled' | 'disabled'
+  budget_tokens?: number
 }
 
 export type InferenceParams = {
