@@ -12,7 +12,7 @@
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts",
     "lint:fix": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "test": "jest --config jest.config.js",
-    "test:watch": "jest --watchAll",
+    "test:watch": "jest --watchAll  --config jest.config.js",
     "test:integration": "jest --config jest.integration.config.js",
     "test:integration:watch": "jest --config jest.integration.config.js --watchAll",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
