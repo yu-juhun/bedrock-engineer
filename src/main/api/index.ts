@@ -1,9 +1,15 @@
-import express, { Request, Response } from 'express'
+import express, { Request, Response, ErrorRequestHandler } from 'express'
 import cors from 'cors'
 import { RequestHandler, NextFunction } from 'express'
 import { RetrieveAndGenerateCommandInput } from '@aws-sdk/client-bedrock-agent-runtime'
 import { BedrockService, CallConverseAPIProps } from './bedrock'
 import { store } from '../../preload/store'
+import { createCategoryLogger } from '../../common/logger'
+
+// Create category logger for API
+const apiLogger = createCategoryLogger('api:express')
+const bedrockLogger = createCategoryLogger('api:bedrock')
+
 export const bedrock = new BedrockService({ store })
 
 interface PromiseRequestHandler {
@@ -12,6 +18,22 @@ interface PromiseRequestHandler {
 
 function wrap(fn: PromiseRequestHandler): RequestHandler {
   return (req, res, next) => fn(req, res, next).catch(next)
+}
+
+// Error handling middleware
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+  apiLogger.error('Express error', {
+    path: req.path,
+    method: req.method,
+    error: err instanceof Error ? err.stack : String(err)
+  })
+
+  res.status(500).json({
+    error: {
+      message: err instanceof Error ? err.message : String(err)
+    }
+  })
 }
 
 // アプリケーションで動作するようにdotenvを設定する
@@ -25,6 +47,24 @@ api.use(
 )
 api.use(express.json({ limit: '10mb' }))
 api.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+// Add request logging
+api.use((req, res, next) => {
+  const start = Date.now()
+
+  // Log when response is finished
+  res.on('finish', () => {
+    const duration = Date.now() - start
+    apiLogger.debug(`${req.method} ${req.path}`, {
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`
+    })
+  })
+
+  next()
+})
 
 api.get('/', (_req: Request, res: Response) => {
   res.send('Hello World')
@@ -54,8 +94,13 @@ api.post(
         res.write(JSON.stringify(item) + '\n')
       }
     } catch (error: any) {
-      console.log(error)
-      console.log(error.message)
+      bedrockLogger.error('Stream conversation error', {
+        errorName: error.name,
+        message: error.message,
+        stack: error.stack,
+        modelId: req.body.modelId
+      })
+
       if (error.name === 'ValidationException') {
         return res.status(400).send({
           ...error,
@@ -84,8 +129,13 @@ api.post(
         messages: req.body.messages
       })
       return res.json(result)
-    } catch (error) {
-      console.log(error)
+    } catch (error: any) {
+      bedrockLogger.error('Conversation error', {
+        errorName: error.name,
+        message: error.message,
+        stack: error.stack,
+        modelId: req.body.modelId
+      })
       return res.status(500).send(error)
     }
   })
@@ -101,7 +151,14 @@ api.post(
       const result = await bedrock.retrieveAndGenerate(req.body)
       return res.json(result)
     } catch (error: any) {
-      console.log(error)
+      bedrockLogger.error('RetrieveAndGenerate error', {
+        errorName: error.name,
+        message: error.message,
+        stack: error.stack,
+        // Type safety: knowledgeBaseId is accessed differently in RetrieveAndGenerateCommandInput
+        knowledgeBaseId: (req.body as any).knowledgeBaseId || 'unknown'
+      })
+
       if (error.name === 'ResourceNotFoundException') {
         return res.status(404).send({
           ...error,
@@ -120,11 +177,18 @@ api.get(
     try {
       const result = await bedrock.listModels()
       return res.json(result)
-    } catch (error) {
-      console.log(error)
+    } catch (error: any) {
+      bedrockLogger.error('ListModels error', {
+        errorName: error.name,
+        message: error.message,
+        stack: error.stack
+      })
       return res.status(500).send(error)
     }
   })
 )
+
+// Add error handling middleware last
+api.use(errorHandler)
 
 export default api

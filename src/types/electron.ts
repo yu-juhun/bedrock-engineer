@@ -4,6 +4,7 @@ import { chatHistory } from '../preload/chat-history'
 import { ConfigStore } from '../preload/store'
 import { FileHandler } from '../preload/file'
 import { API } from '../preload/api'
+import { RendererLogger, RendererCategoryLogger } from '../preload/logger'
 
 declare global {
   interface Window {
@@ -15,6 +16,10 @@ declare global {
     chatHistory: typeof chatHistory
     appWindow: {
       isFocused: () => Promise<boolean>
+    }
+    logger: {
+      log: RendererLogger
+      createCategoryLogger: (category: string) => RendererCategoryLogger
     }
   }
 }

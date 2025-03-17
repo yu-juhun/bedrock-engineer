@@ -5,7 +5,8 @@ import { toolIcons } from '../../components/Tool/ToolIcons'
 import { KnowledgeBaseSettingForm } from './KnowledgeBaseSettingForm'
 import { CommandForm } from './CommandForm'
 import { BedrockAgentSettingForm } from './BedrockAgentSettingForm'
-import { Modal } from 'flowbite-react'
+import { TavilySearchSettingForm } from './TavilySearchSettingForm'
+import { Button, Modal, ToggleSwitch } from 'flowbite-react'
 import { memo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BedrockAgent } from '@/types/agent'
@@ -22,59 +23,106 @@ export const AVAILABLE_SHELLS = [
   { value: '/bin/sh', label: 'Shell' }
 ]
 
-// 全幅で表示するツール名のリスト
-const FULL_WIDTH_TOOLS = ['executeCommand', 'retrieve', 'invokeBedrockAgent'] as const
+// ツールをカテゴリ分けするための定義
+interface ToolCategory {
+  id: string
+  name: string
+  description: string
+  tools: string[]
+}
+
+const TOOL_CATEGORIES: ToolCategory[] = [
+  {
+    id: 'file-system',
+    name: 'File System',
+    description: 'Tools for managing files and directories',
+    tools: [
+      'createFolder',
+      'writeToFile',
+      'readFiles',
+      'listFiles',
+      'moveFile',
+      'copyFile',
+      'applyDiffEdit'
+    ]
+  },
+  {
+    id: 'web-interaction',
+    name: 'Web & Search',
+    description: 'Tools for interacting with web resources',
+    tools: ['tavilySearch', 'fetchWebsite']
+  },
+  {
+    id: 'ai-services',
+    name: 'AI Services',
+    description: 'Tools that utilize AWS AI services',
+    tools: ['generateImage', 'retrieve', 'invokeBedrockAgent']
+  },
+  {
+    id: 'system',
+    name: 'System',
+    description: 'Tools for system interaction',
+    tools: ['executeCommand']
+  }
+]
+
+// 詳細設定が必要なツール
+const TOOLS_WITH_SETTINGS = ['executeCommand', 'retrieve', 'invokeBedrockAgent', 'tavilySearch']
 
 interface ToolSettingModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
-interface ToolCardProps {
+interface ToolItemProps {
   toolName: string
   enabled: boolean
-  onClick: () => void
-  children?: React.ReactNode
+  onToggle: () => void
+  onSelect: () => void
+  isSelected: boolean
 }
 
-const ToolCard: React.FC<ToolCardProps> = ({ toolName, enabled, onClick, children }) => {
+const ToolItem: React.FC<ToolItemProps> = ({
+  toolName,
+  enabled,
+  onToggle,
+  onSelect,
+  isSelected
+}) => {
   const { t } = useTranslation()
 
   return (
-    <div
+    <li
       className={`
-        p-4 rounded-lg
-        border-2 transition-all duration-200
-        ${enabled ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'}
-        hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10
+        border-b border-gray-100 dark:border-gray-700 transition-colors duration-150
+        ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 !border-l-blue-500' : 'border-l-2 border-l-transparent'}
+        cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 w-full
       `}
+      onClick={() => onSelect()}
     >
-      <div className="flex items-start gap-3">
-        <div className="flex-grow cursor-pointer" onClick={onClick}>
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 mt-1">{toolIcons[toolName as ToolName]}</div>
-            <div>
-              <span
-                className={`
-                  text-sm font-medium
-                  ${
-                    enabled
-                      ? 'text-blue-700 dark:text-blue-300'
-                      : 'text-gray-900 dark:text-gray-300'
-                  }
-                `}
-              >
-                {toolName === 'retrieve' ? 'retrieve (from Bedrock Knowledge Base)' : toolName}
-              </span>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {t(`tool descriptions.${toolName}`)}
-              </p>
-            </div>
+      <div className="py-3 px-1 flex items-center justify-center lg:justify-between">
+        <div className="flex items-center lg:gap-2.5 w-full justify-center lg:justify-start">
+          <div
+            className="text-gray-500 dark:text-gray-400 flex-shrink-0 w-7 h-7 flex items-center justify-center"
+            title={toolName}
+          >
+            {toolIcons[toolName as ToolName]}
+          </div>
+          <div className="lg:block hidden">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{toolName}</span>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
+              {t(`tool descriptions.${toolName}`)}
+            </p>
           </div>
         </div>
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="flex-shrink-0 lg:pl-2 pl-0 lg:block hidden"
+        >
+          <ToggleSwitch checked={enabled} onChange={() => onToggle()} label="" />
+        </div>
       </div>
-      {children}
-    </div>
+    </li>
   )
 }
 
@@ -107,13 +155,18 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
     setAllowedCommands,
     shell,
     setShell,
+    tavilySearchApiKey,
+    setTavilySearchApiKey,
     bedrockAgents = [],
     setBedrockAgents = (agents: BedrockAgent[]) => {
       window.store.set('bedrockAgents', agents)
     }
   } = useSettings()
 
-  const handleClickEnableTool = (toolName: string) => {
+  // 選択されたツールの状態管理
+  const [selectedTool, setSelectedTool] = useState<string | null>(null)
+
+  const handleToggleTool = (toolName: string) => {
     if (!tools) return
 
     if (!currentLLM.toolUse) {
@@ -130,86 +183,156 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
     setTools(updatedTools)
   }
 
-  // ツールを標準サイズとフルワイドサイズに分類
-  const { standardTools, fullWidthTools } = tools?.reduce(
-    (acc, tool) => {
-      const toolName = tool.toolSpec?.name
-      if (!toolName) return acc
+  const selectTool = (toolName: string) => {
+    setSelectedTool(toolName === selectedTool ? null : toolName)
+  }
 
-      if (FULL_WIDTH_TOOLS.includes(toolName as (typeof FULL_WIDTH_TOOLS)[number])) {
-        acc.fullWidthTools.push(tool)
-      } else {
-        acc.standardTools.push(tool)
+  // 各カテゴリのツールを取得する
+  const getToolsByCategory = () => {
+    const toolsByCategory = TOOL_CATEGORIES.map((category) => {
+      const toolsInCategory =
+        tools?.filter(
+          (tool) => tool.toolSpec?.name && category.tools.includes(tool.toolSpec.name)
+        ) || []
+
+      return {
+        ...category,
+        toolsData: toolsInCategory
       }
-      return acc
-    },
-    { standardTools: [], fullWidthTools: [] } as {
-      standardTools: typeof tools
-      fullWidthTools: typeof tools
-    }
-  ) ?? { standardTools: [], fullWidthTools: [] }
+    })
+
+    return toolsByCategory
+  }
+
+  const categorizedTools = getToolsByCategory()
 
   return (
-    <Modal dismissible size="8xl" show={isOpen} onClose={onClose}>
-      <Modal.Header>{t('Available Tools')}</Modal.Header>
-      <Modal.Body>
-        <p className="text-gray-700 text-sm pb-4 dark:text-white">{t('Choose the tools')}</p>
+    <Modal dismissible size="7xl" show={isOpen} onClose={onClose}>
+      <Modal.Header className="border-b border-gray-200 dark:border-gray-700">
+        {t('Available Tools')}
+      </Modal.Header>
+      <Modal.Body className="p-0 h-[700px]">
+        <div className="flex h-full w-full">
+          {/* 左側サイドバー：ツールリスト - fixed height with own scrollbar */}
+          <div className="lg:w-1/3 w-[60px] border-r border-gray-200 dark:border-gray-700 overflow-y-auto h-full max-h-[700px] flex-shrink-0">
+            <div className="h-full">
+              {/* カテゴリごとのセクション */}
+              {categorizedTools.map((category) => (
+                <div key={category.id} className="mb-4">
+                  {/* カテゴリヘッダー - 背景色と影を追加して重なり防止 */}
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 font-medium sticky top-0 z-20 shadow-sm lg:block hidden">
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                      {t(`Tool Categories.${category.name}`)}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t(`Tool Categories.${category.name} Description`)}
+                    </div>
+                  </div>
 
-        {/* 標準サイズのツール */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-4 mb-4">
-          {standardTools.map((tool) => {
-            const toolName = tool.toolSpec?.name
-            if (!toolName) return null
+                  {/* ツールリスト */}
+                  <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {category.toolsData.map((tool) => {
+                      const toolName = tool.toolSpec?.name
+                      if (!toolName) return null
 
-            return (
-              <ToolCard
-                key={toolName}
-                toolName={toolName}
-                enabled={tool.enabled}
-                onClick={() => handleClickEnableTool(toolName)}
-              />
-            )
-          })}
-        </div>
+                      const isSelected = selectedTool === toolName
 
-        {/* フルワイドサイズのツール */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {fullWidthTools.map((tool) => {
-            const toolName = tool.toolSpec?.name
-            if (!toolName) return null
+                      return (
+                        <ToolItem
+                          key={toolName}
+                          toolName={toolName}
+                          enabled={tool.enabled}
+                          onToggle={() => handleToggleTool(toolName)}
+                          onSelect={() => selectTool(toolName)}
+                          isSelected={isSelected}
+                        />
+                      )
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
 
-            return (
-              <ToolCard
-                key={toolName}
-                toolName={toolName}
-                enabled={tool.enabled}
-                onClick={() => handleClickEnableTool(toolName)}
-              >
-                {toolName === 'retrieve' && tool.enabled && (
-                  <KnowledgeBaseSettingForm
-                    knowledgeBases={knowledgeBases}
-                    setKnowledgeBases={setKnowledgeBases}
-                  />
+          {/* 右側: 設定コンテンツエリア - separate scrollable area */}
+          <div className="lg:w-2/3 flex-1 overflow-y-auto h-full max-h-[700px]">
+            {selectedTool ? (
+              <div className="p-4">
+                <div className="sticky top-0 pt-1 pb-3 bg-white dark:bg-gray-900 z-20 mb-4">
+                  <h3 className="text-lg font-medium border-b border-gray-200 dark:border-gray-700 pb-3">
+                    {selectedTool}
+                  </h3>
+                </div>
+
+                {TOOLS_WITH_SETTINGS.includes(selectedTool) ? (
+                  <>
+                    {selectedTool === 'retrieve' && (
+                      <KnowledgeBaseSettingForm
+                        knowledgeBases={knowledgeBases}
+                        setKnowledgeBases={setKnowledgeBases}
+                      />
+                    )}
+                    {selectedTool === 'executeCommand' && (
+                      <CommandForm
+                        allowedCommands={allowedCommands}
+                        setAllowedCommands={setAllowedCommands}
+                        shell={shell}
+                        setShell={setShell}
+                      />
+                    )}
+                    {selectedTool === 'invokeBedrockAgent' && (
+                      <BedrockAgentSettingForm
+                        bedrockAgents={bedrockAgents}
+                        setBedrockAgents={setBedrockAgents}
+                      />
+                    )}
+                    {selectedTool === 'tavilySearch' && (
+                      <TavilySearchSettingForm
+                        tavilySearchApiKey={tavilySearchApiKey}
+                        setTavilySearchApiKey={setTavilySearchApiKey}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <div className="prose dark:prose-invert max-w-none">
+                    <p className="mb-4 text-gray-700 dark:text-gray-300 font-bold">
+                      {t(`tool descriptions.${selectedTool}`)}
+                    </p>
+
+                    <p className="mb-2 text-gray-700 dark:text-gray-300">
+                      {t(
+                        `tool usage.${selectedTool}.description`,
+                        `This tool can be used by the AI assistant when enabled.`
+                      )}
+                    </p>
+
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-md mt-4">
+                      <h5 className="font-medium mb-2">{t('Tip')}</h5>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {t(
+                          `tool usage.${selectedTool}.tip`,
+                          `Toggle the switch to enable or disable this tool.`
+                        )}
+                      </p>
+                    </div>
+                  </div>
                 )}
-                {toolName === 'executeCommand' && tool.enabled && (
-                  <CommandForm
-                    allowedCommands={allowedCommands}
-                    setAllowedCommands={setAllowedCommands}
-                    shell={shell}
-                    setShell={setShell}
-                  />
-                )}
-                {toolName === 'invokeBedrockAgent' && tool.enabled && (
-                  <BedrockAgentSettingForm
-                    bedrockAgents={bedrockAgents}
-                    setBedrockAgents={setBedrockAgents}
-                  />
-                )}
-              </ToolCard>
-            )
-          })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[700px] text-center text-gray-500 dark:text-gray-400 p-4">
+                <div className="text-5xl mb-4">🛠️</div>
+                <p className="text-base">{t('Select a tool from the list')}</p>
+                <p className="text-sm mt-2">
+                  {t('Click on any tool to view details and configuration options')}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </Modal.Body>
+      <Modal.Footer>
+        <Button onClick={onClose}>{t('Close')}</Button>
+      </Modal.Footer>
     </Modal>
   )
 })
