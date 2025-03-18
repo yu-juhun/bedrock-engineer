@@ -126,6 +126,22 @@ export interface SettingsContextType {
     }>
   ) => void
 
+  // Guardrail Settings
+  guardrailSettings: {
+    enabled: boolean
+    guardrailIdentifier: string
+    guardrailVersion: string
+    trace: 'enabled' | 'disabled'
+  }
+  updateGuardrailSettings: (
+    settings: Partial<{
+      enabled: boolean
+      guardrailIdentifier: string
+      guardrailVersion: string
+      trace: 'enabled' | 'disabled'
+    }>
+  ) => void
+
   // userDataPath (Electorn store directory)
   userDataPath: string
 
@@ -222,6 +238,19 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     availableFailoverRegions: []
   })
 
+  // Guardrail Settings
+  const [guardrailSettings, setGuardrailSettings] = useState<{
+    enabled: boolean
+    guardrailIdentifier: string
+    guardrailVersion: string
+    trace: 'enabled' | 'disabled'
+  }>({
+    enabled: false,
+    guardrailIdentifier: '',
+    guardrailVersion: 'DRAFT',
+    trace: 'enabled'
+  })
+
   const userDataPath = window.store.get('userDataPath') || ''
 
   // Project Settings
@@ -311,6 +340,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const storedBedrockSettings = window.store.get('bedrockSettings')
     if (storedBedrockSettings) {
       setBedrockSettings(storedBedrockSettings)
+    }
+
+    // Load Guardrail Settings
+    const storedGuardrailSettings = window.store.get('guardrailSettings')
+    if (storedGuardrailSettings) {
+      setGuardrailSettings(storedGuardrailSettings)
     }
 
     // Load Project Settings
@@ -545,6 +580,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const updatedSettings = { ...bedrockSettings, ...settings }
     setBedrockSettings(updatedSettings)
     window.store.set('bedrockSettings', updatedSettings)
+  }
+
+  const updateGuardrailSettings = (settings: Partial<typeof guardrailSettings>) => {
+    const updatedSettings = { ...guardrailSettings, ...settings }
+    setGuardrailSettings(updatedSettings)
+    window.store.set('guardrailSettings', updatedSettings)
   }
 
   const selectDirectory = async () => {
@@ -802,6 +843,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Bedrock Settings
     bedrockSettings,
     updateBedrockSettings,
+
+    // Guardrail Settings
+    guardrailSettings,
+    updateGuardrailSettings,
 
     // userDataPath (Electron store directory)
     userDataPath,

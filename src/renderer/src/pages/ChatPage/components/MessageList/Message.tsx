@@ -1,4 +1,8 @@
 import { Message } from '@aws-sdk/client-bedrock-runtime'
+
+import { IdentifiableMessage } from '@/types/chat/message'
+import { Modal } from 'flowbite-react'
+import { MetadataViewer } from '../MetadataViewer'
 import React, { useState, useRef, useEffect } from 'react'
 import { Avatar } from './Avatar'
 import { Accordion } from 'flowbite-react'
@@ -12,16 +16,13 @@ import { FiTrash2, FiCopy } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import toast from 'react-hot-toast'
 import { ReasoningContent } from '../CodeBlocks/Reasoning/ReasoningContent'
-
-// 拡張されたMessageタイプ
-type ExtendedMessage = Message & {
-  status?: 'idle' | 'streaming' | 'complete' | 'error'
-}
+import { GuardContent } from '../CodeBlocks/GuardContent'
 
 type ChatMessageProps = {
-  message: ExtendedMessage
+  message: IdentifiableMessage
   onDeleteMessage?: () => void
   reasoning: boolean
+  metadata?: any // ConverseStreamMetadataEvent | Record<string, any>
 }
 
 // Helper function to convert various image data formats to data URL
@@ -60,10 +61,12 @@ function convertImageToDataUrl(imageData: any, format: string = 'png'): string {
 export const ChatMessage: React.FC<ChatMessageProps> = ({
   message,
   onDeleteMessage,
-  reasoning
+  reasoning,
+  metadata
 }) => {
   const { t } = useTranslation()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [showMetadataModal, setShowMetadataModal] = useState(false)
   const avatarRef = useRef<HTMLDivElement>(null)
 
   // メッセージの内容をテキスト形式で抽出する関数
@@ -162,12 +165,28 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         )}
       </div>
       <div className="flex flex-col gap-2 w-full">
-        <span className="text-xs text-gray-500 relative">{message.role}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 relative">{message.role}</span>
+          {metadata && (
+            <button
+              onClick={() => setShowMetadataModal(true)}
+              className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-500 px-2 py-0.5 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+            >
+              metadata
+            </button>
+          )}
+        </div>
         {message.content?.map((c, index) => {
           if ('text' in c) {
             return (
               <div key={index} className="relative">
                 <CodeRenderer text={c.text} />
+              </div>
+            )
+          } else if ('guardContent' in c) {
+            return (
+              <div key={index} className="relative">
+                <GuardContent content={c.guardContent} />
               </div>
             )
           } else if ('reasoningContent' in c) {
@@ -264,6 +283,29 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           }
         })}
       </div>
+
+      <Modal
+        show={showMetadataModal}
+        onClose={() => setShowMetadataModal(false)}
+        size="4xl"
+        className="metadata-modal"
+        dismissible
+      >
+        <Modal.Header>
+          <div className="text-lg font-medium">{t('Metadata')}</div>
+        </Modal.Header>
+        <Modal.Body className="max-h-[80vh] overflow-auto">
+          {metadata && <MetadataViewer metadata={metadata} />}
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            onClick={() => setShowMetadataModal(false)}
+            className="px-5 py-2.5 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 transition-all"
+          >
+            {t('Close')}
+          </button>
+        </Modal.Footer>
+      </Modal>
     </div>
   )
 }

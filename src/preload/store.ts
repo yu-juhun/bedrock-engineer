@@ -21,6 +21,13 @@ const DEFAULT_BEDROCK_SETTINGS = {
   availableFailoverRegions: []
 }
 
+const DEFAULT_GUARDRAIL_SETTINGS = {
+  enabled: false,
+  guardrailIdentifier: '',
+  guardrailVersion: 'DRAFT',
+  trace: 'enabled'
+}
+
 type StoreScheme = {
   /** Electronアプリケーションのユーザーデータ保存先パス */
   userDataPath?: string
@@ -107,6 +114,18 @@ type StoreScheme = {
     enableRegionFailover: boolean
     /** フェイルオーバー時に使用可能なリージョン一覧 */
     availableFailoverRegions: string[]
+  }
+
+  /** ガードレール設定 */
+  guardrailSettings?: {
+    /** ガードレールを有効にするかどうか */
+    enabled: boolean
+    /** ガードレールID */
+    guardrailIdentifier: string
+    /** ガードレールバージョン */
+    guardrailVersion: string
+    /** ガードレールのトレース設定 */
+    trace: 'enabled' | 'disabled'
   }
 
   /** 使用可能なAmazon Bedrockエージェントの一覧 */
@@ -209,6 +228,12 @@ const init = () => {
   const bedrockSettings = electronStore.get('bedrockSettings')
   if (!bedrockSettings) {
     electronStore.set('bedrockSettings', DEFAULT_BEDROCK_SETTINGS)
+  }
+
+  // Initialize guardrailSettings
+  const guardrailSettings = electronStore.get('guardrailSettings')
+  if (!guardrailSettings) {
+    electronStore.set('guardrailSettings', DEFAULT_GUARDRAIL_SETTINGS)
   }
 }
 

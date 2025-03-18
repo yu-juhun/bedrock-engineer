@@ -1,10 +1,10 @@
-import { Message as MessageType } from '@aws-sdk/client-bedrock-runtime'
+import { IdentifiableMessage } from '@/types/chat/message'
 import React from 'react'
 import { ChatMessage } from './Message'
 import AILogo from '@renderer/assets/images/icons/ai.svg'
 
 type MessageListProps = {
-  messages: MessageType[]
+  messages: IdentifiableMessage[]
   loading: boolean
   reasoning: boolean
   deleteMessage?: (index: number) => void
@@ -48,10 +48,11 @@ export const MessageList: React.FC<MessageListProps> = ({
     <div className="flex flex-col gap-4">
       {messages.map((message, index) => (
         <ChatMessage
-          key={index}
+          key={message.id || index}
           message={message}
           reasoning={reasoning}
           onDeleteMessage={deleteMessage ? handleDeleteMessage(index) : undefined}
+          metadata={message.metadata?.converseMetadata}
         />
       ))}
       {loading && <LoadingMessage />}

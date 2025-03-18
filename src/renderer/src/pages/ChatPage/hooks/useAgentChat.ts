@@ -5,6 +5,7 @@ import {
   ToolUseBlockStart,
   ImageFormat
 } from '@aws-sdk/client-bedrock-runtime'
+import { generateMessageId } from '@/types/chat/metadata'
 import { StreamChatCompletionProps, streamChatCompletion } from '@renderer/lib/api'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSettings } from '@renderer/contexts/SettingsContext'
@@ -16,6 +17,7 @@ import { ChatMessage } from '@/types/chat/history'
 import { ToolName } from '@/types/tools'
 import { notificationService } from '@renderer/services/NotificationService'
 import { limitContextLength } from '@renderer/lib/contextLength'
+import { IdentifiableMessage } from '@/types/chat/message'
 
 // メッセージの送信時に、Trace を全て載せると InputToken が逼迫するので取り除く
 function removeTraces(messages) {
@@ -66,14 +68,15 @@ export const useAgentChat = (
 ) => {
   const { enableHistory = true } = options || {} // デフォルトで履歴保存は有効
 
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<IdentifiableMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [reasoning, setReasoning] = useState(false)
   const [executingTool, setExecutingTool] = useState<ToolName | null>(null)
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(sessionId)
+  const lastAssistantMessageId = useRef<string | null>(null)
   const abortController = useRef<AbortController | null>(null)
   const { t } = useTranslation()
-  const { notification, contextLength } = useSettings()
+  const { notification, contextLength, guardrailSettings } = useSettings()
 
   // 通信を中断する関数
   const abortCurrentRequest = useCallback(() => {
@@ -148,6 +151,7 @@ export const useAgentChat = (
 
           // 更新されたメッセージ配列を設定
           setMessages(updatedMessages)
+
           toast.success(t('Generation stopped'))
         } else {
           // 不完全なペアがない場合は単に停止メッセージを表示
@@ -207,22 +211,31 @@ export const useAgentChat = (
 
   // メッセージの永続化を行うラッパー関数
   const persistMessage = useCallback(
-    async (message: Message) => {
+    async (message: IdentifiableMessage) => {
       if (!enableHistory) return
 
       if (currentSessionId && message.role && message.content) {
+        // メッセージにIDがなければ生成する
+        if (!message.id) {
+          message.id = generateMessageId()
+        }
+
         const chatMessage: ChatMessage = {
-          id: `msg_${Date.now()}`,
+          id: message.id,
           role: message.role,
           content: message.content,
           timestamp: Date.now(),
           metadata: {
             modelId,
-            tools: enabledTools
+            tools: enabledTools,
+            converseMetadata: message.metadata?.converseMetadata // メッセージ内のメタデータを使用
           }
         }
+        console.log({ chatMessage })
         await window.chatHistory.addMessage(currentSessionId, chatMessage)
       }
+
+      return message
     },
     [currentSessionId, modelId, enabledTools, enableHistory]
   )
@@ -249,6 +262,7 @@ export const useAgentChat = (
     let input = ''
     let role: ConversationRole = 'assistant' // デフォルト値を設定
     let toolUse: ToolUseBlockStart | undefined = undefined
+    let stopReason
     const content: ContentBlock[] = []
 
     let messageStart = false
@@ -264,14 +278,23 @@ export const useAgentChat = (
             await streamChat(props, currentMessages)
             return
           }
-          const newMessage = { role, content }
+          // 新しいメッセージIDを生成
+          const messageId = generateMessageId()
+          const newMessage: IdentifiableMessage = { role, content, id: messageId }
+
+          // アシスタントメッセージの場合、最後のメッセージIDを保持
+          if (role === 'assistant') {
+            lastAssistantMessageId.current = messageId
+          }
+
+          // UI表示のために即時メッセージを追加
           setMessages([...currentMessages, newMessage])
           currentMessages.push(newMessage)
-          await persistMessage(newMessage)
-          console.log(currentMessages)
 
-          const stopReason = json.messageStop.stopReason
-          return stopReason
+          // メッセージ停止時点では永続化せず、後のメタデータ処理で永続化する
+          // この時点ではまだメタデータが来ていない可能性があるため
+
+          stopReason = json.messageStop.stopReason
         } else if (json.contentBlockStart) {
           toolUse = json.contentBlockStart.start?.toolUse
         } else if (json.contentBlockStop) {
@@ -444,10 +467,59 @@ export const useAgentChat = (
               }
             ])
           }
+        } else if (json.metadata) {
+          // Metadataを処理
+          const metadata = json.metadata
+
+          // 直近のアシスタントメッセージにメタデータを関連付ける
+          if (lastAssistantMessageId.current) {
+            // メッセージ配列からIDが一致するメッセージを見つけてメタデータを追加
+            setMessages((prevMessages) => {
+              return prevMessages.map((msg) => {
+                if (msg.id === lastAssistantMessageId.current) {
+                  return {
+                    ...msg,
+                    metadata: {
+                      ...msg.metadata,
+                      converseMetadata: metadata
+                    }
+                  }
+                }
+                return msg
+              })
+            })
+
+            // currentMessagesの最後（直近のメッセージ）を永続化する
+            const lastMessageIndex = currentMessages.length - 1
+            const lastMessage = currentMessages[lastMessageIndex]
+
+            if (
+              lastMessage &&
+              'id' in lastMessage &&
+              lastMessage.id === lastAssistantMessageId.current
+            ) {
+              // 型を明確にしてメタデータを追加
+              const updatedMessage: IdentifiableMessage = {
+                ...(lastMessage as IdentifiableMessage),
+                metadata: {
+                  ...(lastMessage as any).metadata,
+                  converseMetadata: metadata
+                }
+              }
+
+              // 配列の最後のメッセージを更新
+              currentMessages[lastMessageIndex] = updatedMessage
+
+              // メタデータを受信した時点で永続化を行う
+              await persistMessage(updatedMessage)
+            }
+          }
         } else {
           console.error('unexpected json:', json)
         }
       }
+
+      return stopReason
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.log('Chat stream aborted')
@@ -455,10 +527,15 @@ export const useAgentChat = (
       }
       console.error({ streamChatRequestError: error })
       toast.error(t('request error'))
-      const errorMessage = {
+      const messageId = generateMessageId()
+      const errorMessage: IdentifiableMessage = {
         role: 'assistant' as const,
-        content: [{ text: error.message }]
+        content: [{ text: error.message }],
+        id: messageId
       }
+
+      // エラーメッセージIDを記録
+      lastAssistantMessageId.current = messageId
       setMessages([...currentMessages, errorMessage])
       await persistMessage(errorMessage)
       throw error
@@ -468,7 +545,6 @@ export const useAgentChat = (
         abortController.current = null
       }
     }
-    throw new Error('unexpected end of stream')
   }
 
   const recursivelyExecTool = async (contentBlocks: ContentBlock[], currentMessages: Message[]) => {
@@ -521,9 +597,10 @@ export const useAgentChat = (
       }
     }
 
-    const toolResultMessage: Message = {
+    const toolResultMessage: IdentifiableMessage = {
       role: 'user',
-      content: toolResults
+      content: toolResults,
+      id: generateMessageId()
     }
     currentMessages.push(toolResultMessage)
     setMessages((prev) => [...prev, toolResultMessage])
@@ -572,11 +649,25 @@ export const useAgentChat = (
           }
         })) ?? []
 
-      const content =
-        imageContents.length > 0 ? [...imageContents, { text: userInput }] : [{ text: userInput }]
-      const userMessage: Message = {
+      // GuardRails形式のメッセージを構築
+      const textContent = guardrailSettings.enabled
+        ? {
+            guardContent: {
+              text: {
+                text: userInput
+              }
+            }
+          }
+        : {
+            text: userInput
+          }
+
+      const content = imageContents.length > 0 ? [...imageContents, textContent] : [textContent]
+
+      const userMessage: IdentifiableMessage = {
         role: 'user',
-        content
+        content,
+        id: generateMessageId()
       }
 
       currentMessages.push(userMessage)

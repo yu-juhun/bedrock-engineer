@@ -58,8 +58,10 @@ export default function ChatPage() {
   // ContentBlock単位での削除機能は不要になったため、handleUpdateMessageは削除
 
   const handleDeleteMessage = (index: number) => {
-    // メッセージの配列のコピーを作成し、指定されたインデックスのメッセージを削除
+    // メッセージの配列のコピーを作成
     const updatedMessages = [...messages]
+
+    // メッセージを削除
     updatedMessages.splice(index, 1)
 
     // 更新されたメッセージの配列を設定
