@@ -4,18 +4,22 @@ import { AgentService } from './services/agentService'
 import { ImageService } from './services/imageService'
 import type { ServiceContext } from './types'
 import type { GenerateImageRequest, GeneratedImage } from './types/image'
+import { GuardrailService } from './services/guardrailService'
+import { ApplyGuardrailRequest } from '@aws-sdk/client-bedrock-runtime'
 
 export class BedrockService {
   private converseService: ConverseService
   private modelService: ModelService
   private agentService: AgentService
   private imageService: ImageService
+  private guardrailService: GuardrailService
 
   constructor(context: ServiceContext) {
     this.converseService = new ConverseService(context)
     this.modelService = new ModelService(context)
     this.agentService = new AgentService(context)
     this.imageService = new ImageService(context)
+    this.guardrailService = new GuardrailService(context)
   }
 
   async listModels() {
@@ -48,6 +52,10 @@ export class BedrockService {
 
   isImageModelSupported(modelId: string): boolean {
     return this.imageService.isModelSupported(modelId)
+  }
+
+  async applyGuardrail(props: ApplyGuardrailRequest) {
+    return this.guardrailService.applyGuardrail(props)
   }
 }
 
