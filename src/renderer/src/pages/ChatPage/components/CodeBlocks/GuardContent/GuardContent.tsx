@@ -25,7 +25,7 @@ export const GuardContent: React.FC<GuardContentProps> = ({ content }) => {
     <div className="flex flex-col gap-2 w-full">
       <div className="flex items-center gap-2">
         <FaShieldAlt className="text-blue-500" />
-        <span className="text-sm font-medium text-blue-500">Guard Protected Content</span>
+        <span className="text-sm font-medium text-blue-500">Guardrail Protected Content</span>
       </div>
 
       <div className="text-content">

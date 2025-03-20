@@ -637,7 +637,14 @@ export const useAgentChat = (
                     }
                   }
 
-                  toast.error(t('guardrail.intervention'))
+                  toast(t('guardrail.intervention'), {
+                    icon: '⚠️',
+                    style: {
+                      backgroundColor: '#FEF3C7', // Light yellow background
+                      color: '#92400E', // Amber text color
+                      border: '1px solid #F59E0B' // Amber border
+                    }
+                  })
                 }
               } catch (guardrailError) {
                 console.error('Error applying guardrail to tool result:', guardrailError)

@@ -16,7 +16,7 @@ Bedrock Engineer is a native app, you can download the app or build the source c
 
 MacOS:
 
-[<img src="https://img.shields.io/badge/Download_FOR_MAC-Latest%20Release-blue?style=for-the-badge&logo=apple" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.4.2.dmg)
+[<img src="https://img.shields.io/badge/Download_FOR_MAC-Latest%20Release-blue?style=for-the-badge&logo=apple" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.5.0.dmg)
 
 <details>
 <summary>Tips for Installation</summary>
@@ -85,6 +85,7 @@ The autonomous AI agent capable of development assists your development process.
 - 🛠️ Tool customization and management
 - 🔄 Chat history management
 - 🌐 Multi-language support
+- 🛡️ Guardrail support
 
 | ![agent-chat-diagram](./assets/agent-chat-diagram.png) | ![agent-chat-search](./assets/agent-chat-search.png) |
 | :----------------------------------------------------: | :--------------------------------------------------: |
