@@ -120,7 +120,14 @@ export const executeTool = async (input: ToolInput): Promise<string | ToolResult
   }
 }
 
-// ツール定義（JSON Schema）
+/**
+ * ツール定義（JSON Schema）
+ *
+ * Amazon Nova understanding models currently support only a subset of JsonSchema functionality when used to define the ToolInputSchema in Converse API.
+ * The top level schema must be of type Object.
+ * Only three fields are supported in the top-level Object - type (must be set to ‘object’), properties, and required.
+ * https://docs.aws.amazon.com/nova/latest/userguide/tool-use-definition.html#:~:text=the%20tool%20configuration.-,Note,-Amazon%20Nova%20understanding
+ */
 export const tools: Tool[] = [
   {
     toolSpec: {
@@ -167,8 +174,15 @@ export const tools: Tool[] = [
   {
     toolSpec: {
       name: 'applyDiffEdit',
-      description:
-        'Apply a diff edit to a file. This tool replaces the specified original text with updated text at the exact location in the file. Use this when you need to make precise modifications to existing file content. The tool ensures that only the specified text is replaced, keeping the rest of the file intact.',
+      description: `Apply a diff edit to a file. This tool replaces the specified original text with updated text at the exact location in the file. Use this when you need to make precise modifications to existing file content. The tool ensures that only the specified text is replaced, keeping the rest of the file intact.
+
+Example:
+{
+   path: '/path/to/file.ts',
+   originalText: 'function oldName() {\n  // old implementation\n}',
+   updatedText: 'function newName() {\n  // new implementation\n}'
+}
+        `,
       inputSchema: {
         json: {
           type: 'object',
@@ -189,14 +203,7 @@ export const tools: Tool[] = [
                 'The new text that will replace the original text. Can be of different length than the original text. Whitespace and line breaks in this text will be preserved exactly as provided.'
             }
           },
-          required: ['path', 'originalText', 'updatedText'],
-          examples: [
-            {
-              path: '/path/to/file.ts',
-              originalText: 'function oldName() {\n  // old implementation\n}',
-              updatedText: 'function newName() {\n  // new implementation\n}'
-            }
-          ]
+          required: ['path', 'originalText', 'updatedText']
         }
       }
     }
