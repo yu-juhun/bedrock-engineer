@@ -128,6 +128,16 @@ export class ConverseService {
       })
     }
 
+    if (modelId.includes('nova')) {
+      // https://docs.aws.amazon.com/nova/latest/userguide/tool-use-definition.html
+      // For tool calling, the inference parameters should be set as inf_params = {"topP": 1, "temperature": 1} and additionalModelRequestFields= {"inferenceConfig": {"topK":1}}. This is because we encourage greedy decoding parameters for Amazon Nova tool calling.
+      additionalModelRequestFields = {
+        inferenceConfig: { topK: 1 }
+      }
+      inferenceParams.topP = 1
+      inferenceParams.temperature = 1
+    }
+
     // コマンドパラメータを作成
     const commandParams: ConverseCommandInput | ConverseStreamCommandInput = {
       modelId,
