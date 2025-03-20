@@ -88,7 +88,7 @@ export class ConverseService {
     commandParams: ConverseCommandInput | ConverseStreamCommandInput
     processedMessages?: Message[]
   }> {
-    const { modelId, messages, system, toolConfig } = props
+    const { modelId, messages, system, toolConfig, guardrailConfig } = props
 
     // 画像データを含むメッセージを処理
     const processedMessages = this.processMessages(messages)
@@ -136,6 +136,29 @@ export class ConverseService {
       toolConfig,
       inferenceConfig: inferenceParams,
       additionalModelRequestFields
+    }
+
+    // ガードレール設定が提供されている場合、または設定から有効になっている場合に追加
+    if (guardrailConfig) {
+      commandParams.guardrailConfig = guardrailConfig
+      converseLogger.debug('Using provided guardrail', {
+        guardrailId: guardrailConfig.guardrailIdentifier,
+        guardrailVersion: guardrailConfig.guardrailVersion
+      })
+    } else {
+      // 設定からガードレール設定を取得
+      const storedGuardrailSettings = this.context.store.get('guardrailSettings')
+      if (storedGuardrailSettings?.enabled && storedGuardrailSettings.guardrailIdentifier) {
+        commandParams.guardrailConfig = {
+          guardrailIdentifier: storedGuardrailSettings.guardrailIdentifier,
+          guardrailVersion: storedGuardrailSettings.guardrailVersion,
+          trace: storedGuardrailSettings.trace
+        }
+        converseLogger.debug('Using guardrail from settings', {
+          guardrailId: storedGuardrailSettings.guardrailIdentifier,
+          guardrailVersion: storedGuardrailSettings.guardrailVersion
+        })
+      }
     }
 
     return { commandParams, processedMessages }

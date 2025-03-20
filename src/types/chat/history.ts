@@ -16,6 +16,7 @@ export interface ChatMessage {
     modelId?: string
     tools?: ToolState[]
     images?: AttachedImage[]
+    converseMetadata?: Record<string, any> // BedrockのConverseStreamMetadataEvent型のデータを保存するフィールド
   }
 }
 

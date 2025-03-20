@@ -154,8 +154,10 @@ System Prompt: ${systemPrompt}
   useEffect(() => {
     if (messages.length > 1) {
       const lastMessage = messages[messages.length - 1]
-      if (lastMessage.content && lastMessage.content[0].text) {
-        const parsedScenarios = extractCompleteObjects(lastMessage.content[0].text)
+      // lastMessage.content の配列のなかから text フィールドを含む要素を取り出す
+      const textContent = lastMessage.content?.find((v) => v.text)
+      if (textContent && textContent.text) {
+        const parsedScenarios = extractCompleteObjects(textContent.text)
         console.log(parsedScenarios)
         if (parsedScenarios.length > 0) {
           setResult(parsedScenarios)

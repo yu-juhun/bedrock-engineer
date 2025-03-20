@@ -57,7 +57,11 @@ Description: ${description}
     if (messages.length > 1) {
       const lastMessage = messages[messages.length - 1]
       if (lastMessage.content) {
-        setResult(lastMessage.content[0].text)
+        // lastMessage.content の配列のなかから text フィールドを含む要素を取り出す
+        const textContent = lastMessage.content.find((v) => v.text)
+        if (textContent) {
+          setResult(textContent.text)
+        }
       }
     }
   }, [messages])

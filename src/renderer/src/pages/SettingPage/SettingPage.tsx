@@ -7,7 +7,8 @@ import {
   AgentChatSection,
   AWSSection,
   AdvancedSection,
-  NotificationSection
+  NotificationSection,
+  GuardrailSettings
 } from './components/sections'
 import { ConfigDirSection } from './components/sections/ConfigDirSection'
 
@@ -37,7 +38,9 @@ export const SettingPage: React.FC = () => {
     inferenceParams,
     updateInferenceParams,
     bedrockSettings,
-    updateBedrockSettings
+    updateBedrockSettings,
+    guardrailSettings,
+    updateGuardrailSettings
   } = useSetting()
 
   const handleChangeLLM = (modelId: string) => {
@@ -90,6 +93,11 @@ export const SettingPage: React.FC = () => {
         onUpdateLLM={handleChangeLLM}
         onUpdateInferenceParams={updateInferenceParams}
         onUpdateBedrockSettings={updateBedrockSettings}
+      />
+
+      <GuardrailSettings
+        guardrailSettings={guardrailSettings}
+        onUpdateGuardrailSettings={updateGuardrailSettings}
       />
 
       <AdvancedSection sendMsgKey={sendMsgKey} onUpdateSendMsgKey={updateSendMsgKey} />
