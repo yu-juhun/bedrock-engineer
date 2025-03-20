@@ -1,9 +1,9 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { FcSettings } from 'react-icons/fc'
 import { SettingSection } from '../SettingSection'
 import { SettingInput } from '../SettingInput'
 import { SettingSelect } from '../SettingSelect'
+import { FaShieldAlt } from 'react-icons/fa'
 
 interface GuardrailSettingsProps {
   guardrailSettings: {
@@ -29,7 +29,7 @@ export const GuardrailSettings: React.FC<GuardrailSettingsProps> = ({
   ]
 
   return (
-    <SettingSection title={t('Amazon Bedrock Guardrails')} icon={FcSettings}>
+    <SettingSection title={t('Amazon Bedrock Guardrails')} icon={FaShieldAlt}>
       <div className="space-y-4">
         <div className="space-y-2">
           <label className="inline-flex items-center cursor-pointer">

@@ -3,6 +3,7 @@ import { examples } from './examples'
 import { messages } from './messages'
 import { history } from './history'
 import { tools } from './tools'
+import { guardrails } from './guardrails'
 
 export const chatPage = {
   en: {
@@ -11,6 +12,7 @@ export const chatPage = {
     ...messages.en,
     ...history.en,
     ...tools.en,
+    ...guardrails.en,
     ...{
       textarea: {
         placeholder: 'Type message or add images ({{modifier}}+V / drop)',
@@ -42,6 +44,7 @@ export const chatPage = {
     ...messages.ja,
     ...history.ja,
     ...tools.ja,
+    ...guardrails.ja,
     ...{
       textarea: {
         placeholder: 'メッセージを入力、または画像を追加 ({{modifier}}+V / ドロップ)',

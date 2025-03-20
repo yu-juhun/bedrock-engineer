@@ -36,13 +36,7 @@ export class GuardrailService {
       const commandParams: ApplyGuardrailCommandInput = {
         guardrailIdentifier: request.guardrailIdentifier,
         guardrailVersion: request.guardrailVersion,
-        content: [
-          {
-            text: {
-              text: request.content && ''
-            }
-          }
-        ],
+        content: request.content,
         source: request.source
       }
 
