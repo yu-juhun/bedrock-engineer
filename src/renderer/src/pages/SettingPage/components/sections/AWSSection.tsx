@@ -21,6 +21,12 @@ interface AWSSectionProps {
   onUpdateSecretAccessKey: (key: string) => void
   onUpdateSessionToken: (token: string) => void
 
+  // AWS Profile Settings
+  useAwsProfile: boolean
+  onUpdateUseAwsProfile: (useProfile: boolean) => void
+  awsProfile: string
+  onUpdateAwsProfile: (profile: string) => void
+
   // Bedrock Settings
   currentLLM: LLM
   availableModels: LLM[]
@@ -48,6 +54,12 @@ export const AWSSection: React.FC<AWSSectionProps> = ({
   onUpdateAccessKeyId,
   onUpdateSecretAccessKey,
   onUpdateSessionToken,
+
+  // AWS Profile Settings
+  useAwsProfile,
+  onUpdateUseAwsProfile,
+  awsProfile,
+  onUpdateAwsProfile,
 
   // Bedrock Settings
   currentLLM,
@@ -131,37 +143,81 @@ export const AWSSection: React.FC<AWSSectionProps> = ({
             </button>
           </p>
 
-          <SettingInput
-            label={t('AWS Access Key ID')}
-            type="string"
-            placeholder="AKXXXXXXXXXXXXXXXXXX"
-            value={awsAccessKeyId}
-            onChange={(e) => onUpdateAccessKeyId(e.target.value)}
-          />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300
+                    focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800
+                    focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  checked={useAwsProfile}
+                  onChange={(e) => onUpdateUseAwsProfile(e.target.checked)}
+                />
+                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  {t('Use AWS Profile')}
+                </span>
+              </label>
+            </div>
 
-          <SettingInput
-            label={t('AWS Secret Access Key')}
-            type="password"
-            placeholder="****************************************"
-            value={awsSecretAccessKey}
-            onChange={(e) => onUpdateSecretAccessKey(e.target.value)}
-          />
+            {useAwsProfile ? (
+              <div className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-md">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {t('Use credentials from ~/.aws/credentials')}
+                </p>
 
-          <SettingInput
-            label={t('AWS Session Token (optional)')}
-            type="password"
-            placeholder="****************************************"
-            value={awsSessionToken}
-            onChange={(e) => onUpdateSessionToken(e.target.value)}
-          />
+                <SettingInput
+                  label={t('AWS Profile Name')}
+                  type="string"
+                  placeholder="default"
+                  value={awsProfile}
+                  onChange={(e) => onUpdateAwsProfile(e.target.value)}
+                />
 
-          <SettingSelect
-            label={t('AWS Region')}
-            value={awsRegion}
-            options={[{ value: '', label: t('Select a region') }]}
-            groups={regionGroups}
-            onChange={(e) => onUpdateRegion(e.target.value)}
-          />
+                <SettingSelect
+                  label={t('AWS Region')}
+                  value={awsRegion}
+                  options={[{ value: '', label: t('Select a region') }]}
+                  groups={regionGroups}
+                  onChange={(e) => onUpdateRegion(e.target.value)}
+                />
+              </div>
+            ) : (
+              <div className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-md">
+                <SettingInput
+                  label={t('AWS Access Key ID')}
+                  type="string"
+                  placeholder="AKXXXXXXXXXXXXXXXXXX"
+                  value={awsAccessKeyId}
+                  onChange={(e) => onUpdateAccessKeyId(e.target.value)}
+                />
+
+                <SettingInput
+                  label={t('AWS Secret Access Key')}
+                  type="password"
+                  placeholder="****************************************"
+                  value={awsSecretAccessKey}
+                  onChange={(e) => onUpdateSecretAccessKey(e.target.value)}
+                />
+
+                <SettingInput
+                  label={t('AWS Session Token (optional)')}
+                  type="password"
+                  placeholder="****************************************"
+                  value={awsSessionToken}
+                  onChange={(e) => onUpdateSessionToken(e.target.value)}
+                />
+
+                <SettingSelect
+                  label={t('AWS Region')}
+                  value={awsRegion}
+                  options={[{ value: '', label: t('Select a region') }]}
+                  groups={regionGroups}
+                  onChange={(e) => onUpdateRegion(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </SettingSection>
 
