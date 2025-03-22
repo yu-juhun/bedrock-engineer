@@ -1,5 +1,9 @@
 export const bedrockSettings = {
   en: {
+    // AWS Profile Settings
+    'Use AWS Profile': 'Use AWS Profile',
+    'Use credentials from ~/.aws/credentials': 'Use credentials from ~/.aws/credentials',
+    'AWS Profile Name': 'AWS Profile Name',
     // Bedrock Settings
     'Enable Region Failover on ThrottlingException':
       'Enable Region Failover on ThrottlingException',
@@ -22,6 +26,10 @@ export const bedrockSettings = {
     Disabled: 'Disabled'
   },
   ja: {
+    // AWS Profile Settings
+    'Use AWS Profile': 'AWS プロファイルを使用する',
+    'Use credentials from ~/.aws/credentials': '~/.aws/credentials から認証情報を使用します',
+    'AWS Profile Name': 'AWS プロファイル名',
     // Bedrock Settings
     'Enable Region Failover on ThrottlingException':
       'ThrottlingException 発生時に Region Failover を有効にする',

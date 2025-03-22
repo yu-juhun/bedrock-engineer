@@ -4,6 +4,7 @@ import { AgentChatConfig, KnowledgeBase, SendMsgKey, ToolState } from '../types/
 import { CustomAgent } from '../types/agent-chat'
 import { CommandSettings } from '../main/api/command/types'
 import { BedrockAgent } from '../types/agent'
+import { AWSCredentials } from '../main/api/bedrock/types'
 
 const DEFAULT_SHELL = '/bin/bash'
 const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
@@ -82,16 +83,7 @@ type StoreScheme = {
   }
 
   /** AWS認証情報とリージョン設定 */
-  aws: {
-    /** 使用するAWSリージョン */
-    region: string
-    /** AWS認証のアクセスキーID */
-    accessKeyId: string
-    /** AWS認証のシークレットアクセスキー */
-    secretAccessKey: string
-    /** 一時的な認証情報使用時のセッショントークン（オプション） */
-    sessionToken?: string
-  }
+  aws: AWSCredentials
 
   /** ユーザーが作成したカスタムエージェントの一覧 */
   customAgents: CustomAgent[]

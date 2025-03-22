@@ -18,6 +18,8 @@ MacOS:
 
 [<img src="https://img.shields.io/badge/Download_FOR_MAC-Latest%20Release-blue?style=for-the-badge&logo=apple" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.5.1.dmg)
 
+MacOS に最適化されていますが、Windows, Linux OS でもビルドして使用できます。不具合があるばあい、issue に起票ください。
+
 <details>
 <summary>Tips for Installation</summary>
 

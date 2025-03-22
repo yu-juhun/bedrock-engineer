@@ -20,6 +20,8 @@ export type AWSCredentials = {
   secretAccessKey: string
   sessionToken?: string
   region: string
+  profile?: string
+  useProfile?: boolean
 }
 
 export interface ThinkingMode {

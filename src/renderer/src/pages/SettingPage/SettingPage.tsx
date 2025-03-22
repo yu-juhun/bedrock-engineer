@@ -35,6 +35,10 @@ export const SettingPage: React.FC = () => {
     setAwsSecretAccessKey,
     awsSessionToken,
     setAwsSessionToken,
+    useAwsProfile,
+    setUseAwsProfile,
+    awsProfile,
+    setAwsProfile,
     inferenceParams,
     updateInferenceParams,
     bedrockSettings,
@@ -86,6 +90,10 @@ export const SettingPage: React.FC = () => {
         onUpdateAccessKeyId={setAwsAccessKeyId}
         onUpdateSecretAccessKey={setAwsSecretAccessKey}
         onUpdateSessionToken={setAwsSessionToken}
+        useAwsProfile={useAwsProfile}
+        onUpdateUseAwsProfile={setUseAwsProfile}
+        awsProfile={awsProfile}
+        onUpdateAwsProfile={setAwsProfile}
         currentLLM={currentLLM}
         availableModels={availableModels}
         inferenceParams={inferenceParams}

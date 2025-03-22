@@ -2,6 +2,7 @@ import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts'
 import type { AWSCredentials } from '../types'
 import { baseModels, usModels, euModels, apacModels } from '../models'
 import type { LLM } from '../../../../types/llm'
+import { fromIni } from '@aws-sdk/credential-providers'
 
 /**
  * 指定されたモデルIDに対応するモデル情報を取得する
@@ -52,14 +53,20 @@ export function getAlternateRegionOnThrottling(
 
 export async function getAccountId(awsCredentials: AWSCredentials) {
   try {
+    const { region, useProfile, profile } = awsCredentials
+
     const sts = new STSClient({
-      credentials: {
-        accessKeyId: awsCredentials.accessKeyId,
-        secretAccessKey: awsCredentials.secretAccessKey,
-        sessionToken: awsCredentials?.sessionToken
-      },
-      region: awsCredentials.region
+      credentials:
+        useProfile && profile
+          ? fromIni({ profile })
+          : {
+              accessKeyId: awsCredentials.accessKeyId,
+              secretAccessKey: awsCredentials.secretAccessKey,
+              sessionToken: awsCredentials?.sessionToken
+            },
+      region
     })
+
     const command = new GetCallerIdentityCommand({})
     const res = await sts.send(command)
     return res.Account

@@ -164,6 +164,10 @@ export interface SettingsContextType {
   setAwsSecretAccessKey: (secretAccessKey: string) => void
   awsSessionToken: string
   setAwsSessionToken: (sessionToken: string) => void
+  useAwsProfile: boolean
+  setUseAwsProfile: (useProfile: boolean) => void
+  awsProfile: string
+  setAwsProfile: (profile: string) => void
 
   // Custom Agents Settings
   customAgents: CustomAgent[]
@@ -264,6 +268,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [awsAccessKeyId, setStateAwsAccessKeyId] = useState<string>('')
   const [awsSecretAccessKey, setStateAwsSecretAccessKey] = useState<string>('')
   const [awsSessionToken, setStateAwsSessionToken] = useState<string>('')
+  const [useAwsProfile, setStateUseAwsProfile] = useState<boolean>(false)
+  const [awsProfile, setStateAwsProfile] = useState<string>('default')
 
   // Custom Agents Settings
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([])
@@ -367,6 +373,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setStateAwsAccessKeyId(awsConfig.accessKeyId || '')
       setStateAwsSecretAccessKey(awsConfig.secretAccessKey || '')
       setStateAwsSessionToken(awsConfig.sessionToken || '')
+      setStateUseAwsProfile(awsConfig.useProfile || false)
+      setStateAwsProfile(awsConfig.profile || 'default')
     }
 
     // Load Custom Agents
@@ -475,7 +483,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setStateTools(updatedTools)
       window.store.set('tools', updatedTools)
     }
-  }, [awsRegion, awsAccessKeyId, awsSecretAccessKey])
+  }, [awsRegion, awsAccessKeyId, awsSecretAccessKey, awsProfile, useAwsProfile])
 
   // Load shared agents when component mounts or project path changes
   useEffect(() => {
@@ -653,12 +661,48 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     saveAwsConfig(credentials, awsRegion)
   }
 
+  const setUseAwsProfile = (useProfile: boolean) => {
+    setStateUseAwsProfile(useProfile)
+    const credentials: AwsCredentialIdentity = {
+      accessKeyId: awsAccessKeyId,
+      secretAccessKey: awsSecretAccessKey,
+      sessionToken: !awsSessionToken ? undefined : awsSessionToken
+    }
+    window.store.set('aws', {
+      accessKeyId: credentials.accessKeyId,
+      secretAccessKey: credentials.secretAccessKey,
+      sessionToken: credentials.sessionToken,
+      region: awsRegion,
+      useProfile: useProfile,
+      profile: awsProfile
+    })
+  }
+
+  const setAwsProfile = (profile: string) => {
+    setStateAwsProfile(profile)
+    const credentials: AwsCredentialIdentity = {
+      accessKeyId: awsAccessKeyId,
+      secretAccessKey: awsSecretAccessKey,
+      sessionToken: !awsSessionToken ? undefined : awsSessionToken
+    }
+    window.store.set('aws', {
+      accessKeyId: credentials.accessKeyId,
+      secretAccessKey: credentials.secretAccessKey,
+      sessionToken: credentials.sessionToken,
+      region: awsRegion,
+      useProfile: useAwsProfile,
+      profile: profile
+    })
+  }
+
   const saveAwsConfig = (credentials: AwsCredentialIdentity, region: string) => {
     window.store.set('aws', {
       accessKeyId: credentials.accessKeyId,
       secretAccessKey: credentials.secretAccessKey,
       sessionToken: credentials.sessionToken,
-      region
+      region,
+      useProfile: useAwsProfile,
+      profile: awsProfile
     })
   }
 
@@ -870,6 +914,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setAwsSecretAccessKey,
     awsSessionToken,
     setAwsSessionToken,
+    useAwsProfile,
+    setUseAwsProfile,
+    awsProfile,
+    setAwsProfile,
 
     // Custom Agents Settings
     customAgents,
