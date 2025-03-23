@@ -1,4 +1,11 @@
 import { Tool } from '@aws-sdk/client-bedrock-runtime'
+import { BedrockAgent } from './agent'
+
+// コマンド設定の型定義
+export interface CommandConfig {
+  pattern: string
+  description: string
+}
 
 export type AgentChatConfig = {
   ignoreFiles?: string[]
@@ -192,7 +199,9 @@ export type CustomAgent = Agent & {
   isShared?: boolean
   tools?: ToolState[] // エージェント固有のツール設定
   category?: AgentCategory // エージェントのカテゴリ
-  useGlobalTools?: boolean // グローバルツール設定を使用するかのフラグ
+  allowedCommands?: CommandConfig[] // エージェント固有の許可コマンド
+  bedrockAgents?: BedrockAgent[] // エージェント固有のBedrock Agents
+  knowledgeBases?: KnowledgeBase[] // エージェント固有のKnowledge Base
 }
 
 export type AgentSettings = {

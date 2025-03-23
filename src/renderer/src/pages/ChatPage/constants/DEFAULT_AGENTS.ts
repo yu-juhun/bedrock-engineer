@@ -102,7 +102,26 @@ When use executeCommand tool:
       { title: 'Testcode', content: '' }
     ],
     icon: 'laptop',
-    iconColor: 'oklch(0.623 0.214 259.815)'
+    iconColor: 'oklch(0.623 0.214 259.815)',
+    category: 'coding',
+    // ソフトウェア開発者用デフォルトツール設定
+    tools: [], // この値は初回ロード時に動的に設定されます
+    // ソフトウェア開発者用の許可コマンド設定
+    allowedCommands: [
+      { pattern: 'npm *', description: 'npm command' },
+      { pattern: 'sam *', description: 'aws sam cli command' },
+      { pattern: 'curl *', description: 'curl command' },
+      { pattern: 'make *', description: 'make command' },
+      { pattern: 'aws *', description: 'aws cli' },
+      { pattern: 'cd *', description: 'cd' },
+      { pattern: 'find *', description: 'find command' },
+      { pattern: 'ls *', description: 'List directory command' },
+      { pattern: 'grep *', description: 'grep command' }
+    ],
+    // ソフトウェア開発者用のBedrock Agents設定
+    bedrockAgents: [],
+    // ソフトウェア開発者用のKnowledge Base設定
+    knowledgeBases: []
   },
   {
     id: 'codeBuddy',
@@ -228,7 +247,25 @@ Remember to:
       { title: 'Data Visualization with Python', content: '' }
     ],
     icon: 'code',
-    iconColor: 'oklch(0.627 0.194 149.214)'
+    iconColor: 'oklch(0.627 0.194 149.214)',
+    category: 'coding',
+    // プログラミングメンター用のツール設定
+    tools: [], // この値は初回ロード時に動的に設定されます
+    // プログラミングメンター用の許可コマンド設定
+    allowedCommands: [
+      { pattern: 'node *', description: 'Node.js command' },
+      { pattern: 'npm *', description: 'npm command' },
+      { pattern: 'python *', description: 'Python command' },
+      { pattern: 'python3 *', description: 'Python3 command' },
+      { pattern: 'ls *', description: 'List directory command' },
+      { pattern: 'cd *', description: 'Change directory command' },
+      { pattern: 'javac *', description: 'Java compiler command' },
+      { pattern: 'java *', description: 'Java runtime command' }
+    ],
+    // プログラミングメンター用のBedrock Agents設定
+    bedrockAgents: [],
+    // プログラミングメンター用のKnowledge Base設定
+    knowledgeBases: []
   },
   {
     id: 'productDesigner',
@@ -262,7 +299,19 @@ When use tools:
       { title: 'Design Trend Research', content: '' }
     ],
     icon: 'design',
-    iconColor: 'oklch(0.558 0.288 302.321)'
+    iconColor: 'oklch(0.558 0.288 302.321)',
+    category: 'design',
+    // プロダクトデザイナー用のツール設定
+    tools: [], // この値は初回ロード時に動的に設定されます
+    // プロダクトデザイナー用の許可コマンド設定
+    allowedCommands: [
+      { pattern: 'ls *', description: 'List directory command' },
+      { pattern: 'cd *', description: 'Change directory command' }
+    ],
+    // プロダクトデザイナー用のBedrock Agents設定
+    bedrockAgents: [],
+    // プロダクトデザイナー用のKnowledge Base設定
+    knowledgeBases: []
   }
 ] as const as CustomAgent[]
 

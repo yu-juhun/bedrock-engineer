@@ -4,7 +4,7 @@ export interface CommandPatternConfig {
 }
 
 export interface CommandConfig {
-  allowedCommands: CommandPatternConfig[]
+  allowedCommands?: CommandPatternConfig[]
   shell: string
 }
 
@@ -46,7 +46,7 @@ export interface CommandPattern {
 }
 
 export interface CommandSettings {
-  allowedCommands: CommandPatternConfig[]
+  allowedCommands?: CommandPatternConfig[]
   shell: string
 }
 

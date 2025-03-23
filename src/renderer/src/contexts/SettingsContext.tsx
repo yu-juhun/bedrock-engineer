@@ -194,15 +194,30 @@ export interface SettingsContextType {
   updateAgentTools: (agentId: string, tools: ToolState[]) => void
   getDefaultToolsForCategory: (category: string) => ToolState[]
 
-  allowedCommands: CommandConfig[]
-  setAllowedCommands: (commands: CommandConfig[]) => void
+  // エージェント固有の許可コマンド設定
+  getAgentAllowedCommands: (agentId: string) => CommandConfig[]
+  updateAgentAllowedCommands: (agentId: string, commands: CommandConfig[]) => void
 
-  knowledgeBases: KnowledgeBase[]
-  setKnowledgeBases: (knowledgeBases: KnowledgeBase[]) => void
+  // エージェント固有のBedrock Agents設定
+  getAgentBedrockAgents: (agentId: string) => BedrockAgent[]
+  updateAgentBedrockAgents: (agentId: string, agents: BedrockAgent[]) => void
 
-  // Bedrock Agent Settings
-  bedrockAgents: BedrockAgent[]
-  setBedrockAgents: (agents: BedrockAgent[]) => void
+  // エージェント固有のKnowledge Base設定
+  getAgentKnowledgeBases: (agentId: string) => KnowledgeBase[]
+  updateAgentKnowledgeBases: (agentId: string, bases: KnowledgeBase[]) => void
+
+  // エージェント設定の一括更新
+  updateAgentSettings: (
+    agentId: string,
+    settings: Partial<{
+      tools: ToolState[]
+      allowedCommands: CommandConfig[]
+      bedrockAgents: BedrockAgent[]
+      knowledgeBases: KnowledgeBase[]
+    }>
+  ) => void
+
+  // グローバル設定は削除してエージェント固有の設定のみにする
 
   // Shell Settings
   shell: string
@@ -287,20 +302,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Tools Settings
   const [tools, setStateTools] = useState<ToolState[]>([])
-
-  // Knowledge Base Settings
-  const [knowledgeBases, setStateKnowledgeBases] = useState<KnowledgeBase[]>([])
-
-  // Bedrock Agent Settings
-  const [bedrockAgents, setStateBedrockAgents] = useState<BedrockAgent[]>([])
-
-  // Command Settings
-  const [allowedCommands, setStateAllowedCommands] = useState<CommandConfig[]>([
-    {
-      pattern: 'ls *',
-      description: 'List directory contents'
-    }
-  ])
 
   // Shell Settings
   const [shell, setStateShell] = useState<string>(DEFAULT_SHELL)
@@ -420,37 +421,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }
 
-    // Load Knowledge Base Settings
-    const savedKnowledgeBases = window.store.get('knowledgeBases')
-    if (savedKnowledgeBases) {
-      setStateKnowledgeBases(savedKnowledgeBases)
-    }
-
-    // Load Bedrock Agent Settings
-    const savedBedrockAgents = window.store.get('bedrockAgents')
-    if (savedBedrockAgents) {
-      setStateBedrockAgents(savedBedrockAgents)
-    }
-
-    // Load Command Settings
+    // Load Shell Setting
     const commandSettings = window.store.get('command')
-    if (commandSettings?.allowedCommands) {
-      setStateAllowedCommands(commandSettings.allowedCommands)
-      // Load Shell Setting
-      if (commandSettings.shell) {
-        setStateShell(commandSettings.shell)
-      }
+    if (commandSettings?.shell) {
+      setStateShell(commandSettings.shell)
     } else {
       // 初期値を設定
-      const initialCommands = [
-        {
-          pattern: 'ls *',
-          description: 'List directory contents'
-        }
-      ]
-      setStateAllowedCommands(initialCommands)
       window.store.set('command', {
-        allowedCommands: initialCommands,
         shell: DEFAULT_SHELL
       })
     }
@@ -725,43 +702,31 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const { t, i18n } = useTranslation()
 
-  const getBaseAgents = useCallback((): CustomAgent[] => {
-    // シナリオをローカライズする関数
-    const localizeScenarios = useCallback(
-      (scenarios: Scenario[]): Scenario[] => {
-        return scenarios.map((scenario) => ({
-          title: t(scenario.title),
-          content: replacePlaceholders(t(`${scenario.title} description`), {
-            projectPath: projectPath || t('no project path'),
-            allowedCommands: allowedCommands,
-            knowledgeBases: knowledgeBases,
-            bedrockAgents: bedrockAgents
-          })
-        }))
-      },
-      [t, replacePlaceholders, projectPath, allowedCommands, knowledgeBases, bedrockAgents]
-    )
+  // getBaseAgents関数はuseCallback内ではなく、useMemoを使って結果をメモ化
+  const baseAgents = useMemo((): CustomAgent[] => {
+    // シナリオをローカライズする関数 (インライン関数に変更)
+    const localizeScenarios = (scenarios: Scenario[]): Scenario[] => {
+      return scenarios.map((scenario) => ({
+        title: t(scenario.title),
+        content: replacePlaceholders(t(`${scenario.title} description`), {
+          projectPath: projectPath || t('no project path')
+        })
+      }))
+    }
 
     // ローカライズされたエージェントを生成
-    const localizedAgents = useMemo(() => {
-      return DEFAULT_AGENTS.map((agent) => ({
-        ...agent,
-        name: agent.name,
-        description: t(agent.description),
-        system: replacePlaceholders(agent.system, {
-          projectPath: projectPath || t('no project path'),
-          allowedCommands: allowedCommands,
-          knowledgeBases: knowledgeBases,
-          bedrockAgents: bedrockAgents
-        }),
-        scenarios: localizeScenarios(agent.scenarios)
-      }))
-    }, [i18n.language, t, replacePlaceholders, localizeScenarios])
+    return DEFAULT_AGENTS.map((agent) => ({
+      ...agent,
+      name: agent.name,
+      description: t(agent.description),
+      system: replacePlaceholders(agent.system, {
+        projectPath: projectPath || t('no project path')
+      }),
+      scenarios: localizeScenarios(agent.scenarios)
+    }))
+  }, [t, i18n.language, projectPath, replacePlaceholders])
 
-    return localizedAgents
-  }, [t, projectPath, allowedCommands, knowledgeBases, bedrockAgents])
-
-  const baseAgents = getBaseAgents()
+  // baseAgents はすでにuseMemoで定義済み
   // Make sure there are no duplicate IDs between agents from different sources
   const allAgents = useMemo(() => {
     // Create a mapping of IDs to count occurrences
@@ -799,14 +764,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return result
   }, [baseAgents, customAgents, sharedAgents])
   const currentAgent = allAgents.find((a) => a.id === selectedAgentId)
-  const systemPrompt = currentAgent?.system
-    ? replacePlaceholders(currentAgent?.system, {
-        projectPath,
-        allowedCommands: allowedCommands,
-        knowledgeBases: knowledgeBases,
-        bedrockAgents: bedrockAgents
-      })
-    : ''
 
   const setTools = (newTools: ToolState[]) => {
     setStateTools(newTools)
@@ -815,28 +772,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const enabledTavilySearch = tavilySearchApiKey.length > 0
 
-  const setKnowledgeBases = (knowledgeBases: KnowledgeBase[]) => {
-    setStateKnowledgeBases(knowledgeBases)
-    window.store.set('knowledgeBases', knowledgeBases)
-  }
-
-  const setBedrockAgents = (agents: BedrockAgent[]) => {
-    setStateBedrockAgents(agents)
-    window.store.set('bedrockAgents', agents)
-  }
-
-  const setAllowedCommands = (commands: CommandConfig[]) => {
-    setStateAllowedCommands(commands)
-    window.store.set('command', {
-      allowedCommands: commands,
-      shell: shell
-    })
-  }
-
   const setShell = (newShell: string) => {
     setStateShell(newShell)
     window.store.set('command', {
-      allowedCommands: allowedCommands,
       shell: newShell
     })
   }
@@ -870,6 +808,45 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return getToolsForCategory('all', tools)
     },
     [allAgents, tools]
+  )
+
+  // エージェント固有の許可コマンドを取得する関数
+  const getAgentAllowedCommands = useCallback(
+    (agentId: string): CommandConfig[] => {
+      // 現在選択されているエージェントを見つける
+      const agent = allAgents.find((a) => a.id === agentId)
+
+      // エージェント固有の許可コマンド設定がある場合はそれを返す
+      // それ以外は空配列を返す
+      return (agent && agent.allowedCommands) || []
+    },
+    [allAgents]
+  )
+
+  // エージェント固有のBedrock Agentsを取得する関数
+  const getAgentBedrockAgents = useCallback(
+    (agentId: string): BedrockAgent[] => {
+      // 現在選択されているエージェントを見つける
+      const agent = allAgents.find((a) => a.id === agentId)
+
+      // エージェント固有のBedrock Agents設定がある場合はそれを返す
+      // それ以外は空配列を返す
+      return (agent && agent.bedrockAgents) || []
+    },
+    [allAgents]
+  )
+
+  // エージェント固有のKnowledge Basesを取得する関数
+  const getAgentKnowledgeBases = useCallback(
+    (agentId: string): KnowledgeBase[] => {
+      // 現在選択されているエージェントを見つける
+      const agent = allAgents.find((a) => a.id === agentId)
+
+      // エージェント固有のKnowledge Base設定がある場合はそれを返す
+      // それ以外は空配列を返す
+      return (agent && agent.knowledgeBases) || []
+    },
+    [allAgents]
   )
 
   // 現在選択されているエージェント用のツール設定を取得
@@ -906,6 +883,70 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [customAgents]
   )
 
+  // エージェントの許可コマンド設定を更新する関数
+  const updateAgentAllowedCommands = useCallback(
+    (agentId: string, commands: CommandConfig[]) => {
+      // カスタムエージェントの場合のみ更新可能
+      const updatedAgents = customAgents.map((agent) =>
+        agent.id === agentId ? { ...agent, allowedCommands: commands } : agent
+      )
+
+      setCustomAgents(updatedAgents)
+      window.store.set('customAgents', updatedAgents)
+    },
+    [customAgents]
+  )
+
+  // エージェントのBedrock Agents設定を更新する関数
+  const updateAgentBedrockAgents = useCallback(
+    (agentId: string, agents: BedrockAgent[]) => {
+      // カスタムエージェントの場合のみ更新可能
+      const updatedAgents = customAgents.map((agent) =>
+        agent.id === agentId ? { ...agent, bedrockAgents: agents } : agent
+      )
+
+      setCustomAgents(updatedAgents)
+      window.store.set('customAgents', updatedAgents)
+    },
+    [customAgents]
+  )
+
+  // エージェントのKnowledge Base設定を更新する関数
+  const updateAgentKnowledgeBases = useCallback(
+    (agentId: string, bases: KnowledgeBase[]) => {
+      // カスタムエージェントの場合のみ更新可能
+      const updatedAgents = customAgents.map((agent) =>
+        agent.id === agentId ? { ...agent, knowledgeBases: bases } : agent
+      )
+
+      setCustomAgents(updatedAgents)
+      window.store.set('customAgents', updatedAgents)
+    },
+    [customAgents]
+  )
+
+  // エージェント設定の一括更新関数
+  const updateAgentSettings = useCallback(
+    (
+      agentId: string,
+      settings: Partial<{
+        tools: ToolState[]
+        allowedCommands: CommandConfig[]
+        bedrockAgents: BedrockAgent[]
+        knowledgeBases: KnowledgeBase[]
+      }>
+    ) => {
+      // カスタムエージェントの場合のみ更新可能
+      const updatedAgents = customAgents.map((agent) =>
+        agent.id === agentId ? { ...agent, ...settings } : agent
+      )
+
+      setCustomAgents(updatedAgents)
+      window.store.set('customAgents', updatedAgents)
+    },
+    [customAgents]
+  )
+
   // カテゴリーに基づいてデフォルトツール設定を返す関数
   const getDefaultToolsForCategory = useCallback(
     (category: string): ToolState[] => {
@@ -913,6 +954,25 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     },
     [tools]
   )
+
+  const systemPrompt = useMemo(() => {
+    if (!currentAgent?.system) return ''
+
+    // エージェント固有の設定を使用
+    return replacePlaceholders(currentAgent.system, {
+      projectPath,
+      allowedCommands: getAgentAllowedCommands(selectedAgentId),
+      knowledgeBases: getAgentKnowledgeBases(selectedAgentId),
+      bedrockAgents: getAgentBedrockAgents(selectedAgentId)
+    })
+  }, [
+    currentAgent,
+    selectedAgentId,
+    projectPath,
+    getAgentAllowedCommands,
+    getAgentKnowledgeBases,
+    getAgentBedrockAgents
+  ])
 
   const value = {
     // Advanced Settings
@@ -997,14 +1057,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     updateAgentTools,
     getDefaultToolsForCategory,
 
-    knowledgeBases,
-    setKnowledgeBases,
-
-    bedrockAgents,
-    setBedrockAgents,
-
-    allowedCommands,
-    setAllowedCommands,
+    // エージェント固有の設定
+    getAgentAllowedCommands,
+    updateAgentAllowedCommands,
+    getAgentBedrockAgents,
+    updateAgentBedrockAgents,
+    getAgentKnowledgeBases,
+    updateAgentKnowledgeBases,
+    updateAgentSettings,
 
     // Shell Settings
     shell,

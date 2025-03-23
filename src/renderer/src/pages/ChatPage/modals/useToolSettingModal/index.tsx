@@ -9,7 +9,7 @@ import { TavilySearchSettingForm } from './TavilySearchSettingForm'
 import { Button, Modal, ToggleSwitch } from 'flowbite-react'
 import { memo, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BedrockAgent } from '@/types/agent'
+// ローカルで型定義
 import { ToolState } from '@/types/agent-chat'
 
 export interface CommandConfig {
@@ -157,18 +157,16 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
     updateAgentTools,
     getAgentTools,
     currentLLM,
-    knowledgeBases,
-    setKnowledgeBases,
-    allowedCommands,
-    setAllowedCommands,
     shell,
     setShell,
     tavilySearchApiKey,
     setTavilySearchApiKey,
-    bedrockAgents = [],
-    setBedrockAgents = (agents: BedrockAgent[]) => {
-      window.store.set('bedrockAgents', agents)
-    }
+    getAgentAllowedCommands,
+    updateAgentAllowedCommands,
+    getAgentKnowledgeBases,
+    updateAgentKnowledgeBases,
+    getAgentBedrockAgents,
+    updateAgentBedrockAgents
   } = useSettings()
 
   // 選択されたツールの状態管理
@@ -307,24 +305,28 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
 
                 {TOOLS_WITH_SETTINGS.includes(selectedTool) ? (
                   <>
-                    {selectedTool === 'retrieve' && (
+                    {selectedTool === 'retrieve' && selectedAgentId && (
                       <KnowledgeBaseSettingForm
-                        knowledgeBases={knowledgeBases}
-                        setKnowledgeBases={setKnowledgeBases}
+                        knowledgeBases={getAgentKnowledgeBases(selectedAgentId)}
+                        setKnowledgeBases={(kbs) => updateAgentKnowledgeBases(selectedAgentId, kbs)}
                       />
                     )}
-                    {selectedTool === 'executeCommand' && (
+                    {selectedTool === 'executeCommand' && selectedAgentId && (
                       <CommandForm
-                        allowedCommands={allowedCommands}
-                        setAllowedCommands={setAllowedCommands}
+                        allowedCommands={getAgentAllowedCommands(selectedAgentId)}
+                        setAllowedCommands={(commands) =>
+                          updateAgentAllowedCommands(selectedAgentId, commands)
+                        }
                         shell={shell}
                         setShell={setShell}
                       />
                     )}
-                    {selectedTool === 'invokeBedrockAgent' && (
+                    {selectedTool === 'invokeBedrockAgent' && selectedAgentId && (
                       <BedrockAgentSettingForm
-                        bedrockAgents={bedrockAgents}
-                        setBedrockAgents={setBedrockAgents}
+                        bedrockAgents={getAgentBedrockAgents(selectedAgentId)}
+                        setBedrockAgents={(agents) =>
+                          updateAgentBedrockAgents(selectedAgentId, agents)
+                        }
                       />
                     )}
                     {selectedTool === 'tavilySearch' && (

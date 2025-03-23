@@ -79,7 +79,10 @@ export class CommandService {
   private isCommandAllowed(commandToExecute: string): boolean {
     const executeParts = this.parseCommandPattern(commandToExecute)
 
-    return this.config.allowedCommands.some((allowedCmd) => {
+    // allowedCommands が未定義の場合は空の配列として処理
+    const allowedCommands = this.config.allowedCommands || []
+
+    return allowedCommands.some((allowedCmd) => {
       const allowedParts = this.parseCommandPattern(allowedCmd.pattern)
 
       if (allowedParts.command !== executeParts.command) {
@@ -503,7 +506,7 @@ export class CommandService {
   }
 
   getAllowedCommands(): CommandPatternConfig[] {
-    return [...this.config.allowedCommands]
+    return [...(this.config.allowedCommands || [])]
   }
 
   updateConfig(newConfig: CommandConfig): void {

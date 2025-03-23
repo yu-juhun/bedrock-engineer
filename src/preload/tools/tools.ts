@@ -4,6 +4,7 @@ import { store } from '../store'
 import { BedrockService } from '../../main/api/bedrock'
 import { ToolInput, ToolResult } from '../../types/tools'
 import { createPreloadCategoryLogger } from '../logger'
+import { CommandPatternConfig } from '../../main/api/command/types'
 
 // Create logger for tools module
 const logger = createPreloadCategoryLogger('tools')
@@ -84,9 +85,12 @@ export const executeTool = async (input: ToolInput): Promise<string | ToolResult
 
       case 'executeCommand': {
         const commandSettings = store.get('command')
-        const commandConfig = {
-          allowedCommands: commandSettings.allowedCommands,
-          shell: commandSettings.shell
+        const commandConfig: {
+          allowedCommands?: CommandPatternConfig[]
+          shell: string
+        } = {
+          allowedCommands: commandSettings?.allowedCommands || [],
+          shell: commandSettings?.shell || '/bin/bash'
         }
 
         if ('pid' in input && 'stdin' in input && input?.pid && input?.stdin) {

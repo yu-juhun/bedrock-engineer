@@ -6,11 +6,17 @@ import { ContentChunker, ContentChunk } from '../lib/contentChunker'
 import { ToolResult } from '../../types/tools'
 import { CommandService } from '../../main/api/command/commandService'
 import {
-  CommandConfig,
+  CommandPatternConfig,
   CommandInput,
   CommandStdinInput,
   ProcessInfo
 } from '../../main/api/command/types'
+
+// 修正されたCommandConfig型
+interface CommandConfig {
+  allowedCommands?: CommandPatternConfig[]
+  shell: string
+}
 import {
   BedrockService,
   ImageGeneratorModel,
@@ -1127,7 +1133,7 @@ export class ToolService {
     logger.debug('Executing command', {
       input: JSON.stringify(input),
       config: JSON.stringify({
-        allowedCommands: config.allowedCommands.length
+        allowedCommands: config.allowedCommands?.length || 0
       })
     })
 

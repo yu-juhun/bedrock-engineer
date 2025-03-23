@@ -99,6 +99,10 @@ const AgentSettingsModal = React.memo(
           onClose()
         }}
         size="8xl"
+        onClick={(e) => {
+          // モーダル自体のクリックイベントは伝播させない
+          e.stopPropagation()
+        }}
       >
         <Modal.Header className="border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-2">
@@ -107,7 +111,13 @@ const AgentSettingsModal = React.memo(
             </h3>
           </div>
         </Modal.Header>
-        <Modal.Body className="p-6">
+        <Modal.Body
+          className="p-6"
+          onClick={(e) => {
+            // モーダルボディのクリックイベントは伝播させない
+            e.stopPropagation()
+          }}
+        >
           <InfoPanel />
           <div className="space-y-6 min-h-[800px]">
             {editingAgent ? (
