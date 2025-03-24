@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { KnowledgeBase, Scenario, SendMsgKey, ToolState } from 'src/types/agent-chat'
 import { listModels } from '@renderer/lib/api'
 import { CustomAgent } from '@/types/agent-chat'
-import { Tool } from '@aws-sdk/client-bedrock-runtime'
 import { replacePlaceholders } from '@renderer/pages/ChatPage/utils/placeholder'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_AGENTS } from '@renderer/pages/ChatPage/constants/DEFAULT_AGENTS'
@@ -20,69 +19,6 @@ const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
 
 // デフォルトのシェル設定
 const DEFAULT_SHELL = '/bin/bash'
-
-// TODO: リージョンに応じて動的にツールの enum を設定したい
-// "us-east-1",  "us-west-2", "ap-northeast-1" 以外は generateImage ツールを無効化する
-const isGenerateImageTool = (name: string) => name === 'generateImage'
-
-const supportGenerateImageToolRegions: string[] = [
-  'us-east-1',
-  'us-west-2',
-  'ap-northeast-1',
-  'eu-west-1',
-  'eu-west-2',
-  'ap-south-1'
-]
-const availableImageGenerationModelsMap: Record<string, string[]> = {
-  'us-east-1': [
-    'amazon.nova-canvas-v1:0',
-    'amazon.titan-image-generator-v1',
-    'amazon.titan-image-generator-v2:0'
-  ],
-  'us-west-2': [
-    'stability.sd3-large-v1:0',
-    'stability.sd3-5-large-v1:0',
-    'stability.stable-image-core-v1:0',
-    'stability.stable-image-core-v1:1',
-    'stability.stable-image-ultra-v1:0',
-    'stability.stable-image-ultra-v1:1',
-    'amazon.titan-image-generator-v2:0',
-    'amazon.titan-image-generator-v1'
-  ],
-  'ap-northeast-1': ['amazon.titan-image-generator-v2:0', 'amazon.titan-image-generator-v1'],
-  'ap-south-1': ['amazon.titan-image-generator-v1'],
-  'eu-west-1': ['amazon.titan-image-generator-v1'],
-  'eu-west-2': ['amazon.titan-image-generator-v1']
-}
-
-const compareTools = (savedTools: ToolState[], windowTools: typeof window.tools): boolean => {
-  if (savedTools.length !== windowTools.length) return true
-
-  const savedToolNames = new Set(savedTools.map((tool) => tool.toolSpec?.name))
-  const windowToolNames = new Set(windowTools.map((tool) => tool.toolSpec?.name))
-
-  // 名前のセットが異なる場合は変更があったとみなす
-  if (savedToolNames.size !== windowToolNames.size) return true
-
-  // 各ツールの名前を比較
-  for (const name of savedToolNames) {
-    if (!windowToolNames.has(name)) return true
-  }
-
-  // ツールの詳細な内容を比較
-  for (const windowTool of windowTools) {
-    const savedTool = savedTools.find((tool) => tool.toolSpec?.name === windowTool.toolSpec?.name)
-
-    if (!savedTool) return true
-
-    // ツールの重要なプロパティを比較
-    if (JSON.stringify(windowTool.toolSpec) !== JSON.stringify(savedTool.toolSpec)) {
-      return true
-    }
-  }
-
-  return false
-}
 
 interface CommandConfig {
   pattern: string
@@ -184,11 +120,6 @@ export interface SettingsContextType {
   currentAgent: CustomAgent | undefined
   currentAgentSystemPrompt: string
 
-  // Tools Settings
-  tools: ToolState[]
-  setTools: (tools: ToolState[]) => void
-  enabledTools: ToolState[]
-
   // エージェント固有のツール設定
   getAgentTools: (agentId: string) => ToolState[]
   updateAgentTools: (agentId: string, tools: ToolState[]) => void
@@ -216,8 +147,6 @@ export interface SettingsContextType {
       knowledgeBases: KnowledgeBase[]
     }>
   ) => void
-
-  // グローバル設定は削除してエージェント固有の設定のみにする
 
   // Shell Settings
   shell: string
@@ -299,9 +228,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Selected Agent Settings
   const [selectedAgentId, setStateSelectedAgentId] = useState<string>('softwareAgent')
-
-  // Tools Settings
-  const [tools, setStateTools] = useState<ToolState[]>([])
 
   // Shell Settings
   const [shell, setStateShell] = useState<string>(DEFAULT_SHELL)
@@ -388,37 +314,36 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Load Custom Agents
     const savedAgents = window.store.get('customAgents')
     if (savedAgents) {
-      setCustomAgents(savedAgents)
+      // ツールのマイグレーション: グローバルツール設定を持っていないエージェントがあれば
+      // デフォルトのツール設定を追加する
+      const migratedAgents = savedAgents.map((agent) => {
+        if (!agent.tools) {
+          // エージェントのカテゴリに応じたデフォルトツール設定を追加
+          const category = agent.category || 'general'
+          const allWindowTools = window.tools.map((tool) => ({
+            ...tool,
+            enabled: true
+          })) as ToolState[]
+          const defaultTools = getToolsForCategory(category, allWindowTools)
+          return {
+            ...agent,
+            tools: defaultTools
+          }
+        }
+        return agent
+      })
+
+      setCustomAgents(migratedAgents)
+      // マイグレーション結果を保存
+      if (JSON.stringify(savedAgents) !== JSON.stringify(migratedAgents)) {
+        window.store.set('customAgents', migratedAgents)
+      }
     }
 
     // Load Selected Agent
     const savedAgentId = window.store.get('selectedAgentId')
     if (savedAgentId) {
       setSelectedAgentId(savedAgentId)
-    }
-
-    // Load Tools Settings
-    const savedTools = window.store.get('tools')
-    if (savedTools) {
-      const toolsNeedUpdate = compareTools(savedTools, window.tools)
-      if (toolsNeedUpdate) {
-        const initialTools = window.tools
-          .map((tool) => {
-            if (!tool.toolSpec?.name) {
-              return
-            }
-            return {
-              ...tool,
-              enabled: true
-            } as Tool
-          })
-          .filter((item): item is ToolState => item !== undefined)
-
-        setStateTools(initialTools)
-        window.store.set('tools', initialTools)
-      } else if (savedTools) {
-        setStateTools(savedTools)
-      }
     }
 
     // Load Shell Setting
@@ -462,11 +387,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     fetchModels()
-    if (awsRegion) {
-      const updatedTools = replaceGenerateImageModels(tools, awsRegion)
-      setStateTools(updatedTools)
-      window.store.set('tools', updatedTools)
-    }
   }, [awsRegion, awsAccessKeyId, awsSecretAccessKey, awsProfile, useAwsProfile])
 
   // Load shared agents when component mounts or project path changes
@@ -491,18 +411,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     if (currentLLM) {
-      // Update tools based on toolUse support
-      if (currentLLM.toolUse === false) {
-        // currentLLM が ToolUse をサポートしないモデルだった場合ツールを全て disabled にする
-        const updatedTools = window.tools.map((tool) => ({ ...tool, enabled: false }))
-        setStateTools(updatedTools)
-        window.store.set('tools', updatedTools)
-      } else if (currentLLM.toolUse === true) {
-        const updatedTools = window.tools.map((tool) => ({ ...tool, enabled: true }))
-        setStateTools(updatedTools)
-        window.store.set('tools', updatedTools)
-      }
-
       // Update maxTokens based on model's maxTokensLimit
       if (currentLLM.maxTokensLimit) {
         const updatedParams = { ...inferenceParams, maxTokens: currentLLM.maxTokensLimit }
@@ -613,6 +521,49 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       ...bedrockSettings,
       availableFailoverRegions: [...BEDROCK_SUPPORTED_REGIONS]
     })
+
+    // リージョン変更時にカスタムエージェントのツール設定を更新
+    // 特にgenerateImageツールのモデル選択肢を更新
+    if (customAgents.length > 0) {
+      const updatedAgents = customAgents.map((agent) => {
+        // エージェント固有のツール設定がある場合のみ更新
+        if (agent.tools) {
+          // 各ツールを確認し、generateImageツールがある場合はリージョン対応を確認
+          const updatedTools = agent.tools.map((tool) => {
+            if (tool.toolSpec?.name === 'generateImage') {
+              const isGenerateImageSupported = [
+                'us-east-1',
+                'us-west-2',
+                'ap-northeast-1',
+                'eu-west-1',
+                'eu-west-2',
+                'ap-south-1'
+              ].includes(region)
+
+              // リージョンがサポートされている場合は入力スキーマを更新し、有効にする
+              if (isGenerateImageSupported) {
+                // getToolsForCategoryを使用するとwindow.toolsから取得するため、
+                // 直接updateToolInputSchemaを使う方が適切
+                const { updateToolInputSchema } = require('@renderer/constants/defaultToolSets')
+                return updateToolInputSchema(tool, region)
+              } else {
+                // サポートされていないリージョンの場合は無効化
+                return { ...tool, enabled: false }
+              }
+            }
+            return tool
+          })
+          return { ...agent, tools: updatedTools }
+        }
+        return agent
+      })
+
+      // 変更があった場合のみ保存
+      if (JSON.stringify(customAgents) !== JSON.stringify(updatedAgents)) {
+        setCustomAgents(updatedAgents)
+        window.store.set('customAgents', updatedAgents)
+      }
+    }
   }
 
   const setAwsAccessKeyId = (accessKeyId: string) => {
@@ -765,11 +716,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [baseAgents, customAgents, sharedAgents])
   const currentAgent = allAgents.find((a) => a.id === selectedAgentId)
 
-  const setTools = (newTools: ToolState[]) => {
-    setStateTools(newTools)
-    window.store.set('tools', newTools)
-  }
-
   const enabledTavilySearch = tavilySearchApiKey.length > 0
 
   const setShell = (newShell: string) => {
@@ -805,9 +751,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       // それ以外は全てのツールセットを返す
-      return getToolsForCategory('all', tools)
+      const allWindowTools = window.tools.map((tool) => ({ ...tool, enabled: true })) as ToolState[]
+      return getToolsForCategory('all', allWindowTools)
     },
-    [allAgents, tools]
+    [allAgents]
   )
 
   // エージェント固有の許可コマンドを取得する関数
@@ -848,22 +795,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     },
     [allAgents]
   )
-
-  // 現在選択されているエージェント用のツール設定を取得
-  const effectiveTools = useMemo(() => {
-    // 選択されているエージェントのツール設定を取得する
-    return getAgentTools(selectedAgentId)
-  }, [selectedAgentId, getAgentTools])
-
-  // 有効なツールのみをフィルタリング
-  const enabledTools = effectiveTools
-    .filter((tool) => tool.enabled)
-    .filter((tool) => {
-      if (tool.toolSpec?.name === 'tavilySearch') {
-        return enabledTavilySearch
-      }
-      return true
-    })
 
   // effectiveToolsの宣言は getAgentTools 関数の定義後に移動しました
 
@@ -948,12 +879,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   )
 
   // カテゴリーに基づいてデフォルトツール設定を返す関数
-  const getDefaultToolsForCategory = useCallback(
-    (category: string): ToolState[] => {
-      return getToolsForCategory(category as AgentCategory, tools)
-    },
-    [tools]
-  )
+  const getDefaultToolsForCategory = useCallback((category: string): ToolState[] => {
+    const allWindowTools = window.tools.map((tool) => ({ ...tool, enabled: true })) as ToolState[]
+    return getToolsForCategory(category as AgentCategory, allWindowTools)
+  }, [])
 
   const systemPrompt = useMemo(() => {
     if (!currentAgent?.system) return ''
@@ -1049,10 +978,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     currentAgent,
     currentAgentSystemPrompt: systemPrompt,
 
-    // Tools Settings
-    tools,
-    setTools,
-    enabledTools,
+    // エージェントのツール設定
     getAgentTools,
     updateAgentTools,
     getDefaultToolsForCategory,
@@ -1084,44 +1010,4 @@ export const useSettings = () => {
     throw new Error('useSettings must be used within a SettingsProvider')
   }
   return context
-}
-
-/**
- * ToolSpec の中で、generateImage のツールでは指定できる modelId がリージョンによって異なる
- * @param tools
- * @param awsRegion
- * @returns
- */
-function replaceGenerateImageModels(tools: ToolState[], awsRegion: string) {
-  const updatedTools = tools.map((tool) => {
-    if (tool.toolSpec?.name && isGenerateImageTool(tool.toolSpec?.name)) {
-      if (supportGenerateImageToolRegions.includes(awsRegion)) {
-        return {
-          ...tool,
-          toolSpec: {
-            ...tool.toolSpec,
-            inputSchema: {
-              ...tool.toolSpec.inputSchema,
-              json: {
-                ...(tool.toolSpec.inputSchema?.json as any),
-                properties: {
-                  ...(tool.toolSpec.inputSchema?.json as any).properties,
-                  modelId: {
-                    ...((tool.toolSpec.inputSchema?.json as any).properties.modelId as any),
-                    enum: availableImageGenerationModelsMap[awsRegion],
-                    default: availableImageGenerationModelsMap[awsRegion][0]
-                  }
-                }
-              }
-            }
-          },
-          enabled: true
-        }
-      } else {
-        return { ...tool, enabled: false }
-      }
-    }
-    return tool
-  })
-  return updatedTools
 }

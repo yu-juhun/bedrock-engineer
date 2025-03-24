@@ -90,7 +90,17 @@ export const useAgentChat = (
     }
     // エージェントIDがある場合はエージェント設定から取得
     else if (agentId) {
-      return getAgentTools(agentId).filter((tool) => tool.enabled)
+      const agentTools = getAgentTools(agentId).filter((tool) => tool.enabled)
+
+      // Tavilyツールの場合は、API Keyが設定されていることを確認
+      return agentTools.filter((tool) => {
+        if (tool.toolSpec?.name === 'tavilySearch') {
+          // API Keyが設定されていない場合は除外
+          const tavilyApiKey = window.store.get('tavilySearch')?.apikey
+          return !!tavilyApiKey && tavilyApiKey.length > 0
+        }
+        return true
+      })
     }
     // どちらもない場合は空の配列を返す
     return []

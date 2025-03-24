@@ -191,6 +191,7 @@ export type AgentIcon =
   | 'truck'
   | 'store'
   | 'shop'
+  | 'web'
 
 export type AgentCategory = 'general' | 'coding' | 'design' | 'data' | 'business' | 'custom' | 'all'
 

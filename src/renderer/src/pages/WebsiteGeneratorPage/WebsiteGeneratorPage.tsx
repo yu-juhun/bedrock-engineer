@@ -3,6 +3,7 @@ import { ToggleSwitch, Tooltip } from 'flowbite-react'
 import { GrClearOption } from 'react-icons/gr'
 import prompts from '../../prompts/prompts'
 import { AiOutlineReload } from 'react-icons/ai'
+import { WEBSITE_GENERATOR_SYSTEM_PROMPT } from '../ChatPage/constants/DEFAULT_AGENTS'
 import { autocompletion, completionKeymap } from '@codemirror/autocomplete'
 import {
   SandpackCodeEditor,
@@ -86,7 +87,7 @@ function WebsiteGeneratorPageContents(props: WebsiteGeneratorPageContentsProps) 
 
   const [showCode, setShowCode] = useState(false)
   const [userInput, setUserInput] = useState('')
-  const { currentLLM: llm, sendMsgKey, enabledTools } = useSetting()
+  const { currentLLM: llm, sendMsgKey, getAgentTools } = useSetting()
 
   const handleClickShowCode = () => {
     setShowCode(!showCode)
@@ -106,38 +107,63 @@ function WebsiteGeneratorPageContents(props: WebsiteGeneratorPageContentsProps) 
   const { knowledgeBases, enableKnowledgeBase, enableSearch, setEnableSearch } =
     useWebsiteGeneratorSettings()
 
-  const systemPrompt = replacePlaceholders(
-    prompts.WebsiteGenerator.system[template]({
+  // WebsiteGeneratorAgentのシステムプロンプトを利用しつつ、テンプレート固有の設定を反映
+  const systemPrompt = useMemo(() => {
+    // ベースプロンプトとしてWebsiteGeneratorAgentのシステムプロンプトを使用
+    let basePrompt = WEBSITE_GENERATOR_SYSTEM_PROMPT
+
+    // プロンプトの最後の部分に、テンプレート固有の設定を追加
+    const templateSpecificSettings = prompts.WebsiteGenerator.system[template]({
       styleType: styleType.value,
       libraries: Object.keys(templates[template].customSetup.dependencies),
       ragEnabled: enableKnowledgeBase,
       tavilySearchEnabled: enableSearch
-    }),
-    knowledgeBases
-  )
+    })
 
-  // ウェブサイト生成用のカスタムエージェントID（実際には存在しない仮想ID）
-  const websiteAgentId = 'websiteGenerator'
+    // テンプレート固有の基本原則部分を抽出
+    const basicPrinciplesMatch = templateSpecificSettings.match(
+      /Basic principles for code generation:[\s\S]*/
+    )
+    if (basicPrinciplesMatch) {
+      // 既存の「Basic principles」部分を新しい内容に置換
+      basePrompt = basePrompt.replace(
+        /Basic principles for code generation:[\s\S]*/,
+        basicPrinciplesMatch[0]
+      )
+    }
+
+    // Knowledge Basesのプレースホルダーを置換
+    return replacePlaceholders(basePrompt, knowledgeBases)
+  }, [template, styleType.value, enableKnowledgeBase, enableSearch, knowledgeBases])
+
+  // ウェブサイト生成用のエージェントID
+  const websiteAgentId = 'websiteGeneratorAgent'
   const sessionId = undefined
 
   // Website Generator Agent で利用可能なツールを定義
   const websiteAgentTools = useMemo(() => {
     const tools: ToolState[] = []
+    // agentIdからツールを取得
+    const agentTools = getAgentTools(websiteAgentId)
 
     // 検索機能が有効な場合、tavilySearch ツールを追加
     if (enableSearch) {
-      const searchTools = enabledTools.filter((tool) => tool.toolSpec?.name === 'tavilySearch')
+      const searchTools = agentTools.filter(
+        (tool) => tool.toolSpec?.name === 'tavilySearch' && tool.enabled
+      )
       tools.push(...searchTools)
     }
 
     // Knowledge Base機能が有効な場合、retrieve ツールを追加
     if (enableKnowledgeBase) {
-      const retrieveTools = enabledTools.filter((tool) => tool.toolSpec?.name === 'retrieve')
+      const retrieveTools = agentTools.filter(
+        (tool) => tool.toolSpec?.name === 'retrieve' && tool.enabled
+      )
       tools.push(...retrieveTools)
     }
 
     return tools
-  }, [enableSearch, enableKnowledgeBase, enabledTools])
+  }, [enableSearch, enableKnowledgeBase, getAgentTools, websiteAgentId])
 
   const options = {
     enableHistory: false,

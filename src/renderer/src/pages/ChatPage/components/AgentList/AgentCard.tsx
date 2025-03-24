@@ -46,7 +46,8 @@ export const AgentCard: React.FC<AgentCardProps> = ({
         >
           {agent.icon ? (
             React.cloneElement(
-              AGENT_ICONS.find((opt) => opt.value === agent.icon)?.icon as React.ReactElement,
+              (AGENT_ICONS.find((opt) => opt.value === agent.icon)?.icon as React.ReactElement) ??
+                AGENT_ICONS[0].icon,
               {
                 className: 'w-5 h-5',
                 style: agent.iconColor
