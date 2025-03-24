@@ -10,6 +10,7 @@ import { BedrockAgent } from '@/types/agent'
 import { AgentCategory } from '@/types/agent-chat'
 import { getToolsForCategory } from '../constants/defaultToolSets'
 import { tools } from '@/types/tools'
+import isEqual from 'lodash/isEqual'
 
 const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
   maxTokens: 4096,
@@ -311,24 +312,64 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Load Custom Agents
     const savedAgents = window.store.get('customAgents') || []
 
-    // DEFAULT_AGENTSの各エージェントについて、そのIDがカスタムエージェントに存在しなければ追加
-    const updatedAgents: CustomAgent[] = []
+    // DEFAULT_AGENTSの各エージェントについて、全ての重要なプロパティを比較し、変更があれば更新
     let hasChanges = false
+    // 更新後のエージェントリスト
+    const finalAgents: CustomAgent[] = []
+    // 処理済みのエージェントIDを追跡
+    const processedIds = new Set<string>()
 
     DEFAULT_AGENTS.forEach((defaultAgent) => {
       // そのIDのエージェントがすでにカスタムエージェントに存在するかチェック
-      const exists = savedAgents.some((agent) => agent.id === defaultAgent.id)
+      const existingAgent = savedAgents.find((agent) => agent.id === defaultAgent.id)
+      processedIds.add(defaultAgent.id)
 
-      if (!exists) {
-        updatedAgents.push({ ...defaultAgent })
+      // プロパティが完全に一致するかチェック
+      const isIdentical =
+        existingAgent &&
+        // 基本情報の比較
+        existingAgent.name === defaultAgent.name &&
+        existingAgent.description === defaultAgent.description &&
+        existingAgent.system === defaultAgent.system &&
+        existingAgent.icon === defaultAgent.icon &&
+        existingAgent.iconColor === defaultAgent.iconColor &&
+        existingAgent.category === defaultAgent.category &&
+        // 配列の比較（lodashのisEqualを使用）
+        isEqual(existingAgent.scenarios, defaultAgent.scenarios) &&
+        isEqual(existingAgent.tools, defaultAgent.tools) &&
+        isEqual(existingAgent.allowedCommands, defaultAgent.allowedCommands) &&
+        isEqual(existingAgent.bedrockAgents, defaultAgent.bedrockAgents) &&
+        isEqual(existingAgent.knowledgeBases, defaultAgent.knowledgeBases)
+
+      if (existingAgent && !isIdentical) {
+        // IDが一致するが内容が異なる場合は、デフォルトエージェントの内容で更新
+        // ただし、isCustomフラグは既存の値を維持
+        finalAgents.push({
+          ...defaultAgent,
+          isCustom: existingAgent.isCustom ?? defaultAgent.isCustom
+        })
         hasChanges = true
+      } else if (!existingAgent) {
+        // 存在しない場合は新規追加
+        finalAgents.push({ ...defaultAgent })
+        hasChanges = true
+      } else {
+        // 完全に一致する場合は既存のエージェントをそのまま使用
+        finalAgents.push(existingAgent)
+      }
+    })
+
+    // デフォルトエージェントに含まれていない既存のカスタムエージェントを追加
+    savedAgents.forEach((agent) => {
+      if (!processedIds.has(agent.id)) {
+        finalAgents.push(agent)
       }
     })
 
     // 変更があった場合のみ保存
-    setCustomAgents([...updatedAgents, ...savedAgents])
+    setCustomAgents(finalAgents)
     if (hasChanges) {
-      window.store.set('customAgents', [...updatedAgents, ...savedAgents])
+      window.store.set('customAgents', finalAgents)
     }
 
     // Load Selected Agent
