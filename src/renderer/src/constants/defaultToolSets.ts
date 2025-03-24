@@ -3,7 +3,7 @@ import { ToolState } from '@/types/agent-chat'
 // カテゴリー毎のデフォルトツール設定（名前のみを定義）
 const DEFAULT_TOOL_NAMES: Record<string, string[]> = {
   // 一般的な目的向け - 基本的なツールのみ
-  general: ['readFiles', 'listFiles', 'tavilySearch', 'fetchWebsite'],
+  general: ['readFiles', 'listFiles', 'tavilySearch', 'fetchWebsite', 'think'],
 
   // ソフトウェア開発向け - コード関連ツールを強化
   coding: [
@@ -15,23 +15,32 @@ const DEFAULT_TOOL_NAMES: Record<string, string[]> = {
     'moveFile',
     'copyFile',
     'tavilySearch',
-    'executeCommand'
+    'executeCommand',
+    'think'
   ],
 
   // デザインとクリエイティブ向け
-  design: ['readFiles', 'listFiles', 'fetchWebsite', 'tavilySearch', 'generateImage'],
+  design: ['readFiles', 'listFiles', 'fetchWebsite', 'tavilySearch', 'generateImage', 'think'],
 
   // データ分析向け
-  data: ['readFiles', 'listFiles', 'tavilySearch', 'fetchWebsite', 'retrieve', 'executeCommand'],
+  data: [
+    'readFiles',
+    'listFiles',
+    'tavilySearch',
+    'fetchWebsite',
+    'retrieve',
+    'executeCommand',
+    'think'
+  ],
 
   // ビジネスと生産性向け
-  business: ['readFiles', 'listFiles', 'tavilySearch', 'fetchWebsite', 'retrieve'],
+  business: ['readFiles', 'listFiles', 'tavilySearch', 'fetchWebsite', 'retrieve', 'think'],
 
   // ダイアグラム生成向け
-  diagram: ['tavilySearch'],
+  diagram: ['tavilySearch', 'think'],
 
   // ウェブサイト生成向け
-  website: ['tavilySearch', 'retrieve'],
+  website: ['tavilySearch', 'retrieve', 'think'],
 
   all: [
     'createFolder',
@@ -46,7 +55,8 @@ const DEFAULT_TOOL_NAMES: Record<string, string[]> = {
     'retrieve',
     'generateImage',
     'invokeBedrockAgent',
-    'executeCommand'
+    'executeCommand',
+    'think'
   ],
 
   // カスタム設定用（すべて名前指定なし - 空配列）

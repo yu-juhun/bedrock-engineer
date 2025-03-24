@@ -17,9 +17,6 @@ const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
   topP: 0.9
 }
 
-// デフォルトのシェル設定
-const DEFAULT_SHELL = '/bin/bash'
-
 interface CommandConfig {
   pattern: string
   description: string
@@ -230,7 +227,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [selectedAgentId, setStateSelectedAgentId] = useState<string>('softwareAgent')
 
   // Shell Settings
-  const [shell, setStateShell] = useState<string>(DEFAULT_SHELL)
+  const [shell, setStateShell] = useState<string>('/bin/bash')
 
   // Ignore Files Settings
   const [ignoreFiles, setStateIgnoreFiles] = useState<string[]>([
@@ -341,14 +338,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     // Load Shell Setting
-    const commandSettings = window.store.get('command')
-    if (commandSettings?.shell) {
-      setStateShell(commandSettings.shell)
-    } else {
-      // 初期値を設定
-      window.store.set('command', {
-        shell: DEFAULT_SHELL
-      })
+    const shell = window.store.get('shell')
+    if (shell) {
+      setStateShell(shell)
     }
 
     // Load Ignore Files Settings および Context Length
@@ -684,9 +676,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setShell = (newShell: string) => {
     setStateShell(newShell)
-    window.store.set('command', {
-      shell: newShell
-    })
+    window.store.set('shell', newShell)
   }
 
   const setIgnoreFiles = useCallback((files: string[]) => {
@@ -709,16 +699,18 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // 現在選択されているエージェントを見つける
       const agent = allAgents.find((a) => a.id === agentId)
 
-      // エージェント固有のツール設定がある場合はそれを返す
+      // エージェント固有のツール設定がある場合
       if (agent && agent.tools) {
         return agent.tools
       }
 
-      // それ以外は全てのツールセットを返す
-      const allWindowTools = tools.map((tool) => ({ ...tool, enabled: true })) as ToolState[]
-      return getToolsForCategory('all', allWindowTools)
+      // エージェント固有の設定がない場合は全てのツールセットを返す
+      return getToolsForCategory(
+        'all',
+        tools.map((tool) => ({ ...tool, enabled: true }))
+      )
     },
-    [allAgents]
+    [allAgents, customAgents, setCustomAgents]
   )
 
   // エージェント固有の許可コマンドを取得する関数

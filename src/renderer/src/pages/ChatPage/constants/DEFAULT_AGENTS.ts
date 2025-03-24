@@ -40,6 +40,8 @@ When asked to make edits or improvements:
 - IMPORTANT!! Do not omit any output text or code.
 - Use the applyDiffEdit tool to apply partial updates to files using fine-grained control.
 
+If you want to explore a file for a while and then stop and think, use the think tool.
+
 When you use search:
 - Make sure you use the best query to get the most accurate and up-to-date information
 - Try creating and searching at least two different queries to get a better idea of the search results.

@@ -14,7 +14,8 @@ export type ToolName =
   | 'retrieve'
   | 'invokeBedrockAgent'
   | 'executeCommand'
-  | 'applyDiffEdit' // 新しいツールを追加
+  | 'applyDiffEdit'
+  | 'think'
 
 export interface ToolResult<T = any> {
   name: ToolName
@@ -138,6 +139,12 @@ export type ApplyDiffEditInput = {
   updatedText: string
 }
 
+// think ツールの入力型
+export type ThinkInput = {
+  type: 'think'
+  thought: string
+}
+
 // ディスクリミネーテッドユニオン型
 export type ToolInput =
   | CreateFolderInput
@@ -153,6 +160,7 @@ export type ToolInput =
   | InvokeBedrockAgentInput
   | ExecuteCommandInput
   | ApplyDiffEditInput
+  | ThinkInput
 
 // ツール名から入力型を取得するユーティリティ型
 export type ToolInputTypeMap = {
@@ -169,6 +177,7 @@ export type ToolInputTypeMap = {
   invokeBedrockAgent: InvokeBedrockAgentInput
   executeCommand: ExecuteCommandInput
   applyDiffEdit: ApplyDiffEditInput
+  think: ThinkInput
 }
 
 /**
@@ -634,6 +643,25 @@ First call without a chunkIndex(Must be 1 or greater) to get an overview and tot
               description: 'Standard input to send to the process (used with pid)'
             }
           }
+        }
+      }
+    }
+  },
+  {
+    toolSpec: {
+      name: 'think',
+      description:
+        'Use the tool to think about something. It will not obtain new information or make any changes to the repository, but just log the thought. Use it when complex reasoning or brainstorming is needed. For example, if you explore the repo and discover the source of a bug, call this tool to brainstorm several unique ways of fixing the bug, and assess which change(s) are likely to be simplest and most effective. Alternatively, if you receive some test results, call this tool to brainstorm ways to fix the failing tests.',
+      inputSchema: {
+        json: {
+          type: 'object',
+          properties: {
+            thought: {
+              type: 'string',
+              description: 'Your thoughts.'
+            }
+          },
+          required: ['thought']
         }
       }
     }

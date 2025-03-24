@@ -45,6 +45,14 @@ interface RetrieveResult extends ToolResult {
   name: 'retrieve'
 }
 
+interface ThinkResult extends ToolResult {
+  name: 'think'
+  result: {
+    thought: string
+    reasoning: string
+  }
+}
+
 type Completion = {
   message?: string
   files?: string[]
@@ -1123,6 +1131,43 @@ export class ToolService {
         error: 'Failed to invoke agent',
         message: error.message
       })}`
+    }
+  }
+
+  /**
+   * Think ツールの実装
+   * 問題を詳細に考察し、段階的な思考プロセスを返す
+   */
+  async think(thought: string): Promise<ThinkResult> {
+    logger.debug('Using think tool', { queryLength: thought.length })
+
+    try {
+      logger.info('Thinking about:', {
+        query: thought.substring(0, 100) + (thought.length > 100 ? '...' : '')
+      })
+
+      // このツールは実際には特別な処理を行わず、Claude 3.7 Sonnetの拡張思考モードが
+      // そのままクライアントに対して思考プロセスを表示するようにします
+      // もしクエリが非常に複雑な場合は、より詳細な思考プロセスが必要であることを明示する
+
+      return {
+        success: true,
+        name: 'think',
+        message: 'Thinking process completed',
+        result: {
+          thought,
+          reasoning: `I've thought through this problem step by step: ${thought}`
+        }
+      }
+    } catch (error) {
+      logger.error('Error in think tool', {
+        error: error instanceof Error ? error.message : String(error),
+        thought: thought.substring(0, 100) + (thought.length > 100 ? '...' : '')
+      })
+
+      throw new Error(
+        `Error in think tool: ${error instanceof Error ? error.message : String(error)}`
+      )
     }
   }
 

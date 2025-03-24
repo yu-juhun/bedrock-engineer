@@ -6,6 +6,7 @@ import { KnowledgeBaseSettingForm } from './KnowledgeBaseSettingForm'
 import { CommandForm } from './CommandForm'
 import { BedrockAgentSettingForm } from './BedrockAgentSettingForm'
 import { TavilySearchSettingForm } from './TavilySearchSettingForm'
+import { ThinkToolSettingForm } from './ThinkToolSettingForm'
 import { Button, Modal, ToggleSwitch } from 'flowbite-react'
 import { memo, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -64,6 +65,12 @@ const TOOL_CATEGORIES: ToolCategory[] = [
     name: 'System',
     description: 'Tools for system interaction',
     tools: ['executeCommand']
+  },
+  {
+    id: 'thinking',
+    name: 'Thinking',
+    description: 'Tools for enhanced reasoning',
+    tools: ['think']
   }
 ]
 
@@ -335,6 +342,7 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
                         setTavilySearchApiKey={setTavilySearchApiKey}
                       />
                     )}
+                    {selectedTool === 'think' && <ThinkToolSettingForm />}
                   </>
                 ) : (
                   <div className="prose dark:prose-invert max-w-none">

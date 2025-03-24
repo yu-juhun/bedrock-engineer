@@ -83,13 +83,26 @@ export const executeTool = async (input: ToolInput): Promise<string | ToolResult
       }
 
       case 'executeCommand': {
-        const commandSettings = store.get('command')
-        const commandConfig: {
-          allowedCommands?: CommandPatternConfig[]
-          shell: string
-        } = {
-          allowedCommands: commandSettings?.allowedCommands || [],
-          shell: commandSettings?.shell || '/bin/bash'
+        // 基本的なシェル設定を取得
+        const shell = store.get('shell')
+
+        // 現在選択されているエージェントIDを取得
+        const selectedAgentId = store.get('selectedAgentId')
+
+        // エージェント固有の許可コマンドを取得
+        let allowedCommands: CommandPatternConfig[] = []
+        if (selectedAgentId) {
+          // カスタムエージェントから許可コマンドを取得
+          const customAgents = store.get('customAgents') || []
+          const currentAgent = customAgents.find((agent) => agent.id === selectedAgentId)
+          if (currentAgent && currentAgent.allowedCommands) {
+            allowedCommands = currentAgent.allowedCommands
+          }
+        }
+
+        const commandConfig = {
+          allowedCommands,
+          shell
         }
 
         if ('pid' in input && 'stdin' in input && input?.pid && input?.stdin) {
@@ -115,6 +128,9 @@ export const executeTool = async (input: ToolInput): Promise<string | ToolResult
         logger.error(errorMessage)
         throw new Error(errorMessage)
       }
+
+      case 'think':
+        return toolService.think(input.thought)
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)

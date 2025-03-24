@@ -48,6 +48,12 @@ const TOOL_CATEGORIES: ToolCategory[] = [
     name: 'System',
     description: 'Tools for system interaction',
     tools: ['executeCommand']
+  },
+  {
+    id: 'thinking',
+    name: 'Thinking',
+    description: 'Tools for enhanced reasoning and complex problem solving',
+    tools: ['think']
   }
 ]
 

@@ -45,11 +45,6 @@ export interface CommandPattern {
   wildcard: boolean
 }
 
-export interface CommandSettings {
-  allowedCommands?: CommandPatternConfig[]
-  shell: string
-}
-
 export interface ProcessOutput {
   stdout: string
   stderr: string

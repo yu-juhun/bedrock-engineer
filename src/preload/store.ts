@@ -2,7 +2,6 @@ import Store from 'electron-store'
 import { LLM, InferenceParameters, ThinkingMode, ThinkingModeBudget } from '../types/llm'
 import { AgentChatConfig, KnowledgeBase, SendMsgKey, ToolState } from '../types/agent-chat'
 import { CustomAgent } from '../types/agent-chat'
-import { CommandSettings } from '../main/api/command/types'
 import { BedrockAgent } from '../types/agent'
 import { AWSCredentials } from '../main/api/bedrock/types'
 
@@ -94,8 +93,8 @@ type StoreScheme = {
   /** 使用可能な知識ベース一覧 */
   knowledgeBases: KnowledgeBase[]
 
-  /** コマンド実行の設定（許可されたコマンド、シェル設定など） */
-  command: CommandSettings
+  /** コマンド実行の設定（シェル設定） */
+  shell: string
 
   /** 通知機能の有効/無効設定 */
   notification?: boolean
@@ -196,24 +195,9 @@ const init = () => {
   }
 
   // Initialize command settings if not present
-  const commandSettings = electronStore.get('command')
-  if (!commandSettings) {
-    electronStore.set('command', {
-      allowedCommands: [
-        {
-          pattern: 'ls *',
-          description: 'List directory contents'
-        }
-      ],
-      shell: DEFAULT_SHELL
-    })
-  }
-  // シェル設定が存在しない場合は追加
-  else if (!commandSettings.shell) {
-    electronStore.set('command', {
-      ...commandSettings,
-      shell: DEFAULT_SHELL
-    })
+  const shell = electronStore.get('shell')
+  if (!shell) {
+    electronStore.set('shell', DEFAULT_SHELL)
   }
 
   // Initialize bedrockSettings
