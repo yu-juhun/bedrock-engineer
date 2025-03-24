@@ -6,7 +6,7 @@ export const examples = {
       'Create a cool website for an IT company using HTML, CSS, and JavaScript.',
     'Organizing folders': 'Organizing folders',
     'Organizing folders description':
-      'Extract only the png files contained in the {{projectPath}} folder and copy them to the {{imagePath}} folder.',
+      'Extract only the png files contained in the {{projectPath}} folder and copy them to the {{projectPath}}/images folder.',
     'Simple Web API': 'Simple Web API',
     'Simple Web API description':
       'Create a simple REST API using Node.js and Express with basic CRUD operations.',
@@ -80,7 +80,7 @@ export const examples = {
       'HTML、CSS、JavaScriptを使用してIT企業向けのクールなウェブサイトを作成してください。',
     'Organizing folders': 'フォルダの整理',
     'Organizing folders description':
-      '{{projectPath}}フォルダに含まれるpngファイルのみを抽出し、{{imagePath}}フォルダにコピーしてください。',
+      '{{projectPath}}フォルダに含まれるpngファイルのみを抽出し、{{projectPath}}/images フォルダにコピーしてください。',
     'Simple Web API': 'シンプルなAPI',
     'Simple Web API description':
       'Node.jsとExpressを使用して、基本的なCRUD操作を備えたシンプルなREST APIを作成してください。',

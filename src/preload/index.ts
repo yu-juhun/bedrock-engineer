@@ -3,7 +3,6 @@ import { electronAPI } from '@electron-toolkit/preload'
 import { api } from './api'
 import { store } from './store'
 import { file } from './file'
-import { tools } from './tools/tools'
 import { chatHistory } from './chat-history'
 import { appWindow } from './appWindow'
 import { rendererLogger, createRendererCategoryLogger } from './logger'
@@ -21,7 +20,6 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('store', store)
     contextBridge.exposeInMainWorld('file', file)
-    contextBridge.exposeInMainWorld('tools', tools)
     contextBridge.exposeInMainWorld('chatHistory', chatHistory)
     contextBridge.exposeInMainWorld('appWindow', appWindow)
     contextBridge.exposeInMainWorld('logger', {
@@ -45,8 +43,6 @@ if (process.contextIsolated) {
     window.store = store
     // @ts-ignore (define in dts)
     window.file = file
-    // @ts-ignore (define in dts)
-    window.tools = tools
     // @ts-ignore (define in dts)
     window.chatHistory = chatHistory
     // @ts-ignore (define in dts)

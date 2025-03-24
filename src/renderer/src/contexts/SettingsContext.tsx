@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
-import { KnowledgeBase, Scenario, SendMsgKey, ToolState } from 'src/types/agent-chat'
+import { KnowledgeBase, SendMsgKey, ToolState } from 'src/types/agent-chat'
 import { listModels } from '@renderer/lib/api'
 import { CustomAgent } from '@/types/agent-chat'
 import { replacePlaceholders } from '@renderer/pages/ChatPage/utils/placeholder'
-import { useTranslation } from 'react-i18next'
 import { DEFAULT_AGENTS } from '@renderer/pages/ChatPage/constants/DEFAULT_AGENTS'
 import { InferenceParameters, LLM, BEDROCK_SUPPORTED_REGIONS, ThinkingMode } from '@/types/llm'
 import type { AwsCredentialIdentity } from '@smithy/types'
 import { BedrockAgent } from '@/types/agent'
 import { AgentCategory } from '@/types/agent-chat'
 import { getToolsForCategory } from '../constants/defaultToolSets'
+import { tools } from '@/types/tools'
 
 const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
   maxTokens: 4096,
@@ -312,32 +312,26 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     // Load Custom Agents
-    const savedAgents = window.store.get('customAgents')
-    if (savedAgents) {
-      // ツールのマイグレーション: グローバルツール設定を持っていないエージェントがあれば
-      // デフォルトのツール設定を追加する
-      const migratedAgents = savedAgents.map((agent) => {
-        if (!agent.tools) {
-          // エージェントのカテゴリに応じたデフォルトツール設定を追加
-          const category = agent.category || 'general'
-          const allWindowTools = window.tools.map((tool) => ({
-            ...tool,
-            enabled: true
-          })) as ToolState[]
-          const defaultTools = getToolsForCategory(category, allWindowTools)
-          return {
-            ...agent,
-            tools: defaultTools
-          }
-        }
-        return agent
-      })
+    const savedAgents = window.store.get('customAgents') || []
 
-      setCustomAgents(migratedAgents)
-      // マイグレーション結果を保存
-      if (JSON.stringify(savedAgents) !== JSON.stringify(migratedAgents)) {
-        window.store.set('customAgents', migratedAgents)
+    // DEFAULT_AGENTSの各エージェントについて、そのIDがカスタムエージェントに存在しなければ追加
+    const updatedAgents: CustomAgent[] = []
+    let hasChanges = false
+
+    DEFAULT_AGENTS.forEach((defaultAgent) => {
+      // そのIDのエージェントがすでにカスタムエージェントに存在するかチェック
+      const exists = savedAgents.some((agent) => agent.id === defaultAgent.id)
+
+      if (!exists) {
+        updatedAgents.push({ ...defaultAgent })
+        hasChanges = true
       }
+    })
+
+    // 変更があった場合のみ保存
+    setCustomAgents([...updatedAgents, ...savedAgents])
+    if (hasChanges) {
+      window.store.set('customAgents', [...updatedAgents, ...savedAgents])
     }
 
     // Load Selected Agent
@@ -542,8 +536,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
               // リージョンがサポートされている場合は入力スキーマを更新し、有効にする
               if (isGenerateImageSupported) {
-                // getToolsForCategoryを使用するとwindow.toolsから取得するため、
-                // 直接updateToolInputSchemaを使う方が適切
                 const { updateToolInputSchema } = require('@renderer/constants/defaultToolSets')
                 return updateToolInputSchema(tool, region)
               } else {
@@ -651,40 +643,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     window.store.set('selectedAgentId', agentId)
   }
 
-  const { t, i18n } = useTranslation()
-
-  // getBaseAgents関数はuseCallback内ではなく、useMemoを使って結果をメモ化
-  const baseAgents = useMemo((): CustomAgent[] => {
-    // シナリオをローカライズする関数 (インライン関数に変更)
-    const localizeScenarios = (scenarios: Scenario[]): Scenario[] => {
-      return scenarios.map((scenario) => ({
-        title: t(scenario.title),
-        content: replacePlaceholders(t(`${scenario.title} description`), {
-          projectPath: projectPath || t('no project path')
-        })
-      }))
-    }
-
-    // ローカライズされたエージェントを生成
-    return DEFAULT_AGENTS.map((agent) => ({
-      ...agent,
-      name: agent.name,
-      description: t(agent.description),
-      system: replacePlaceholders(agent.system, {
-        projectPath: projectPath || t('no project path')
-      }),
-      scenarios: localizeScenarios(agent.scenarios)
-    }))
-  }, [t, i18n.language, projectPath, replacePlaceholders])
-
-  // baseAgents はすでにuseMemoで定義済み
   // Make sure there are no duplicate IDs between agents from different sources
   const allAgents = useMemo(() => {
     // Create a mapping of IDs to count occurrences
     const idCounts = new Map<string, number>()
 
     // First pass - count all IDs
-    ;[...baseAgents, ...customAgents, ...sharedAgents].forEach((agent) => {
+    ;[...customAgents, ...sharedAgents].forEach((agent) => {
       if (agent.id) {
         idCounts.set(agent.id, (idCounts.get(agent.id) || 0) + 1)
       }
@@ -692,7 +657,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // Clone and fix duplicate IDs by adding a suffix
     const result = [
-      ...baseAgents,
       ...customAgents,
       // Apply special handling for shared agents which may have duplicates
       ...sharedAgents.map((agent) => {
@@ -713,7 +677,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     ]
 
     return result
-  }, [baseAgents, customAgents, sharedAgents])
+  }, [customAgents, sharedAgents])
   const currentAgent = allAgents.find((a) => a.id === selectedAgentId)
 
   const enabledTavilySearch = tavilySearchApiKey.length > 0
@@ -751,7 +715,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       // それ以外は全てのツールセットを返す
-      const allWindowTools = window.tools.map((tool) => ({ ...tool, enabled: true })) as ToolState[]
+      const allWindowTools = tools.map((tool) => ({ ...tool, enabled: true })) as ToolState[]
       return getToolsForCategory('all', allWindowTools)
     },
     [allAgents]
@@ -880,7 +844,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // カテゴリーに基づいてデフォルトツール設定を返す関数
   const getDefaultToolsForCategory = useCallback((category: string): ToolState[] => {
-    const allWindowTools = window.tools.map((tool) => ({ ...tool, enabled: true })) as ToolState[]
+    const allWindowTools = tools.map((tool) => ({ ...tool, enabled: true })) as ToolState[]
     return getToolsForCategory(category as AgentCategory, allWindowTools)
   }, [])
 

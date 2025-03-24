@@ -220,9 +220,7 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">
-            {t('Agent Tools')}
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Agent Tools</h3>
         </div>
       </div>
 

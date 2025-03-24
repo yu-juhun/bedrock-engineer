@@ -1,4 +1,5 @@
 import { CustomAgent } from '@/types/agent-chat'
+import { tools } from '@/types/tools'
 
 export const DEFAULT_AGENTS = [
   {
@@ -105,7 +106,28 @@ When use executeCommand tool:
     iconColor: 'oklch(0.623 0.214 259.815)',
     category: 'coding',
     // ソフトウェア開発者用デフォルトツール設定
-    tools: [], // この値は初回ロード時に動的に設定されます
+    tools: tools.map((tool) => {
+      // if tool.toolSpec.name includes []
+      if (tool.toolSpec?.name) {
+        if (
+          [
+            'createFolder',
+            'writeToFile',
+            'readFiles',
+            'listFiles',
+            'applyDiffEdit',
+            'moveFile',
+            'copyFile',
+            'tavilySearch',
+            'executeCommand'
+          ].includes(tool?.toolSpec?.name)
+        ) {
+          return { ...tool, enabled: true }
+        }
+      }
+
+      return { ...tool, enabled: false }
+    }),
     // ソフトウェア開発者用の許可コマンド設定
     allowedCommands: [
       { pattern: 'npm *', description: 'npm command' },
@@ -121,7 +143,8 @@ When use executeCommand tool:
     // ソフトウェア開発者用のBedrock Agents設定
     bedrockAgents: [],
     // ソフトウェア開発者用のKnowledge Base設定
-    knowledgeBases: []
+    knowledgeBases: [],
+    isCustom: false
   },
   {
     id: 'codeBuddy',
@@ -250,8 +273,28 @@ Remember to:
     iconColor: 'oklch(0.627 0.194 149.214)',
     category: 'coding',
     // プログラミングメンター用のツール設定
-    tools: [], // この値は初回ロード時に動的に設定されます
-    // プログラミングメンター用の許可コマンド設定
+    tools: tools.map((tool) => {
+      // if tool.toolSpec.name includes []
+      if (tool.toolSpec?.name) {
+        if (
+          [
+            'createFolder',
+            'writeToFile',
+            'readFiles',
+            'listFiles',
+            'applyDiffEdit',
+            'moveFile',
+            'copyFile',
+            'tavilySearch',
+            'executeCommand'
+          ].includes(tool?.toolSpec?.name)
+        ) {
+          return { ...tool, enabled: true }
+        }
+      }
+
+      return { ...tool, enabled: false }
+    }),
     allowedCommands: [
       { pattern: 'node *', description: 'Node.js command' },
       { pattern: 'npm *', description: 'npm command' },
@@ -265,7 +308,8 @@ Remember to:
     // プログラミングメンター用のBedrock Agents設定
     bedrockAgents: [],
     // プログラミングメンター用のKnowledge Base設定
-    knowledgeBases: []
+    knowledgeBases: [],
+    isCustom: false
   },
   {
     id: 'productDesigner',
@@ -301,9 +345,29 @@ When use tools:
     icon: 'design',
     iconColor: 'oklch(0.558 0.288 302.321)',
     category: 'design',
-    // プロダクトデザイナー用のツール設定
-    tools: [], // この値は初回ロード時に動的に設定されます
-    // プロダクトデザイナー用の許可コマンド設定
+    tools: tools.map((tool) => {
+      // if tool.toolSpec.name includes []
+      if (tool.toolSpec?.name) {
+        if (
+          [
+            'createFolder',
+            'writeToFile',
+            'readFiles',
+            'listFiles',
+            'applyDiffEdit',
+            'moveFile',
+            'copyFile',
+            'generateImage',
+            'tavilySearch',
+            'executeCommand'
+          ].includes(tool?.toolSpec?.name)
+        ) {
+          return { ...tool, enabled: true }
+        }
+      }
+
+      return { ...tool, enabled: false }
+    }),
     allowedCommands: [
       { pattern: 'ls *', description: 'List directory command' },
       { pattern: 'cd *', description: 'Change directory command' }
@@ -311,7 +375,8 @@ When use tools:
     // プロダクトデザイナー用のBedrock Agents設定
     bedrockAgents: [],
     // プロダクトデザイナー用のKnowledge Base設定
-    knowledgeBases: []
+    knowledgeBases: [],
+    isCustom: false
   },
   {
     id: 'diagramGeneratorAgent',
@@ -394,7 +459,8 @@ Here is example diagramm's xml:
     // ダイアグラム生成用のBedrock Agents設定
     bedrockAgents: [],
     // ダイアグラム生成用のKnowledge Base設定
-    knowledgeBases: []
+    knowledgeBases: [],
+    isCustom: false
   },
   {
     id: 'websiteGeneratorAgent',
@@ -515,7 +581,8 @@ Basic principles for code generation:
     // ウェブサイト生成用のBedrock Agents設定
     bedrockAgents: [],
     // ウェブサイト生成用のKnowledge Base設定
-    knowledgeBases: []
+    knowledgeBases: [],
+    isCustom: false
   }
 ] as const as CustomAgent[]
 

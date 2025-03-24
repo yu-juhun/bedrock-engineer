@@ -1,7 +1,6 @@
 import { ToolState } from '@/types/agent-chat'
 
 // カテゴリー毎のデフォルトツール設定（名前のみを定義）
-// 実際のツールオブジェクトはgetToolsForCategory関数内でwindow.toolsから取得
 const DEFAULT_TOOL_NAMES: Record<string, string[]> = {
   // 一般的な目的向け - 基本的なツールのみ
   general: ['readFiles', 'listFiles', 'tavilySearch', 'fetchWebsite'],

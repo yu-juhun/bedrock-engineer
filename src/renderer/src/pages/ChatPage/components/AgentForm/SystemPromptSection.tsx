@@ -71,7 +71,7 @@ export const SystemPromptSection: React.FC<SystemPromptSectionProps> = ({
                   text-blue-600 dark:text-blue-400 rounded px-2 py-0.5 transition-colors duration-200 border border-blue-200 dark:border-blue-800"
                 >
                   <FiZap className={`w-3 h-3 mr-1 ${isGenerating ? 'animate-pulse' : ''}`} />
-                  <span>{isGenerating ? t('generating') : 'System Prompt を自動生成する'}</span>
+                  <span>{isGenerating ? t('generating') : t('generateSystemPrompt')}</span>
                 </button>
               )}
             </div>

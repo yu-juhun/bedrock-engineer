@@ -1,6 +1,9 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Scenario } from '@/types/agent-chat'
+import { useTranslation } from 'react-i18next'
+import { replacePlaceholders } from '../../utils/placeholder'
+import { useSettings } from '@renderer/contexts/SettingsContext'
 
 type ExampleScenariosProps = {
   scenarios?: Scenario[]
@@ -11,6 +14,8 @@ export const ExampleScenarios: React.FC<ExampleScenariosProps> = ({
   scenarios = [],
   onSelectScenario
 }) => {
+  const { t } = useTranslation()
+  const { projectPath } = useSettings()
   if (scenarios.length === 0) {
     return null
   }
@@ -24,9 +29,15 @@ export const ExampleScenarios: React.FC<ExampleScenariosProps> = ({
           transition={{ delay: index * 0.15 }}
           key={scenario.title}
           className="px-4 py-2 border rounded-md text-gray-400 hover:text-gray-700 hover:border-gray-300"
-          onClick={() => onSelectScenario(scenario.content)}
+          onClick={() =>
+            onSelectScenario(
+              replacePlaceholders(t(`${scenario.title} description`), {
+                projectPath: projectPath
+              })
+            )
+          }
         >
-          {scenario.title}
+          {t(scenario.title)}
         </motion.button>
       ))}
     </div>

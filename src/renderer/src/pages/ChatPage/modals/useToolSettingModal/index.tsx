@@ -242,7 +242,7 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
           </div>
         ) : (
           <div>
-            {t('Agent Tools')}
+            Agent Tools
             <div className="text-sm font-normal text-gray-500 mt-1">
               {t('Select an agent first to edit tool settings')}
             </div>

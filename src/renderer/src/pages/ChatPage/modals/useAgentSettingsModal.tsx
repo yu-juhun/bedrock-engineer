@@ -129,7 +129,6 @@ const AgentSettingsModal = React.memo(
             ) : (
               <AgentList
                 agents={agents}
-                customAgents={customAgents}
                 selectedAgentId={selectedAgentId}
                 onSelectAgent={handleSelectAgent}
                 onAddNewAgent={() => setEditingAgent({} as CustomAgent)}

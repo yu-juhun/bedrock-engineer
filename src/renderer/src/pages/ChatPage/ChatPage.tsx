@@ -191,7 +191,7 @@ export default function ChatPage() {
                       </div>
                       <h1 className="text-lg font-bold dark:text-white">Agent Chat</h1>
                     </div>
-                    <div className="text-gray-400">{currentAgent?.description}</div>
+                    <div className="text-gray-400">{t(currentAgent?.description ?? '')}</div>
                     {currentAgent && (
                       <ExampleScenarios
                         scenarios={currentScenarios}
