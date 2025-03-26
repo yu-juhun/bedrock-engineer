@@ -18,6 +18,7 @@ import toast from 'react-hot-toast'
 import { FiSave } from 'react-icons/fi'
 import { useAgentFilter } from '../AgentList'
 import { AgentCategory, ToolState } from '@/types/agent-chat'
+import { ToolName } from '@/types/tools'
 
 export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel }) => {
   const { t } = useTranslation()
@@ -36,6 +37,7 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
 
   // エージェント用のツール設定と選択されたカテゴリを管理
   const [agentTools, setAgentTools] = useState<ToolState[]>([])
+  const [, setAgentToolNames] = useState<ToolName[]>([]) // 値は使用しないが、setter は必要
   const [agentCategory, setAgentCategory] = useState<AgentCategory>('all')
 
   const handleAutoGeneratePrompt = async () => {
@@ -73,7 +75,15 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
     if (agent?.id) {
       // 既存のツール設定があれば使用
       if (agent.tools && agent.tools.length > 0) {
-        setAgentTools(agent.tools)
+        // ToolName[] から ToolState[] を生成
+        const toolStates = getDefaultToolsForCategory('all').map((toolState) => {
+          const toolName = toolState.toolSpec?.name as ToolName
+          const isEnabled = agent.tools?.includes(toolName) || false
+          return { ...toolState, enabled: isEnabled }
+        })
+
+        setAgentTools(toolStates)
+        setAgentToolNames(agent.tools)
         updateField('tools', agent.tools)
       }
 
@@ -83,8 +93,14 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
       } else {
         // それ以外の場合は ALL 設定を使用
         const defaultTools = getDefaultToolsForCategory('all')
+        const defaultToolNames = defaultTools
+          .filter((tool) => tool.enabled)
+          .map((tool) => tool.toolSpec?.name as ToolName)
+          .filter(Boolean)
+
         setAgentTools(defaultTools)
-        updateField('tools', defaultTools)
+        setAgentToolNames(defaultToolNames)
+        updateField('tools', defaultToolNames)
         updateField('category', 'all')
       }
 
@@ -114,8 +130,14 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
     } else {
       // 新規エージェントの場合の初期設定
       const defaultTools = getDefaultToolsForCategory('all')
+      const defaultToolNames = defaultTools
+        .filter((tool) => tool.enabled)
+        .map((tool) => tool.toolSpec?.name as ToolName)
+        .filter(Boolean)
+
       setAgentTools(defaultTools)
-      updateField('tools', defaultTools)
+      setAgentToolNames(defaultToolNames)
+      updateField('tools', defaultToolNames)
       updateField('category', 'all')
       updateField('allowedCommands', [])
       updateField('bedrockAgents', [])
@@ -126,7 +148,15 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
   // ツール設定変更のハンドラ
   const handleToolsChange = (tools: ToolState[]) => {
     setAgentTools(tools)
-    updateField('tools', tools)
+
+    // ToolState[] から有効なツール名のみを抽出
+    const enabledToolNames = tools
+      .filter((tool) => tool.enabled)
+      .map((tool) => tool.toolSpec?.name as ToolName)
+      .filter(Boolean)
+
+    setAgentToolNames(enabledToolNames)
+    updateField('tools', enabledToolNames)
   }
 
   // カテゴリ変更のハンドラ
@@ -137,7 +167,15 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
     // 選択したカテゴリに応じたツールセットを適用
     const newTools = getDefaultToolsForCategory(category)
     setAgentTools(newTools)
-    updateField('tools', newTools)
+
+    // ToolState[] から有効なツール名のみを抽出
+    const enabledToolNames = newTools
+      .filter((tool) => tool.enabled)
+      .map((tool) => tool.toolSpec?.name as ToolName)
+      .filter(Boolean)
+
+    setAgentToolNames(enabledToolNames)
+    updateField('tools', enabledToolNames)
   }
 
   return (

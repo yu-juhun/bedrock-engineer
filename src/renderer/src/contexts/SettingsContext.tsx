@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { KnowledgeBase, SendMsgKey, ToolState } from 'src/types/agent-chat'
+import { ToolName } from 'src/types/tools'
 import { listModels } from '@renderer/lib/api'
 import { CustomAgent } from '@/types/agent-chat'
 import { replacePlaceholders } from '@renderer/pages/ChatPage/utils/placeholder'
@@ -550,35 +551,30 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     })
 
     // リージョン変更時にカスタムエージェントのツール設定を更新
-    // 特にgenerateImageツールのモデル選択肢を更新
+    // 特にgenerateImageツールのリージョン対応を確認
     if (customAgents.length > 0) {
       const updatedAgents = customAgents.map((agent) => {
         // エージェント固有のツール設定がある場合のみ更新
-        if (agent.tools) {
-          // 各ツールを確認し、generateImageツールがある場合はリージョン対応を確認
-          const updatedTools = agent.tools.map((tool) => {
-            if (tool.toolSpec?.name === 'generateImage') {
-              const isGenerateImageSupported = [
-                'us-east-1',
-                'us-west-2',
-                'ap-northeast-1',
-                'eu-west-1',
-                'eu-west-2',
-                'ap-south-1'
-              ].includes(region)
+        if (agent.tools && agent.tools.length > 0) {
+          const isGenerateImageSupported = [
+            'us-east-1',
+            'us-west-2',
+            'ap-northeast-1',
+            'eu-west-1',
+            'eu-west-2',
+            'ap-south-1'
+          ].includes(region)
 
-              // リージョンがサポートされている場合は入力スキーマを更新し、有効にする
-              if (isGenerateImageSupported) {
-                const { updateToolInputSchema } = require('@renderer/constants/defaultToolSets')
-                return updateToolInputSchema(tool, region)
-              } else {
-                // サポートされていないリージョンの場合は無効化
-                return { ...tool, enabled: false }
-              }
+          // generateImageツールがリストに含まれているか確認
+          const hasGenerateImageTool = agent.tools.includes('generateImage')
+
+          // リージョンがサポートされていない場合は、generateImageツールを削除
+          if (!isGenerateImageSupported && hasGenerateImageTool) {
+            return {
+              ...agent,
+              tools: agent.tools.filter((toolName) => toolName !== 'generateImage')
             }
-            return tool
-          })
-          return { ...agent, tools: updatedTools }
+          }
         }
         return agent
       })
@@ -741,8 +737,16 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const agent = allAgents.find((a) => a.id === agentId)
 
       // エージェント固有のツール設定がある場合
-      if (agent && agent.tools) {
-        return agent.tools
+      if (agent && agent.tools && agent.tools.length > 0) {
+        // ToolName[] から ToolState[] を生成
+        const allToolStates = tools.map((tool) => ({ ...tool, enabled: false }))
+
+        // エージェントのツール名リストに含まれるツールを有効化
+        return allToolStates.map((toolState) => {
+          const toolName = toolState.toolSpec?.name as ToolName
+          const isEnabled = agent.tools?.includes(toolName) || false
+          return { ...toolState, enabled: isEnabled }
+        })
       }
 
       // エージェント固有の設定がない場合は全てのツールセットを返す
@@ -751,7 +755,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         tools.map((tool) => ({ ...tool, enabled: true }))
       )
     },
-    [allAgents, customAgents, setCustomAgents]
+    [allAgents, tools]
   )
 
   // エージェント固有の許可コマンドを取得する関数
@@ -800,9 +804,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // エージェントツール設定を更新する関数
   const updateAgentTools = useCallback(
     (agentId: string, updatedTools: ToolState[]) => {
+      // 有効なツールの名前のみを抽出
+      const enabledToolNames = updatedTools
+        .filter((tool) => tool.enabled)
+        .map((tool) => tool.toolSpec?.name as ToolName)
+        .filter(Boolean)
+
       // カスタムエージェントの場合のみ更新可能
       const updatedAgents = customAgents.map((agent) =>
-        agent.id === agentId ? { ...agent, tools: updatedTools } : agent
+        agent.id === agentId ? { ...agent, tools: enabledToolNames } : agent
       )
 
       setCustomAgents(updatedAgents)
@@ -857,16 +867,41 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const updateAgentSettings = useCallback(
     (
       agentId: string,
-      settings: Partial<{
-        tools: ToolState[]
-        allowedCommands: CommandConfig[]
-        bedrockAgents: BedrockAgent[]
-        knowledgeBases: KnowledgeBase[]
-      }>
+      settings: {
+        tools?: ToolState[]
+        allowedCommands?: CommandConfig[]
+        bedrockAgents?: BedrockAgent[]
+        knowledgeBases?: KnowledgeBase[]
+      }
     ) => {
+      // 更新用の設定オブジェクトを作成
+      const processedSettings: Partial<CustomAgent> = {}
+
+      // 各プロパティを個別に処理
+      if (settings.allowedCommands) {
+        processedSettings.allowedCommands = settings.allowedCommands
+      }
+
+      if (settings.bedrockAgents) {
+        processedSettings.bedrockAgents = settings.bedrockAgents
+      }
+
+      if (settings.knowledgeBases) {
+        processedSettings.knowledgeBases = settings.knowledgeBases
+      }
+
+      // tools が含まれている場合、ToolState[] から ToolName[] に変換
+      if (settings.tools) {
+        const enabledToolNames = settings.tools
+          .filter((tool) => tool.enabled)
+          .map((tool) => tool.toolSpec?.name as ToolName)
+          .filter(Boolean) as ToolName[]
+        processedSettings.tools = enabledToolNames
+      }
+
       // カスタムエージェントの場合のみ更新可能
       const updatedAgents = customAgents.map((agent) =>
-        agent.id === agentId ? { ...agent, ...settings } : agent
+        agent.id === agentId ? { ...agent, ...processedSettings } : agent
       )
 
       setCustomAgents(updatedAgents)

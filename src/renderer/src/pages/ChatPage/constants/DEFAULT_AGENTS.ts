@@ -1,7 +1,6 @@
 import { CustomAgent } from '@/types/agent-chat'
-import { tools } from '@/types/tools'
 
-export const DEFAULT_AGENTS = [
+export const DEFAULT_AGENTS: CustomAgent[] = [
   {
     id: 'softwareAgent',
     name: 'Software Developer',
@@ -108,28 +107,18 @@ When use executeCommand tool:
     iconColor: 'oklch(0.623 0.214 259.815)',
     category: 'coding',
     // ソフトウェア開発者用デフォルトツール設定
-    tools: tools.map((tool) => {
-      // if tool.toolSpec.name includes []
-      if (tool.toolSpec?.name) {
-        if (
-          [
-            'createFolder',
-            'writeToFile',
-            'readFiles',
-            'listFiles',
-            'applyDiffEdit',
-            'moveFile',
-            'copyFile',
-            'tavilySearch',
-            'executeCommand'
-          ].includes(tool?.toolSpec?.name)
-        ) {
-          return { ...tool, enabled: true }
-        }
-      }
-
-      return { ...tool, enabled: false }
-    }),
+    tools: [
+      'createFolder',
+      'writeToFile',
+      'readFiles',
+      'listFiles',
+      'applyDiffEdit',
+      'moveFile',
+      'copyFile',
+      'tavilySearch',
+      'executeCommand',
+      'think'
+    ],
     // ソフトウェア開発者用の許可コマンド設定
     allowedCommands: [
       { pattern: 'npm *', description: 'npm command' },
@@ -210,28 +199,18 @@ Today's date is {{date}}, so my knowledge about very recent programming developm
     iconColor: 'oklch(0.627 0.194 149.214)',
     category: 'coding',
     // プログラミングメンター用のツール設定
-    tools: tools.map((tool) => {
-      // if tool.toolSpec.name includes []
-      if (tool.toolSpec?.name) {
-        if (
-          [
-            'createFolder',
-            'writeToFile',
-            'readFiles',
-            'listFiles',
-            'applyDiffEdit',
-            'moveFile',
-            'copyFile',
-            'tavilySearch',
-            'executeCommand'
-          ].includes(tool?.toolSpec?.name)
-        ) {
-          return { ...tool, enabled: true }
-        }
-      }
-
-      return { ...tool, enabled: false }
-    }),
+    tools: [
+      'createFolder',
+      'writeToFile',
+      'readFiles',
+      'listFiles',
+      'applyDiffEdit',
+      'moveFile',
+      'copyFile',
+      'tavilySearch',
+      'executeCommand',
+      'think'
+    ],
     allowedCommands: [
       { pattern: 'node *', description: 'Node.js command' },
       { pattern: 'npm *', description: 'npm command' },
@@ -324,29 +303,19 @@ Maintain a creative, professional, and supportive tone while providing actionabl
     icon: 'design',
     iconColor: 'oklch(0.558 0.288 302.321)',
     category: 'design',
-    tools: tools.map((tool) => {
-      // if tool.toolSpec.name includes []
-      if (tool.toolSpec?.name) {
-        if (
-          [
-            'createFolder',
-            'writeToFile',
-            'readFiles',
-            'listFiles',
-            'applyDiffEdit',
-            'moveFile',
-            'copyFile',
-            'generateImage',
-            'tavilySearch',
-            'executeCommand'
-          ].includes(tool?.toolSpec?.name)
-        ) {
-          return { ...tool, enabled: true }
-        }
-      }
-
-      return { ...tool, enabled: false }
-    }),
+    tools: [
+      'createFolder',
+      'writeToFile',
+      'readFiles',
+      'listFiles',
+      'applyDiffEdit',
+      'moveFile',
+      'copyFile',
+      'generateImage',
+      'tavilySearch',
+      'executeCommand',
+      'think'
+    ],
     allowedCommands: [
       { pattern: 'ls *', description: 'List directory command' },
       { pattern: 'cd *', description: 'Change directory command' }
@@ -411,28 +380,7 @@ Here is example diagramm's xml:
     iconColor: 'oklch(0.4 0.26 203.86)',
     category: 'diagram',
     // ダイアグラム生成用のツール設定
-    tools: [
-      {
-        toolSpec: {
-          name: 'tavilySearch',
-          description:
-            'Perform a web search using Tavily API to get up-to-date information or additional context. Use this when you need current information or feel a search could provide a better answer.',
-          inputSchema: {
-            json: {
-              type: 'object',
-              properties: {
-                query: {
-                  type: 'string',
-                  description: 'The search query'
-                }
-              },
-              required: ['query']
-            }
-          }
-        },
-        enabled: true
-      }
-    ],
+    tools: ['tavilySearch', 'think'],
     // ダイアグラム生成用の許可コマンド設定
     allowedCommands: [],
     // ダイアグラム生成用のBedrock Agents設定
@@ -509,52 +457,7 @@ Basic principles for code generation:
     iconColor: 'oklch(0.67 0.2 29.23)',
     category: 'website',
     // ウェブサイト生成用のツール設定
-    tools: [
-      {
-        toolSpec: {
-          name: 'tavilySearch',
-          description:
-            'Perform a web search using Tavily API to get up-to-date information or additional context. Use this when you need current information or feel a search could provide a better answer.',
-          inputSchema: {
-            json: {
-              type: 'object',
-              properties: {
-                query: {
-                  type: 'string',
-                  description: 'The search query'
-                }
-              },
-              required: ['query']
-            }
-          }
-        },
-        enabled: true
-      },
-      {
-        toolSpec: {
-          name: 'retrieve',
-          description:
-            'Retrieve information from a knowledge base using Amazon Bedrock Knowledge Base. Use this when you need to get information from a knowledge base.',
-          inputSchema: {
-            json: {
-              type: 'object',
-              properties: {
-                knowledgeBaseId: {
-                  type: 'string',
-                  description: 'The ID of the knowledge base to retrieve from'
-                },
-                query: {
-                  type: 'string',
-                  description: 'The query to search for in the knowledge base'
-                }
-              },
-              required: ['knowledgeBaseId', 'query']
-            }
-          }
-        },
-        enabled: true
-      }
-    ],
+    tools: ['tavilySearch', 'retrieve', 'think'],
     // ウェブサイト生成用の許可コマンド設定
     allowedCommands: [],
     // ウェブサイト生成用のBedrock Agents設定
@@ -563,7 +466,7 @@ Basic principles for code generation:
     knowledgeBases: [],
     isCustom: false
   }
-] as const as CustomAgent[]
+]
 
 export const SOFTWARE_AGENT_SYSTEM_PROMPT = DEFAULT_AGENTS[0].system
 export const CODE_BUDDY_SYSTEM_PROMPT = DEFAULT_AGENTS[1].system
