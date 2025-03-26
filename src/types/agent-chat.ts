@@ -33,6 +33,7 @@ export type Agent = {
   icon?: AgentIcon
   iconColor?: string
   tags?: string[]
+  author?: string
 }
 
 export type AgentIcon =
@@ -208,6 +209,7 @@ export type AgentCategory =
 export type CustomAgent = Agent & {
   isCustom?: boolean
   isShared?: boolean
+  directoryOnly?: boolean // ディレクトリからのみ取得されたエージェント（テンプレート）
   tools?: ToolName[] // エージェント固有のツール名リスト
   category?: AgentCategory // エージェントのカテゴリ
   allowedCommands?: CommandConfig[] // エージェント固有の許可コマンド

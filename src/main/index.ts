@@ -3,7 +3,6 @@ import { join, resolve } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../build/icon.ico?asset'
 import api from './api'
-import { handleFileOpen } from '../preload/file'
 import Store from 'electron-store'
 import getRandomPort from '../preload/lib/random-port'
 import { store } from '../preload/store'
@@ -264,22 +263,33 @@ app.whenReady().then(() => {
       })
     })
 
+  // Handler to get app path
+  ipcMain.handle('get-app-path', () => {
+    return app.getAppPath()
+  })
+
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  ipcMain.handle('open-file', () =>
-    handleFileOpen({
+  ipcMain.handle('open-file', async () => {
+    const { dialog } = require('electron')
+    const result = await dialog.showOpenDialog({
       title: 'openFile...',
       properties: ['openFile']
     })
-  )
+    if (result.canceled) return null
+    return result.filePaths[0]
+  })
   ipcMain.handle('open-directory', async () => {
-    const path = await handleFileOpen({
+    const { dialog } = require('electron')
+    const result = await dialog.showOpenDialog({
       title: 'Select Directory',
       properties: ['openDirectory', 'createDirectory'],
       message: 'Select a directory for your project',
       buttonLabel: 'Select Directory'
     })
+    if (result.canceled) return null
+    const path = result.filePaths[0]
 
     // If path was selected and it differs from the current project path,
     // update the project path in store

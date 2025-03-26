@@ -8,6 +8,7 @@ import {
   agentToolsSettings
 } from './settings'
 import { thinkingMode } from './thinkingMode'
+import { agentDirectory } from './agentDirectory'
 
 const HomePage = {
   'set your aws credential':
@@ -173,7 +174,8 @@ const en = {
   ...agentSettings.en,
   ...agentToolsSettings.en,
   ...awsDiagramGenerator.en,
-  ...thinkingMode.en
+  ...thinkingMode.en,
+  ...agentDirectory.en
 }
 
 export default en

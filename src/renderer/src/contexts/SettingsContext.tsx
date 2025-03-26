@@ -112,6 +112,12 @@ export interface SettingsContextType {
   sharedAgents: CustomAgent[]
   loadSharedAgents: () => Promise<void>
 
+  // Directory Agents Settings
+  directoryAgents: CustomAgent[]
+  loadDirectoryAgents: () => Promise<void>
+  addDirectoryAgentToCustom: (agent: CustomAgent) => Promise<boolean>
+  isDirectoryAgentLoading: boolean
+
   // Selected Agent Settings
   selectedAgentId: string
   setSelectedAgentId: (agentId: string) => void
@@ -224,6 +230,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Custom Agents Settings
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([])
   const [sharedAgents, setSharedAgents] = useState<CustomAgent[]>([])
+
+  // Directory Agents Settings
+  const [directoryAgents, setDirectoryAgents] = useState<CustomAgent[]>([])
+  const [isDirectoryAgentLoading, setIsDirectoryAgentLoading] = useState<boolean>(false)
 
   // Selected Agent Settings
   const [selectedAgentId, setStateSelectedAgentId] = useState<string>('softwareAgent')
@@ -421,11 +431,20 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     // Load shared agents right away
     loadSharedAgents()
+
+    // Load directory agents on mount
+    loadDirectoryAgents()
   }, [projectPath])
 
   // Function to load shared agents from project directory
   const loadSharedAgents = async () => {
     try {
+      // window.file が利用可能かチェック
+      if (!window.file || typeof window.file.readSharedAgents !== 'function') {
+        console.error('File API is not available')
+        return
+      }
+
       const { agents, error } = await window.file.readSharedAgents()
       if (error) {
         console.error('Error loading shared agents:', error)
@@ -434,6 +453,57 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } catch (error) {
       console.error('Failed to load shared agents:', error)
+    }
+  }
+
+  // Function to load directory agents from app resources
+  const loadDirectoryAgents = async () => {
+    try {
+      // window.file が利用可能かチェック
+      if (!window.file || typeof window.file.readDirectoryAgents !== 'function') {
+        console.error('File API is not available')
+        return
+      }
+
+      setIsDirectoryAgentLoading(true)
+      const { agents, error } = await window.file.readDirectoryAgents()
+      if (error) {
+        console.error('Error loading directory agents:', error)
+      } else {
+        setDirectoryAgents(agents || [])
+      }
+    } catch (error) {
+      console.error('Failed to load directory agents:', error)
+    } finally {
+      setIsDirectoryAgentLoading(false)
+    }
+  }
+
+  // Function to add a directory agent to custom agents
+  const addDirectoryAgentToCustom = async (agent: CustomAgent): Promise<boolean> => {
+    try {
+      // Generate a new unique ID for this custom agent
+      const timestamp = Date.now().toString(36)
+      const randomStr = Math.random().toString(36).substring(2, 7)
+      const newId = `custom-${agent.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${timestamp}-${randomStr}`
+
+      // Create a new custom agent based on the directory agent
+      const newCustomAgent: CustomAgent = {
+        ...agent,
+        id: newId,
+        isCustom: true,
+        directoryOnly: false
+      }
+
+      // Add to custom agents list
+      const updatedAgents = [...customAgents, newCustomAgent]
+      setCustomAgents(updatedAgents)
+      window.store.set('customAgents', updatedAgents)
+
+      return true
+    } catch (error) {
+      console.error('Error adding directory agent to custom agents:', error)
+      return false
     }
   }
 
@@ -1002,6 +1072,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     saveCustomAgents,
     sharedAgents,
     loadSharedAgents,
+
+    // Directory Agents Settings
+    directoryAgents,
+    loadDirectoryAgents,
+    addDirectoryAgentToCustom,
+    isDirectoryAgentLoading,
 
     // Selected Agent Settings
     selectedAgentId,
