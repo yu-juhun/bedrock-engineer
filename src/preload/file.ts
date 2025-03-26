@@ -1,4 +1,4 @@
-import { dialog } from 'electron'
+import { dialog, OpenDialogOptions } from 'electron'
 import { ipcRenderer } from 'electron'
 import { promisify } from 'util'
 import fs from 'fs'
@@ -149,32 +149,12 @@ async function readDirectoryAgents(): Promise<{ agents: CustomAgent[]; error?: E
   }
 }
 
-export async function handleFolderOpen() {
-  const result = await dialog.showOpenDialog({
-    properties: ['openDirectory']
-  })
-
-  if (result.canceled) {
-    return
+export async function handleFileOpen(options: OpenDialogOptions) {
+  const { canceled, filePaths } = await dialog.showOpenDialog(options)
+  if (!canceled) {
+    return filePaths[0]
   }
-
-  return result.filePaths[0]
-}
-
-export async function handleFileOpen() {
-  const result = await dialog.showOpenDialog({
-    properties: ['openFile'],
-    filters: [
-      { name: 'YAML', extensions: ['yml', 'yaml'] },
-      { name: 'All Files', extensions: ['*'] }
-    ]
-  })
-
-  if (result.canceled) {
-    return
-  }
-
-  return result.filePaths[0]
+  return undefined
 }
 
 /**
@@ -200,8 +180,8 @@ async function saveSharedAgent(
 }
 
 export const file = {
-  handleFolderOpen,
-  handleFileOpen,
+  handleFolderOpen: () => ipcRenderer.invoke('open-directory'),
+  handleFileOpen: () => ipcRenderer.invoke('open-file'),
   readSharedAgents,
   readDirectoryAgents,
   saveSharedAgent

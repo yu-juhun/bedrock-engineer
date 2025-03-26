@@ -16,6 +16,7 @@ import {
   log,
   createCategoryLogger
 } from '../common/logger'
+import { handleFileOpen } from '../preload/file'
 
 // No need to track project path anymore as we always read from disk
 Store.initRenderer()
@@ -271,25 +272,19 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  ipcMain.handle('open-file', async () => {
-    const { dialog } = require('electron')
-    const result = await dialog.showOpenDialog({
+  ipcMain.handle('open-file', () =>
+    handleFileOpen({
       title: 'openFile...',
       properties: ['openFile']
     })
-    if (result.canceled) return null
-    return result.filePaths[0]
-  })
+  )
   ipcMain.handle('open-directory', async () => {
-    const { dialog } = require('electron')
-    const result = await dialog.showOpenDialog({
+    const path = await handleFileOpen({
       title: 'Select Directory',
       properties: ['openDirectory', 'createDirectory'],
       message: 'Select a directory for your project',
       buttonLabel: 'Select Directory'
     })
-    if (result.canceled) return null
-    const path = result.filePaths[0]
 
     // If path was selected and it differs from the current project path,
     // update the project path in store
