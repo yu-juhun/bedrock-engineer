@@ -82,24 +82,26 @@ async function readSharedAgents(): Promise<{ agents: CustomAgent[]; error?: Erro
 
 async function readDirectoryAgents(): Promise<{ agents: CustomAgent[]; error?: Error }> {
   try {
-    // Define the directory agents directory path
-    const appPath = await ipcRenderer.invoke('get-app-path')
-
-    const directoryAgentsDir = path.join(appPath, 'resources', 'directory-agents')
-
     // Use the embedded directory in dev mode
     const isDev = process.env.NODE_ENV === 'development'
 
-    const devDirectoryAgentsDir = path.join(
-      process.cwd(),
-      'src',
-      'renderer',
-      'src',
-      'assets',
-      'directory-agents'
-    )
+    let agentsDir: string
 
-    const agentsDir = isDev ? devDirectoryAgentsDir : directoryAgentsDir
+    if (isDev) {
+      // In development, use the source directory
+      agentsDir = path.join(process.cwd(), 'src', 'renderer', 'src', 'assets', 'directory-agents')
+    } else {
+      // In production, use the extraResources path
+      // extraResources are copied to <app>/resources/directory-agents in electron-builder.yml
+      const appPath = await ipcRenderer.invoke('get-app-path')
+
+      // For packaged app, the directory-agents folder should be in resources folder
+      // (parallel to app.asar, not inside it)
+      const resourcesPath = path.dirname(appPath)
+      agentsDir = path.join(resourcesPath, 'directory-agents')
+
+      console.log('Production directory agents path:', agentsDir)
+    }
 
     // Check if the directory agents directory exists
     try {

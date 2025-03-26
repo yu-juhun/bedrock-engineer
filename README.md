@@ -154,6 +154,37 @@ You can get up and running quickly with Amazon Bedrock Agents by using the [Agen
 
 </details>
 
+## Agent Directory
+
+The Agent Directory is a content hub where you can discover and immediately use AI agents created by skilled contributors. It offers a curated collection of pre-configured agents designed for various tasks and specialties.
+
+![agent-directory](./assets/agent-directory.png)
+
+### Features
+
+- **Browse the Collection** - Explore a growing library of specialized agents created by the community
+- **Search & Filter** - Quickly find agents using the search function or filter by tags to discover agents that match your needs
+- **Detailed Information** - View comprehensive information about each agent including author, system prompt, supported tools, and usage scenarios
+- **One-Click Addition** - Add any agent to your personal collection with a single click and start using it immediately
+- **Contribute Your Agents** - Share your custom agents with the community by becoming a contributor
+
+### Using the Agent Directory
+
+1. **Browse and Search** - Use the search bar to find specific agents or browse the entire collection
+2. **Filter by Tags** - Click on tags to filter agents by categories, specialties, or capabilities
+3. **View Details** - Select any agent to view its complete system prompt, supported tools, and usage scenarios
+4. **Add to Your Collection** - Click "Add to My Agents" to add the agent to your personal collection
+
+### Contribute Your Agents
+
+Become a contributor and share your custom agents with the community:
+
+1. Export your custom agent as a shared file
+2. Add your GitHub username as the author
+3. Submit your agent via Pull Request or GitHub Issue
+
+By contributing to the Agent Directory, you help build a valuable resource of specialized AI agents that enhance the capabilities of Bedrock Engineer for everyone.
+
 ## Website Generator
 
 Generate and preview website source code in real-time. Currently supports the following libraries, and you can interactively generate code by providing additional instructions:
