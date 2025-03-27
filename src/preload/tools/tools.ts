@@ -48,7 +48,7 @@ export const executeTool = async (input: ToolInput): Promise<string | ToolResult
 
       case 'tavilySearch': {
         const apiKey = store.get('tavilySearch').apikey
-        return toolService.tavilySearch(input.query, apiKey)
+        return toolService.tavilySearch(input.query, apiKey, input.option)
       }
 
       case 'fetchWebsite':

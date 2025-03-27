@@ -72,6 +72,9 @@ export type CopyFileInput = {
 export type TavilySearchInput = {
   type: 'tavilySearch'
   query: string
+  option: {
+    include_raw_content: boolean
+  }
 }
 
 export type FetchWebsiteInput = {
@@ -407,6 +410,17 @@ Example:
             query: {
               type: 'string',
               description: 'The search query'
+            },
+            option: {
+              type: 'object',
+              description: 'Optional configurations for the search',
+              properties: {
+                include_raw_content: {
+                  type: 'boolean',
+                  description:
+                    'Whether to include raw content in the search results. DEFAULT is false'
+                }
+              }
             }
           },
           required: ['query']

@@ -70,6 +70,28 @@ interface InvokeBedrockAgentResult extends ToolResult<InvokeAgentResultOmitFile>
   name: 'invokeBedrockAgent'
 }
 
+interface TavilySearchSearchResponse {
+  title: string
+  url: string
+  content: string
+  score: number
+  raw_content: string
+}
+
+interface TavilySearchResult extends ToolResult {
+  name: 'tavilySearch'
+  success: boolean
+  message: string
+  result: {
+    query: string
+    follow_up_questions: null | string[]
+    answer: string
+    images: string[]
+    results: TavilySearchSearchResponse[]
+    response_time: number
+  }
+}
+
 interface ExecuteCommandResult extends ToolResult {
   name: 'executeCommand'
   stdout: string
@@ -625,7 +647,11 @@ export class ToolService {
     }
   }
 
-  async tavilySearch(query: string, apiKey: string): Promise<any> {
+  async tavilySearch(
+    query: string,
+    apiKey: string,
+    option: { include_raw_content: boolean }
+  ): Promise<TavilySearchResult> {
     logger.debug(`Executing Tavily search with query: ${query}`)
 
     try {
@@ -641,7 +667,7 @@ export class ToolService {
           search_depth: 'advanced',
           include_answer: true,
           include_images: true,
-          include_raw_content: true,
+          include_raw_content: option?.include_raw_content ?? false,
           max_results: 5,
           include_domains: [],
           exclude_domains: []
