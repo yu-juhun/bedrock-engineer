@@ -1,4 +1,4 @@
-import { FiHome, FiFeather, FiSettings, FiGrid } from 'react-icons/fi'
+import { FiHome, FiFeather, FiSettings } from 'react-icons/fi'
 import { LuCombine } from 'react-icons/lu'
 import { HiOutlineChatAlt2 } from 'react-icons/hi'
 import { BsLayoutWtf } from 'react-icons/bs'
@@ -9,6 +9,7 @@ import WebsiteGeneratorPage from './pages/WebsiteGeneratorPage/WebsiteGeneratorP
 import ChatPage from './pages/ChatPage/ChatPage'
 import DiagramGeneratorPage from './pages/DiagramGeneratorPage/DiagramGeneratorPage'
 import { AgentDirectoryPage } from './pages/AgentDirectoryPage/AgentDirectoryPage'
+import { LuBookDown } from 'react-icons/lu'
 
 export const routes = [
   {
@@ -28,7 +29,7 @@ export const routes = [
   {
     name: 'Agent Directory',
     href: '/agent-directory',
-    icon: FiGrid,
+    icon: LuBookDown,
     position: 'top',
     element: <AgentDirectoryPage />
   },

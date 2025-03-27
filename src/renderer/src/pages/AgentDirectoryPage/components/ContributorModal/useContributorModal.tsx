@@ -90,13 +90,22 @@ author: "your-github-username"
                 <li>
                   {t('contributor.step1')}
                   <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-md text-sm">
-                    <code>{'1. [Your Agent Name] > ⋮ > Export > As Shared File'}</code>
+                    <code>{'[Your Agent Name] > ⋮ > Export > As Shared File'}</code>
                   </div>
                 </li>
                 <li>
                   {t('contributor.step2')}
                   <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-md text-sm">
-                    <code>src/renderer/src/assets/directory-agents/</code>
+                    <code
+                      onClick={() => {
+                        open(
+                          'https://github.com/aws-samples/bedrock-engineer/tree/main/src/renderer/src/assets/directory-agents'
+                        )
+                      }}
+                      className="hover:text-blue-600 cursor-pointer"
+                    >
+                      src/renderer/src/assets/directory-agents/
+                    </code>
                   </div>
                 </li>
                 <li>
