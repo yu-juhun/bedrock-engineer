@@ -62,7 +62,8 @@ export const tools = {
         'Query the Amazon Bedrock Knowledge Base to find relevant information using Retrieval-Augmented Generation (RAG).',
       invokeBedrockAgent: 'Invoke Amazon Bedrock Agent to interact with LLMs and external tools',
       executeCommand: 'Execute allowed commands with support for wildcards',
-      applyDiffEdit: 'Apply partial updates to existing files with granular control'
+      applyDiffEdit: 'Apply partial updates to existing files with granular control',
+      think: 'Enable AI to perform complex step-by-step reasoning'
     },
     'tool info': {
       retrieve: {
@@ -98,6 +99,11 @@ export const tools = {
       }
     },
     'tool usage': {
+      think: {
+        description:
+          'Enables the AI to perform complex reasoning steps without consuming your context window. This tool allows Claude to work through difficult problems step by step, showing its thought process and reasoning in detail.',
+        tip: 'Enable this when you need the AI to solve complex problems, debug difficult issues, or provide detailed explanations of its reasoning process. Only available with Claude 3.7 Sonnet.'
+      },
       createFolder: {
         description:
           'Enables the AI to set up project structures automatically. Perfect for starting new projects, creating template directories, or organizing your workspace without manual folder creation.',
@@ -175,6 +181,16 @@ export const tools = {
     'Select a tool from the list': 'リストからツールを選択してください',
     'Click on any tool to view details and configuration options':
       'ツールをクリックすると詳細と設定オプションが表示されます',
+    'Global Settings': 'グローバル設定',
+    'Agent Specific Settings': 'エージェント固有設定',
+    'Global tool settings will be used as default for all agents':
+      'グローバルツール設定はすべてのエージェントのデフォルトとして使用されます',
+    'specific tool settings': '固有のツール設定',
+    'Select an agent first to edit agent-specific settings':
+      'エージェント固有の設定を編集するには、まずエージェントを選択してください',
+    'Using Global Tool Settings': 'グローバルツール設定を使用中',
+    'This agent will use the global tool settings. To customize tools for this agent specifically, select "Agent Specific Settings" above.':
+      'このエージェントはグローバルツール設定を使用します。このエージェント固有のツールをカスタマイズするには、上の「エージェント固有設定」を選択してください。',
     // Tavily Search Settings
     'Tavily Search API Settings': 'Tavily Search API設定',
     'About Tavily Search': 'Tavily Searchについて',
@@ -208,10 +224,12 @@ export const tools = {
       'Web & Search': 'ウェブ＆検索',
       'AI Services': 'AIサービス',
       System: 'システム',
+      Thinking: '思考',
       'File System Description': 'ファイルやディレクトリを管理するツール',
       'Web & Search Description': 'ウェブリソースを操作するツール',
       'AI Services Description': 'AWS AIサービスを利用するツール',
-      'System Description': 'システムと連携するツール'
+      'System Description': 'システムと連携するツール',
+      'Thinking Description': '拡張された推論と複雑な問題解決のためのツール'
     },
     'tool descriptions': {
       createFolder: 'プロジェクトに新しいディレクトリを作成',
@@ -227,7 +245,8 @@ export const tools = {
       retrieve: 'Amazon Bedrock Knowledge Base へのクエリ',
       invokeBedrockAgent: 'Amazon Bedrock Agent を実行',
       executeCommand: 'ワイルドカードをサポートする許可されたコマンドを実行',
-      applyDiffEdit: 'ファイルに対して部分的な更新を適用'
+      applyDiffEdit: 'ファイルに対して部分的な更新を適用',
+      think: 'AIが複雑なステップバイステップの思考を実行'
     },
     'tool info': {
       retrieve: {
@@ -263,6 +282,11 @@ export const tools = {
       }
     },
     'tool usage': {
+      think: {
+        description:
+          'AIがコンテキストウィンドウを消費せずに複雑な推論ステップを実行できるようにします。このツールを使用すると、Claudeは難しい問題をステップバイステップで解決し、その思考プロセスと推論を詳細に示すことができます。',
+        tip: 'AIに複雑な問題の解決、難しい問題のデバッグ、または推論プロセスの詳細な説明を提供してもらいたい場合に有効にしてください。Claude 3.7 Sonnetでのみ利用可能です。'
+      },
       createFolder: {
         description:
           'AIが自動的にプロジェクト構造をセットアップできるようにします。新規プロジェクトの開始、テンプレートディレクトリの作成、手動でフォルダを作成することなくワークスペースを整理するのに最適です。',

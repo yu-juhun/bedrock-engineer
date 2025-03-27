@@ -6,11 +6,17 @@ import { ContentChunker, ContentChunk } from '../lib/contentChunker'
 import { ToolResult } from '../../types/tools'
 import { CommandService } from '../../main/api/command/commandService'
 import {
-  CommandConfig,
+  CommandPatternConfig,
   CommandInput,
   CommandStdinInput,
   ProcessInfo
 } from '../../main/api/command/types'
+
+// 修正されたCommandConfig型
+interface CommandConfig {
+  allowedCommands?: CommandPatternConfig[]
+  shell: string
+}
 import {
   BedrockService,
   ImageGeneratorModel,
@@ -39,6 +45,13 @@ interface RetrieveResult extends ToolResult {
   name: 'retrieve'
 }
 
+interface ThinkResult extends ToolResult {
+  name: 'think'
+  result: {
+    reasoning: string
+  }
+}
+
 type Completion = {
   message?: string
   files?: string[]
@@ -54,6 +67,28 @@ type InvokeAgentResultOmitFile = {
 
 interface InvokeBedrockAgentResult extends ToolResult<InvokeAgentResultOmitFile> {
   name: 'invokeBedrockAgent'
+}
+
+interface TavilySearchSearchResponse {
+  title: string
+  url: string
+  content: string
+  score: number
+  raw_content: string
+}
+
+interface TavilySearchResult extends ToolResult {
+  name: 'tavilySearch'
+  success: boolean
+  message: string
+  result: {
+    query: string
+    follow_up_questions: null | string[]
+    answer: string
+    images: string[]
+    results: TavilySearchSearchResponse[]
+    response_time: number
+  }
 }
 
 interface ExecuteCommandResult extends ToolResult {
@@ -611,7 +646,11 @@ export class ToolService {
     }
   }
 
-  async tavilySearch(query: string, apiKey: string): Promise<any> {
+  async tavilySearch(
+    query: string,
+    apiKey: string,
+    option: { include_raw_content: boolean }
+  ): Promise<TavilySearchResult> {
     logger.debug(`Executing Tavily search with query: ${query}`)
 
     try {
@@ -627,7 +666,7 @@ export class ToolService {
           search_depth: 'advanced',
           include_answer: true,
           include_images: true,
-          include_raw_content: true,
+          include_raw_content: option?.include_raw_content ?? false,
           max_results: 5,
           include_domains: [],
           exclude_domains: []
@@ -1120,6 +1159,42 @@ export class ToolService {
     }
   }
 
+  /**
+   * Think ツールの実装
+   * 問題を詳細に考察し、段階的な思考プロセスを返す
+   */
+  async think(thought: string): Promise<ThinkResult> {
+    logger.debug('Using think tool', { queryLength: thought.length })
+
+    try {
+      logger.info('Thinking about:', {
+        query: thought.substring(0, 100) + (thought.length > 100 ? '...' : '')
+      })
+
+      // このツールは実際には特別な処理を行わず、Claude 3.7 Sonnetの拡張思考モードが
+      // そのままクライアントに対して思考プロセスを表示するようにします
+      // もしクエリが非常に複雑な場合は、より詳細な思考プロセスが必要であることを明示する
+
+      return {
+        success: true,
+        name: 'think',
+        message: 'Thinking process completed',
+        result: {
+          reasoning: thought
+        }
+      }
+    } catch (error) {
+      logger.error('Error in think tool', {
+        error: error instanceof Error ? error.message : String(error),
+        thought: thought.substring(0, 100) + (thought.length > 100 ? '...' : '')
+      })
+
+      throw new Error(
+        `Error in think tool: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
+  }
+
   async executeCommand(
     input: CommandInput | CommandStdinInput,
     config: CommandConfig
@@ -1127,7 +1202,7 @@ export class ToolService {
     logger.debug('Executing command', {
       input: JSON.stringify(input),
       config: JSON.stringify({
-        allowedCommands: config.allowedCommands.length
+        allowedCommands: config.allowedCommands?.length || 0
       })
     })
 

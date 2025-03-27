@@ -3,7 +3,6 @@ import { join, resolve } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../build/icon.ico?asset'
 import api from './api'
-import { handleFileOpen } from '../preload/file'
 import Store from 'electron-store'
 import getRandomPort from '../preload/lib/random-port'
 import { store } from '../preload/store'
@@ -17,6 +16,7 @@ import {
   log,
   createCategoryLogger
 } from '../common/logger'
+import { handleFileOpen } from '../preload/file'
 
 // No need to track project path anymore as we always read from disk
 Store.initRenderer()
@@ -263,6 +263,11 @@ app.whenReady().then(() => {
         error: err instanceof Error ? err.message : String(err)
       })
     })
+
+  // Handler to get app path
+  ipcMain.handle('get-app-path', () => {
+    return app.getAppPath()
+  })
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))

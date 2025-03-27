@@ -22,7 +22,7 @@ export const RecommendChanges: React.FC<RecommendChangesProps> = ({
 }) => {
   if (loading) {
     return (
-      <div className="flex gap-1 justify-center items-center dark:text-white">
+      <div className="flex gap-1 justify-start items-center dark:text-white">
         <LoadingDotsLottie className="h-[2rem]" />
         <span className="dark:text-white">{loadingText}</span>
       </div>

@@ -207,6 +207,7 @@ export const AGENT_ICONS: AgentIconOption[] = [
   },
   { value: 'design', icon: <MdDesignServices />, label: 'Design', category: 'development' },
   { value: 'diagram', icon: <BsDiagram3 />, label: 'Diagram', category: 'development' },
+  { value: 'web', icon: <TbWorld />, label: 'Website', category: 'development' },
   { value: 'settings', icon: <TbSettings />, label: 'Configuration', category: 'development' },
   { value: 'tool', icon: <TbTool />, label: 'Tools', category: 'development' },
 

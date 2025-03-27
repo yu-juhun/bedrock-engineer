@@ -1,4 +1,12 @@
 import { Tool } from '@aws-sdk/client-bedrock-runtime'
+import { BedrockAgent } from './agent'
+import { ToolName } from './tools'
+
+// コマンド設定の型定義
+export interface CommandConfig {
+  pattern: string
+  description: string
+}
 
 export type AgentChatConfig = {
   ignoreFiles?: string[]
@@ -25,6 +33,7 @@ export type Agent = {
   icon?: AgentIcon
   iconColor?: string
   tags?: string[]
+  author?: string
 }
 
 export type AgentIcon =
@@ -184,10 +193,28 @@ export type AgentIcon =
   | 'truck'
   | 'store'
   | 'shop'
+  | 'web'
+
+export type AgentCategory =
+  | 'general'
+  | 'coding'
+  | 'design'
+  | 'data'
+  | 'business'
+  | 'custom'
+  | 'all'
+  | 'diagram'
+  | 'website'
 
 export type CustomAgent = Agent & {
   isCustom?: boolean
   isShared?: boolean
+  directoryOnly?: boolean // ディレクトリからのみ取得されたエージェント（テンプレート）
+  tools?: ToolName[] // エージェント固有のツール名リスト
+  category?: AgentCategory // エージェントのカテゴリ
+  allowedCommands?: CommandConfig[] // エージェント固有の許可コマンド
+  bedrockAgents?: BedrockAgent[] // エージェント固有のBedrock Agents
+  knowledgeBases?: KnowledgeBase[] // エージェント固有のKnowledge Base
 }
 
 export type AgentSettings = {

@@ -28,8 +28,7 @@ export default function ChatPage() {
     setSelectedAgentId,
     agents,
     currentAgent,
-    currentAgentSystemPrompt: systemPrompt,
-    enabledTools
+    currentAgentSystemPrompt: systemPrompt
   } = useSetting()
 
   const currentScenarios = currentAgent?.scenarios || []
@@ -44,11 +43,7 @@ export default function ChatPage() {
     clearChat,
     setMessages,
     stopGeneration
-  } = useAgentChat(
-    llm?.modelId,
-    systemPrompt,
-    enabledTools?.filter((tool) => tool.enabled)
-  )
+  } = useAgentChat(llm?.modelId, systemPrompt, selectedAgentId)
 
   const onSubmit = (input: string, images: AttachedImage[]) => {
     handleSubmit(input, images)
@@ -196,7 +191,7 @@ export default function ChatPage() {
                       </div>
                       <h1 className="text-lg font-bold dark:text-white">Agent Chat</h1>
                     </div>
-                    <div className="text-gray-400">{currentAgent?.description}</div>
+                    <div className="text-gray-400">{t(currentAgent?.description ?? '')}</div>
                     {currentAgent && (
                       <ExampleScenarios
                         scenarios={currentScenarios}

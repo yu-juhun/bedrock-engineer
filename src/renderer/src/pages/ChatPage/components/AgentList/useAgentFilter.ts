@@ -15,12 +15,17 @@ export const useAgentFilter = (agents: CustomAgent[]) => {
 
   const filteredAgents = useMemo(
     () =>
-      [...agents].filter((agent) => {
-        const nameMatch = agent.name.toLowerCase().includes(searchQuery.toLowerCase())
-        const tagMatch =
-          selectedTags.length === 0 || selectedTags.every((tag) => agent.tags?.includes(tag))
-        return nameMatch && tagMatch
-      }),
+      [...agents]
+        .filter((agent) => {
+          // 別ページで使用している特殊エージェントは表示しない
+          return agent.id !== 'websiteGeneratorAgent' && agent.id !== 'diagramGeneratorAgent'
+        })
+        .filter((agent) => {
+          const nameMatch = agent.name.toLowerCase().includes(searchQuery.toLowerCase())
+          const tagMatch =
+            selectedTags.length === 0 || selectedTags.every((tag) => agent.tags?.includes(tag))
+          return nameMatch && tagMatch
+        }),
     [agents, searchQuery, selectedTags]
   )
 

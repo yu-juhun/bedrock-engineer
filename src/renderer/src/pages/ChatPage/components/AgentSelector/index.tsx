@@ -30,8 +30,8 @@ export const AgentSelector: React.FC<AgentSelectorProps> = ({
             <span className="text-gray-600 dark:text-gray-400">
               {selectedAgentData?.icon ? (
                 React.cloneElement(
-                  AGENT_ICONS.find((opt) => opt.value === selectedAgentData.icon)
-                    ?.icon as React.ReactElement,
+                  (AGENT_ICONS.find((opt) => opt.value === selectedAgentData.icon)
+                    ?.icon as React.ReactElement) ?? AGENT_ICONS[0].icon,
                   {
                     className: 'w-5 h-5',
                     style: selectedAgentData.iconColor

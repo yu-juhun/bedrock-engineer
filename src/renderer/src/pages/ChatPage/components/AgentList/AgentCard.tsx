@@ -46,7 +46,8 @@ export const AgentCard: React.FC<AgentCardProps> = ({
         >
           {agent.icon ? (
             React.cloneElement(
-              AGENT_ICONS.find((opt) => opt.value === agent.icon)?.icon as React.ReactElement,
+              (AGENT_ICONS.find((opt) => opt.value === agent.icon)?.icon as React.ReactElement) ??
+                AGENT_ICONS[0].icon,
               {
                 className: 'w-5 h-5',
                 style: agent.iconColor
@@ -84,7 +85,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
           </div>
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 break-words">
-          {agent.description || t('noDescription')}
+          {t(agent.description) || t('noDescription')}
         </p>
         {!agent.isShared && (
           <div className="absolute right-0 top-0" onClick={(e) => e.stopPropagation()}>

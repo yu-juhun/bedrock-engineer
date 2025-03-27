@@ -1,85 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
-import { KnowledgeBase, Scenario, SendMsgKey, ToolState } from 'src/types/agent-chat'
+import { KnowledgeBase, SendMsgKey, ToolState } from 'src/types/agent-chat'
+import { ToolName } from 'src/types/tools'
 import { listModels } from '@renderer/lib/api'
 import { CustomAgent } from '@/types/agent-chat'
-import { Tool } from '@aws-sdk/client-bedrock-runtime'
 import { replacePlaceholders } from '@renderer/pages/ChatPage/utils/placeholder'
-import { useTranslation } from 'react-i18next'
 import { DEFAULT_AGENTS } from '@renderer/pages/ChatPage/constants/DEFAULT_AGENTS'
 import { InferenceParameters, LLM, BEDROCK_SUPPORTED_REGIONS, ThinkingMode } from '@/types/llm'
 import type { AwsCredentialIdentity } from '@smithy/types'
 import { BedrockAgent } from '@/types/agent'
+import { AgentCategory } from '@/types/agent-chat'
+import { getToolsForCategory } from '../constants/defaultToolSets'
+import { tools } from '@/types/tools'
+import isEqual from 'lodash/isEqual'
 
 const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
   maxTokens: 4096,
   temperature: 0.5,
   topP: 0.9
-}
-
-// デフォルトのシェル設定
-const DEFAULT_SHELL = '/bin/bash'
-
-// TODO: リージョンに応じて動的にツールの enum を設定したい
-// "us-east-1",  "us-west-2", "ap-northeast-1" 以外は generateImage ツールを無効化する
-const isGenerateImageTool = (name: string) => name === 'generateImage'
-
-const supportGenerateImageToolRegions: string[] = [
-  'us-east-1',
-  'us-west-2',
-  'ap-northeast-1',
-  'eu-west-1',
-  'eu-west-2',
-  'ap-south-1'
-]
-const availableImageGenerationModelsMap: Record<string, string[]> = {
-  'us-east-1': [
-    'amazon.nova-canvas-v1:0',
-    'amazon.titan-image-generator-v1',
-    'amazon.titan-image-generator-v2:0'
-  ],
-  'us-west-2': [
-    'stability.sd3-large-v1:0',
-    'stability.sd3-5-large-v1:0',
-    'stability.stable-image-core-v1:0',
-    'stability.stable-image-core-v1:1',
-    'stability.stable-image-ultra-v1:0',
-    'stability.stable-image-ultra-v1:1',
-    'amazon.titan-image-generator-v2:0',
-    'amazon.titan-image-generator-v1'
-  ],
-  'ap-northeast-1': ['amazon.titan-image-generator-v2:0', 'amazon.titan-image-generator-v1'],
-  'ap-south-1': ['amazon.titan-image-generator-v1'],
-  'eu-west-1': ['amazon.titan-image-generator-v1'],
-  'eu-west-2': ['amazon.titan-image-generator-v1']
-}
-
-const compareTools = (savedTools: ToolState[], windowTools: typeof window.tools): boolean => {
-  if (savedTools.length !== windowTools.length) return true
-
-  const savedToolNames = new Set(savedTools.map((tool) => tool.toolSpec?.name))
-  const windowToolNames = new Set(windowTools.map((tool) => tool.toolSpec?.name))
-
-  // 名前のセットが異なる場合は変更があったとみなす
-  if (savedToolNames.size !== windowToolNames.size) return true
-
-  // 各ツールの名前を比較
-  for (const name of savedToolNames) {
-    if (!windowToolNames.has(name)) return true
-  }
-
-  // ツールの詳細な内容を比較
-  for (const windowTool of windowTools) {
-    const savedTool = savedTools.find((tool) => tool.toolSpec?.name === windowTool.toolSpec?.name)
-
-    if (!savedTool) return true
-
-    // ツールの重要なプロパティを比較
-    if (JSON.stringify(windowTool.toolSpec) !== JSON.stringify(savedTool.toolSpec)) {
-      return true
-    }
-  }
-
-  return false
 }
 
 interface CommandConfig {
@@ -175,6 +112,12 @@ export interface SettingsContextType {
   sharedAgents: CustomAgent[]
   loadSharedAgents: () => Promise<void>
 
+  // Directory Agents Settings
+  directoryAgents: CustomAgent[]
+  loadDirectoryAgents: () => Promise<void>
+  addDirectoryAgentToCustom: (agent: CustomAgent) => Promise<boolean>
+  isDirectoryAgentLoading: boolean
+
   // Selected Agent Settings
   selectedAgentId: string
   setSelectedAgentId: (agentId: string) => void
@@ -182,20 +125,33 @@ export interface SettingsContextType {
   currentAgent: CustomAgent | undefined
   currentAgentSystemPrompt: string
 
-  // Tools Settings
-  tools: ToolState[]
-  setTools: (tools: ToolState[]) => void
-  enabledTools: ToolState[]
+  // エージェント固有のツール設定
+  getAgentTools: (agentId: string) => ToolState[]
+  updateAgentTools: (agentId: string, tools: ToolState[]) => void
+  getDefaultToolsForCategory: (category: string) => ToolState[]
 
-  allowedCommands: CommandConfig[]
-  setAllowedCommands: (commands: CommandConfig[]) => void
+  // エージェント固有の許可コマンド設定
+  getAgentAllowedCommands: (agentId: string) => CommandConfig[]
+  updateAgentAllowedCommands: (agentId: string, commands: CommandConfig[]) => void
 
-  knowledgeBases: KnowledgeBase[]
-  setKnowledgeBases: (knowledgeBases: KnowledgeBase[]) => void
+  // エージェント固有のBedrock Agents設定
+  getAgentBedrockAgents: (agentId: string) => BedrockAgent[]
+  updateAgentBedrockAgents: (agentId: string, agents: BedrockAgent[]) => void
 
-  // Bedrock Agent Settings
-  bedrockAgents: BedrockAgent[]
-  setBedrockAgents: (agents: BedrockAgent[]) => void
+  // エージェント固有のKnowledge Base設定
+  getAgentKnowledgeBases: (agentId: string) => KnowledgeBase[]
+  updateAgentKnowledgeBases: (agentId: string, bases: KnowledgeBase[]) => void
+
+  // エージェント設定の一括更新
+  updateAgentSettings: (
+    agentId: string,
+    settings: Partial<{
+      tools: ToolState[]
+      allowedCommands: CommandConfig[]
+      bedrockAgents: BedrockAgent[]
+      knowledgeBases: KnowledgeBase[]
+    }>
+  ) => void
 
   // Shell Settings
   shell: string
@@ -275,28 +231,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [customAgents, setCustomAgents] = useState<CustomAgent[]>([])
   const [sharedAgents, setSharedAgents] = useState<CustomAgent[]>([])
 
+  // Directory Agents Settings
+  const [directoryAgents, setDirectoryAgents] = useState<CustomAgent[]>([])
+  const [isDirectoryAgentLoading, setIsDirectoryAgentLoading] = useState<boolean>(false)
+
   // Selected Agent Settings
   const [selectedAgentId, setStateSelectedAgentId] = useState<string>('softwareAgent')
 
-  // Tools Settings
-  const [tools, setStateTools] = useState<ToolState[]>([])
-
-  // Knowledge Base Settings
-  const [knowledgeBases, setStateKnowledgeBases] = useState<KnowledgeBase[]>([])
-
-  // Bedrock Agent Settings
-  const [bedrockAgents, setStateBedrockAgents] = useState<BedrockAgent[]>([])
-
-  // Command Settings
-  const [allowedCommands, setStateAllowedCommands] = useState<CommandConfig[]>([
-    {
-      pattern: 'ls *',
-      description: 'List directory contents'
-    }
-  ])
-
   // Shell Settings
-  const [shell, setStateShell] = useState<string>(DEFAULT_SHELL)
+  const [shell, setStateShell] = useState<string>('/bin/bash')
 
   // Ignore Files Settings
   const [ignoreFiles, setStateIgnoreFiles] = useState<string[]>([
@@ -378,9 +321,66 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     // Load Custom Agents
-    const savedAgents = window.store.get('customAgents')
-    if (savedAgents) {
-      setCustomAgents(savedAgents)
+    const savedAgents = window.store.get('customAgents') || []
+
+    // DEFAULT_AGENTSの各エージェントについて、全ての重要なプロパティを比較し、変更があれば更新
+    let hasChanges = false
+    // 更新後のエージェントリスト
+    const finalAgents: CustomAgent[] = []
+    // 処理済みのエージェントIDを追跡
+    const processedIds = new Set<string>()
+
+    DEFAULT_AGENTS.forEach((defaultAgent) => {
+      // そのIDのエージェントがすでにカスタムエージェントに存在するかチェック
+      const existingAgent = savedAgents.find((agent) => agent.id === defaultAgent.id)
+      processedIds.add(defaultAgent.id)
+
+      // プロパティが完全に一致するかチェック
+      const isIdentical =
+        existingAgent &&
+        // 基本情報の比較
+        existingAgent.name === defaultAgent.name &&
+        existingAgent.description === defaultAgent.description &&
+        existingAgent.system === defaultAgent.system &&
+        existingAgent.icon === defaultAgent.icon &&
+        existingAgent.iconColor === defaultAgent.iconColor &&
+        existingAgent.category === defaultAgent.category &&
+        // 配列の比較（lodashのisEqualを使用）
+        isEqual(existingAgent.scenarios, defaultAgent.scenarios) &&
+        isEqual(existingAgent.tools, defaultAgent.tools) &&
+        isEqual(existingAgent.allowedCommands, defaultAgent.allowedCommands) &&
+        isEqual(existingAgent.bedrockAgents, defaultAgent.bedrockAgents) &&
+        isEqual(existingAgent.knowledgeBases, defaultAgent.knowledgeBases)
+
+      if (existingAgent && !isIdentical) {
+        // IDが一致するが内容が異なる場合は、デフォルトエージェントの内容で更新
+        // ただし、isCustomフラグは既存の値を維持
+        finalAgents.push({
+          ...defaultAgent,
+          isCustom: existingAgent.isCustom ?? defaultAgent.isCustom
+        })
+        hasChanges = true
+      } else if (!existingAgent) {
+        // 存在しない場合は新規追加
+        finalAgents.push({ ...defaultAgent })
+        hasChanges = true
+      } else {
+        // 完全に一致する場合は既存のエージェントをそのまま使用
+        finalAgents.push(existingAgent)
+      }
+    })
+
+    // デフォルトエージェントに含まれていない既存のカスタムエージェントを追加
+    savedAgents.forEach((agent) => {
+      if (!processedIds.has(agent.id)) {
+        finalAgents.push(agent)
+      }
+    })
+
+    // 変更があった場合のみ保存
+    setCustomAgents(finalAgents)
+    if (hasChanges) {
+      window.store.set('customAgents', finalAgents)
     }
 
     // Load Selected Agent
@@ -389,63 +389,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setSelectedAgentId(savedAgentId)
     }
 
-    // Load Tools Settings
-    const savedTools = window.store.get('tools')
-    if (savedTools) {
-      const toolsNeedUpdate = compareTools(savedTools, window.tools)
-      if (toolsNeedUpdate) {
-        const initialTools = window.tools
-          .map((tool) => {
-            if (!tool.toolSpec?.name) {
-              return
-            }
-            return {
-              ...tool,
-              enabled: true
-            } as Tool
-          })
-          .filter((item): item is ToolState => item !== undefined)
-
-        setStateTools(initialTools)
-        window.store.set('tools', initialTools)
-      } else if (savedTools) {
-        setStateTools(savedTools)
-      }
-    }
-
-    // Load Knowledge Base Settings
-    const savedKnowledgeBases = window.store.get('knowledgeBases')
-    if (savedKnowledgeBases) {
-      setStateKnowledgeBases(savedKnowledgeBases)
-    }
-
-    // Load Bedrock Agent Settings
-    const savedBedrockAgents = window.store.get('bedrockAgents')
-    if (savedBedrockAgents) {
-      setStateBedrockAgents(savedBedrockAgents)
-    }
-
-    // Load Command Settings
-    const commandSettings = window.store.get('command')
-    if (commandSettings?.allowedCommands) {
-      setStateAllowedCommands(commandSettings.allowedCommands)
-      // Load Shell Setting
-      if (commandSettings.shell) {
-        setStateShell(commandSettings.shell)
-      }
-    } else {
-      // 初期値を設定
-      const initialCommands = [
-        {
-          pattern: 'ls *',
-          description: 'List directory contents'
-        }
-      ]
-      setStateAllowedCommands(initialCommands)
-      window.store.set('command', {
-        allowedCommands: initialCommands,
-        shell: DEFAULT_SHELL
-      })
+    // Load Shell Setting
+    const shell = window.store.get('shell')
+    if (shell) {
+      setStateShell(shell)
     }
 
     // Load Ignore Files Settings および Context Length
@@ -478,22 +425,26 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     fetchModels()
-    if (awsRegion) {
-      const updatedTools = replaceGenerateImageModels(tools, awsRegion)
-      setStateTools(updatedTools)
-      window.store.set('tools', updatedTools)
-    }
   }, [awsRegion, awsAccessKeyId, awsSecretAccessKey, awsProfile, useAwsProfile])
 
   // Load shared agents when component mounts or project path changes
   useEffect(() => {
     // Load shared agents right away
     loadSharedAgents()
+
+    // Load directory agents on mount
+    loadDirectoryAgents()
   }, [projectPath])
 
   // Function to load shared agents from project directory
   const loadSharedAgents = async () => {
     try {
+      // window.file が利用可能かチェック
+      if (!window.file || typeof window.file.readSharedAgents !== 'function') {
+        console.error('File API is not available')
+        return
+      }
+
       const { agents, error } = await window.file.readSharedAgents()
       if (error) {
         console.error('Error loading shared agents:', error)
@@ -505,20 +456,59 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }
 
-  useEffect(() => {
-    if (currentLLM) {
-      // Update tools based on toolUse support
-      if (currentLLM.toolUse === false) {
-        // currentLLM が ToolUse をサポートしないモデルだった場合ツールを全て disabled にする
-        const updatedTools = window.tools.map((tool) => ({ ...tool, enabled: false }))
-        setStateTools(updatedTools)
-        window.store.set('tools', updatedTools)
-      } else if (currentLLM.toolUse === true) {
-        const updatedTools = window.tools.map((tool) => ({ ...tool, enabled: true }))
-        setStateTools(updatedTools)
-        window.store.set('tools', updatedTools)
+  // Function to load directory agents from app resources
+  const loadDirectoryAgents = async () => {
+    try {
+      // window.file が利用可能かチェック
+      if (!window.file || typeof window.file.readDirectoryAgents !== 'function') {
+        console.error('File API is not available')
+        return
       }
 
+      setIsDirectoryAgentLoading(true)
+      const { agents, error } = await window.file.readDirectoryAgents()
+      if (error) {
+        console.error('Error loading directory agents:', error)
+      } else {
+        setDirectoryAgents(agents || [])
+      }
+    } catch (error) {
+      console.error('Failed to load directory agents:', error)
+    } finally {
+      setIsDirectoryAgentLoading(false)
+    }
+  }
+
+  // Function to add a directory agent to custom agents
+  const addDirectoryAgentToCustom = async (agent: CustomAgent): Promise<boolean> => {
+    try {
+      // Generate a new unique ID for this custom agent
+      const timestamp = Date.now().toString(36)
+      const randomStr = Math.random().toString(36).substring(2, 7)
+      const newId = `custom-${agent.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${timestamp}-${randomStr}`
+
+      // Create a new custom agent based on the directory agent
+      const newCustomAgent: CustomAgent = {
+        ...agent,
+        id: newId,
+        isCustom: true,
+        directoryOnly: false
+      }
+
+      // Add to custom agents list
+      const updatedAgents = [...customAgents, newCustomAgent]
+      setCustomAgents(updatedAgents)
+      window.store.set('customAgents', updatedAgents)
+
+      return true
+    } catch (error) {
+      console.error('Error adding directory agent to custom agents:', error)
+      return false
+    }
+  }
+
+  useEffect(() => {
+    if (currentLLM) {
       // Update maxTokens based on model's maxTokensLimit
       if (currentLLM.maxTokensLimit) {
         const updatedParams = { ...inferenceParams, maxTokens: currentLLM.maxTokensLimit }
@@ -629,6 +619,42 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       ...bedrockSettings,
       availableFailoverRegions: [...BEDROCK_SUPPORTED_REGIONS]
     })
+
+    // リージョン変更時にカスタムエージェントのツール設定を更新
+    // 特にgenerateImageツールのリージョン対応を確認
+    if (customAgents.length > 0) {
+      const updatedAgents = customAgents.map((agent) => {
+        // エージェント固有のツール設定がある場合のみ更新
+        if (agent.tools && agent.tools.length > 0) {
+          const isGenerateImageSupported = [
+            'us-east-1',
+            'us-west-2',
+            'ap-northeast-1',
+            'eu-west-1',
+            'eu-west-2',
+            'ap-south-1'
+          ].includes(region)
+
+          // generateImageツールがリストに含まれているか確認
+          const hasGenerateImageTool = agent.tools.includes('generateImage')
+
+          // リージョンがサポートされていない場合は、generateImageツールを削除
+          if (!isGenerateImageSupported && hasGenerateImageTool) {
+            return {
+              ...agent,
+              tools: agent.tools.filter((toolName) => toolName !== 'generateImage')
+            }
+          }
+        }
+        return agent
+      })
+
+      // 変更があった場合のみ保存
+      if (JSON.stringify(customAgents) !== JSON.stringify(updatedAgents)) {
+        setCustomAgents(updatedAgents)
+        window.store.set('customAgents', updatedAgents)
+      }
+    }
   }
 
   const setAwsAccessKeyId = (accessKeyId: string) => {
@@ -716,52 +742,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     window.store.set('selectedAgentId', agentId)
   }
 
-  const { t, i18n } = useTranslation()
-
-  const getBaseAgents = useCallback((): CustomAgent[] => {
-    // シナリオをローカライズする関数
-    const localizeScenarios = useCallback(
-      (scenarios: Scenario[]): Scenario[] => {
-        return scenarios.map((scenario) => ({
-          title: t(scenario.title),
-          content: replacePlaceholders(t(`${scenario.title} description`), {
-            projectPath: projectPath || t('no project path'),
-            allowedCommands: allowedCommands,
-            knowledgeBases: knowledgeBases,
-            bedrockAgents: bedrockAgents
-          })
-        }))
-      },
-      [t, replacePlaceholders, projectPath, allowedCommands, knowledgeBases, bedrockAgents]
-    )
-
-    // ローカライズされたエージェントを生成
-    const localizedAgents = useMemo(() => {
-      return DEFAULT_AGENTS.map((agent) => ({
-        ...agent,
-        name: agent.name,
-        description: t(agent.description),
-        system: replacePlaceholders(agent.system, {
-          projectPath: projectPath || t('no project path'),
-          allowedCommands: allowedCommands,
-          knowledgeBases: knowledgeBases,
-          bedrockAgents: bedrockAgents
-        }),
-        scenarios: localizeScenarios(agent.scenarios)
-      }))
-    }, [i18n.language, t, replacePlaceholders, localizeScenarios])
-
-    return localizedAgents
-  }, [t, projectPath, allowedCommands, knowledgeBases, bedrockAgents])
-
-  const baseAgents = getBaseAgents()
   // Make sure there are no duplicate IDs between agents from different sources
   const allAgents = useMemo(() => {
     // Create a mapping of IDs to count occurrences
     const idCounts = new Map<string, number>()
 
     // First pass - count all IDs
-    ;[...baseAgents, ...customAgents, ...sharedAgents].forEach((agent) => {
+    ;[...customAgents, ...sharedAgents].forEach((agent) => {
       if (agent.id) {
         idCounts.set(agent.id, (idCounts.get(agent.id) || 0) + 1)
       }
@@ -769,7 +756,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // Clone and fix duplicate IDs by adding a suffix
     const result = [
-      ...baseAgents,
       ...customAgents,
       // Apply special handling for shared agents which may have duplicates
       ...sharedAgents.map((agent) => {
@@ -790,57 +776,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     ]
 
     return result
-  }, [baseAgents, customAgents, sharedAgents])
+  }, [customAgents, sharedAgents])
   const currentAgent = allAgents.find((a) => a.id === selectedAgentId)
-  const systemPrompt = currentAgent?.system
-    ? replacePlaceholders(currentAgent?.system, {
-        projectPath,
-        allowedCommands: allowedCommands,
-        knowledgeBases: knowledgeBases,
-        bedrockAgents: bedrockAgents
-      })
-    : ''
-
-  const setTools = (newTools: ToolState[]) => {
-    setStateTools(newTools)
-    window.store.set('tools', newTools)
-  }
 
   const enabledTavilySearch = tavilySearchApiKey.length > 0
 
-  const enabledTools = tools
-    .filter((tool) => tool.enabled)
-    .filter((tool) => {
-      if (tool.toolSpec?.name === 'tavilySearch') {
-        return enabledTavilySearch
-      }
-      return true
-    })
-
-  const setKnowledgeBases = (knowledgeBases: KnowledgeBase[]) => {
-    setStateKnowledgeBases(knowledgeBases)
-    window.store.set('knowledgeBases', knowledgeBases)
-  }
-
-  const setBedrockAgents = (agents: BedrockAgent[]) => {
-    setStateBedrockAgents(agents)
-    window.store.set('bedrockAgents', agents)
-  }
-
-  const setAllowedCommands = (commands: CommandConfig[]) => {
-    setStateAllowedCommands(commands)
-    window.store.set('command', {
-      allowedCommands: commands,
-      shell: shell
-    })
-  }
-
   const setShell = (newShell: string) => {
     setStateShell(newShell)
-    window.store.set('command', {
-      allowedCommands: allowedCommands,
-      shell: newShell
-    })
+    window.store.set('shell', newShell)
   }
 
   const setIgnoreFiles = useCallback((files: string[]) => {
@@ -856,6 +799,211 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setStateNotification(enabled)
     window.store.set('notification', enabled)
   }, [])
+
+  // エージェント固有のツール設定を取得する関数
+  const getAgentTools = useCallback(
+    (agentId: string): ToolState[] => {
+      // 現在選択されているエージェントを見つける
+      const agent = allAgents.find((a) => a.id === agentId)
+
+      // エージェント固有のツール設定がある場合
+      if (agent && agent.tools && agent.tools.length > 0) {
+        // ToolName[] から ToolState[] を生成
+        const allToolStates = tools.map((tool) => ({ ...tool, enabled: false }))
+
+        // エージェントのツール名リストに含まれるツールを有効化
+        return allToolStates.map((toolState) => {
+          const toolName = toolState.toolSpec?.name as ToolName
+          const isEnabled = agent.tools?.includes(toolName) || false
+          return { ...toolState, enabled: isEnabled }
+        })
+      }
+
+      // エージェント固有の設定がない場合は全てのツールセットを返す
+      return getToolsForCategory(
+        'all',
+        tools.map((tool) => ({ ...tool, enabled: true }))
+      )
+    },
+    [allAgents, tools]
+  )
+
+  // エージェント固有の許可コマンドを取得する関数
+  const getAgentAllowedCommands = useCallback(
+    (agentId: string): CommandConfig[] => {
+      // 現在選択されているエージェントを見つける
+      const agent = allAgents.find((a) => a.id === agentId)
+
+      // エージェント固有の許可コマンド設定がある場合はそれを返す
+      // それ以外は空配列を返す
+      return (agent && agent.allowedCommands) || []
+    },
+    [allAgents]
+  )
+
+  // エージェント固有のBedrock Agentsを取得する関数
+  const getAgentBedrockAgents = useCallback(
+    (agentId: string): BedrockAgent[] => {
+      // 現在選択されているエージェントを見つける
+      const agent = allAgents.find((a) => a.id === agentId)
+
+      // エージェント固有のBedrock Agents設定がある場合はそれを返す
+      // それ以外は空配列を返す
+      return (agent && agent.bedrockAgents) || []
+    },
+    [allAgents]
+  )
+
+  // エージェント固有のKnowledge Basesを取得する関数
+  const getAgentKnowledgeBases = useCallback(
+    (agentId: string): KnowledgeBase[] => {
+      // 現在選択されているエージェントを見つける
+      const agent = allAgents.find((a) => a.id === agentId)
+
+      // エージェント固有のKnowledge Base設定がある場合はそれを返す
+      // それ以外は空配列を返す
+      return (agent && agent.knowledgeBases) || []
+    },
+    [allAgents]
+  )
+
+  // effectiveToolsの宣言は getAgentTools 関数の定義後に移動しました
+
+  // enabledToolsの宣言は後に移動しました
+
+  // エージェントツール設定を更新する関数
+  const updateAgentTools = useCallback(
+    (agentId: string, updatedTools: ToolState[]) => {
+      // 有効なツールの名前のみを抽出
+      const enabledToolNames = updatedTools
+        .filter((tool) => tool.enabled)
+        .map((tool) => tool.toolSpec?.name as ToolName)
+        .filter(Boolean)
+
+      // カスタムエージェントの場合のみ更新可能
+      const updatedAgents = customAgents.map((agent) =>
+        agent.id === agentId ? { ...agent, tools: enabledToolNames } : agent
+      )
+
+      setCustomAgents(updatedAgents)
+      window.store.set('customAgents', updatedAgents)
+    },
+    [customAgents]
+  )
+
+  // エージェントの許可コマンド設定を更新する関数
+  const updateAgentAllowedCommands = useCallback(
+    (agentId: string, commands: CommandConfig[]) => {
+      // カスタムエージェントの場合のみ更新可能
+      const updatedAgents = customAgents.map((agent) =>
+        agent.id === agentId ? { ...agent, allowedCommands: commands } : agent
+      )
+
+      setCustomAgents(updatedAgents)
+      window.store.set('customAgents', updatedAgents)
+    },
+    [customAgents]
+  )
+
+  // エージェントのBedrock Agents設定を更新する関数
+  const updateAgentBedrockAgents = useCallback(
+    (agentId: string, agents: BedrockAgent[]) => {
+      // カスタムエージェントの場合のみ更新可能
+      const updatedAgents = customAgents.map((agent) =>
+        agent.id === agentId ? { ...agent, bedrockAgents: agents } : agent
+      )
+
+      setCustomAgents(updatedAgents)
+      window.store.set('customAgents', updatedAgents)
+    },
+    [customAgents]
+  )
+
+  // エージェントのKnowledge Base設定を更新する関数
+  const updateAgentKnowledgeBases = useCallback(
+    (agentId: string, bases: KnowledgeBase[]) => {
+      // カスタムエージェントの場合のみ更新可能
+      const updatedAgents = customAgents.map((agent) =>
+        agent.id === agentId ? { ...agent, knowledgeBases: bases } : agent
+      )
+
+      setCustomAgents(updatedAgents)
+      window.store.set('customAgents', updatedAgents)
+    },
+    [customAgents]
+  )
+
+  // エージェント設定の一括更新関数
+  const updateAgentSettings = useCallback(
+    (
+      agentId: string,
+      settings: {
+        tools?: ToolState[]
+        allowedCommands?: CommandConfig[]
+        bedrockAgents?: BedrockAgent[]
+        knowledgeBases?: KnowledgeBase[]
+      }
+    ) => {
+      // 更新用の設定オブジェクトを作成
+      const processedSettings: Partial<CustomAgent> = {}
+
+      // 各プロパティを個別に処理
+      if (settings.allowedCommands) {
+        processedSettings.allowedCommands = settings.allowedCommands
+      }
+
+      if (settings.bedrockAgents) {
+        processedSettings.bedrockAgents = settings.bedrockAgents
+      }
+
+      if (settings.knowledgeBases) {
+        processedSettings.knowledgeBases = settings.knowledgeBases
+      }
+
+      // tools が含まれている場合、ToolState[] から ToolName[] に変換
+      if (settings.tools) {
+        const enabledToolNames = settings.tools
+          .filter((tool) => tool.enabled)
+          .map((tool) => tool.toolSpec?.name as ToolName)
+          .filter(Boolean) as ToolName[]
+        processedSettings.tools = enabledToolNames
+      }
+
+      // カスタムエージェントの場合のみ更新可能
+      const updatedAgents = customAgents.map((agent) =>
+        agent.id === agentId ? { ...agent, ...processedSettings } : agent
+      )
+
+      setCustomAgents(updatedAgents)
+      window.store.set('customAgents', updatedAgents)
+    },
+    [customAgents]
+  )
+
+  // カテゴリーに基づいてデフォルトツール設定を返す関数
+  const getDefaultToolsForCategory = useCallback((category: string): ToolState[] => {
+    const allWindowTools = tools.map((tool) => ({ ...tool, enabled: true })) as ToolState[]
+    return getToolsForCategory(category as AgentCategory, allWindowTools)
+  }, [])
+
+  const systemPrompt = useMemo(() => {
+    if (!currentAgent?.system) return ''
+
+    // エージェント固有の設定を使用
+    return replacePlaceholders(currentAgent.system, {
+      projectPath,
+      allowedCommands: getAgentAllowedCommands(selectedAgentId),
+      knowledgeBases: getAgentKnowledgeBases(selectedAgentId),
+      bedrockAgents: getAgentBedrockAgents(selectedAgentId)
+    })
+  }, [
+    currentAgent,
+    selectedAgentId,
+    projectPath,
+    getAgentAllowedCommands,
+    getAgentKnowledgeBases,
+    getAgentBedrockAgents
+  ])
 
   const value = {
     // Advanced Settings
@@ -925,6 +1073,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     sharedAgents,
     loadSharedAgents,
 
+    // Directory Agents Settings
+    directoryAgents,
+    loadDirectoryAgents,
+    addDirectoryAgentToCustom,
+    isDirectoryAgentLoading,
+
     // Selected Agent Settings
     selectedAgentId,
     setSelectedAgentId,
@@ -932,19 +1086,19 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     currentAgent,
     currentAgentSystemPrompt: systemPrompt,
 
-    // Tools Settings
-    tools,
-    setTools,
-    enabledTools,
+    // エージェントのツール設定
+    getAgentTools,
+    updateAgentTools,
+    getDefaultToolsForCategory,
 
-    knowledgeBases,
-    setKnowledgeBases,
-
-    bedrockAgents,
-    setBedrockAgents,
-
-    allowedCommands,
-    setAllowedCommands,
+    // エージェント固有の設定
+    getAgentAllowedCommands,
+    updateAgentAllowedCommands,
+    getAgentBedrockAgents,
+    updateAgentBedrockAgents,
+    getAgentKnowledgeBases,
+    updateAgentKnowledgeBases,
+    updateAgentSettings,
 
     // Shell Settings
     shell,
@@ -964,44 +1118,4 @@ export const useSettings = () => {
     throw new Error('useSettings must be used within a SettingsProvider')
   }
   return context
-}
-
-/**
- * ToolSpec の中で、generateImage のツールでは指定できる modelId がリージョンによって異なる
- * @param tools
- * @param awsRegion
- * @returns
- */
-function replaceGenerateImageModels(tools: ToolState[], awsRegion: string) {
-  const updatedTools = tools.map((tool) => {
-    if (tool.toolSpec?.name && isGenerateImageTool(tool.toolSpec?.name)) {
-      if (supportGenerateImageToolRegions.includes(awsRegion)) {
-        return {
-          ...tool,
-          toolSpec: {
-            ...tool.toolSpec,
-            inputSchema: {
-              ...tool.toolSpec.inputSchema,
-              json: {
-                ...(tool.toolSpec.inputSchema?.json as any),
-                properties: {
-                  ...(tool.toolSpec.inputSchema?.json as any).properties,
-                  modelId: {
-                    ...((tool.toolSpec.inputSchema?.json as any).properties.modelId as any),
-                    enum: availableImageGenerationModelsMap[awsRegion],
-                    default: availableImageGenerationModelsMap[awsRegion][0]
-                  }
-                }
-              }
-            }
-          },
-          enabled: true
-        }
-      } else {
-        return { ...tool, enabled: false }
-      }
-    }
-    return tool
-  })
-  return updatedTools
 }

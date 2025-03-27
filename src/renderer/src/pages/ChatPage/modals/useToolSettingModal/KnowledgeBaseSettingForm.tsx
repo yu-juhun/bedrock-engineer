@@ -1,19 +1,14 @@
-import { SettingsContextType } from '@renderer/contexts/SettingsContext'
+import { KnowledgeBase } from 'src/types/agent-chat'
 import { useState } from 'react'
 import { EditIcon, RemoveIcon } from '@renderer/components/icons/ToolIcons'
 import { useTranslation } from 'react-i18next'
-
-interface KnowledgeBase {
-  knowledgeBaseId: string
-  description: string
-}
 
 export const KnowledgeBaseSettingForm = ({
   knowledgeBases,
   setKnowledgeBases
 }: {
-  knowledgeBases: SettingsContextType['knowledgeBases']
-  setKnowledgeBases: (knowledgeBase: SettingsContextType['knowledgeBases']) => void
+  knowledgeBases: KnowledgeBase[]
+  setKnowledgeBases: (knowledgeBase: KnowledgeBase[]) => void
 }) => {
   const [newKnowledgeBaseId, setKnowledgeBaseId] = useState('')
   const [newDescription, setNewDescription] = useState('')

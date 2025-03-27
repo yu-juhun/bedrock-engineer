@@ -7,7 +7,6 @@ import { useAgentFilter } from './useAgentFilter'
 
 interface AgentListProps {
   agents: CustomAgent[]
-  customAgents: CustomAgent[]
   selectedAgentId?: string
   onSelectAgent: (agentId: string) => void
   onAddNewAgent: () => void
@@ -19,7 +18,6 @@ interface AgentListProps {
 
 export const AgentList: React.FC<AgentListProps> = ({
   agents,
-  customAgents,
   selectedAgentId,
   onSelectAgent,
   onAddNewAgent,
@@ -85,7 +83,7 @@ export const AgentList: React.FC<AgentListProps> = ({
 
       <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {filteredAgents.map((agent) => {
-          const isCustomAgent = customAgents.some((a) => a.id === agent.id)
+          const isCustomAgent = agent.isCustom ?? true
           const isSelected = agent.id === selectedAgentId
           // Shared agents can't be edited or deleted
           const isEditable = isCustomAgent && !agent.isShared

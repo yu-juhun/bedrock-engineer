@@ -8,6 +8,8 @@ import StepFunctionsGeneratorPage from './pages/StepFunctionsGeneratorPage/StepF
 import WebsiteGeneratorPage from './pages/WebsiteGeneratorPage/WebsiteGeneratorPage'
 import ChatPage from './pages/ChatPage/ChatPage'
 import DiagramGeneratorPage from './pages/DiagramGeneratorPage/DiagramGeneratorPage'
+import { AgentDirectoryPage } from './pages/AgentDirectoryPage/AgentDirectoryPage'
+import { LuBookDown } from 'react-icons/lu'
 
 export const routes = [
   {
@@ -23,6 +25,13 @@ export const routes = [
     icon: HiOutlineChatAlt2,
     position: 'top',
     element: <ChatPage />
+  },
+  {
+    name: 'Agent Directory',
+    href: '/agent-directory',
+    icon: LuBookDown,
+    position: 'top',
+    element: <AgentDirectoryPage />
   },
   {
     name: 'Website Generator',

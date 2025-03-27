@@ -4,7 +4,7 @@ export interface CommandPatternConfig {
 }
 
 export interface CommandConfig {
-  allowedCommands: CommandPatternConfig[]
+  allowedCommands?: CommandPatternConfig[]
   shell: string
 }
 
@@ -43,11 +43,6 @@ export interface CommandPattern {
   command: string
   args: string[]
   wildcard: boolean
-}
-
-export interface CommandSettings {
-  allowedCommands: CommandPatternConfig[]
-  shell: string
 }
 
 export interface ProcessOutput {

@@ -2,7 +2,7 @@ import { Tool } from '@aws-sdk/client-bedrock-runtime'
 import { ElectronAPI } from '@electron-toolkit/preload'
 import { chatHistory } from '../preload/chat-history'
 import { ConfigStore } from '../preload/store'
-import { FileHandler } from '../preload/file'
+import { file } from '../preload/file'
 import { API } from '../preload/api'
 import { RendererLogger, RendererCategoryLogger } from '../preload/logger'
 
@@ -11,7 +11,7 @@ declare global {
     electron: ElectronAPI
     api: API
     store: ConfigStore
-    file: FileHandler
+    file: typeof file
     tools: Tool[]
     chatHistory: typeof chatHistory
     appWindow: {

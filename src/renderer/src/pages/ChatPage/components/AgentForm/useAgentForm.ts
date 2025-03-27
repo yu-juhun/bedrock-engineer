@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { nanoid } from 'nanoid'
 import { CustomAgent } from '@/types/agent-chat'
+import { ToolName } from '@/types/tools'
 
 export const useAgentForm = (initialAgent?: CustomAgent, onSave?: (agent: CustomAgent) => void) => {
   const [formData, setFormData] = useState<CustomAgent>({
@@ -12,7 +13,9 @@ export const useAgentForm = (initialAgent?: CustomAgent, onSave?: (agent: Custom
     tags: initialAgent?.tags || [],
     isCustom: true,
     icon: initialAgent?.icon || 'robot',
-    iconColor: initialAgent?.iconColor
+    iconColor: initialAgent?.iconColor,
+    tools: initialAgent?.tools || ([] as ToolName[]),
+    category: initialAgent?.category || 'all'
   })
 
   const updateField = <K extends keyof CustomAgent>(field: K, value: CustomAgent[K]) => {

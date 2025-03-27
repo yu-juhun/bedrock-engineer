@@ -1,5 +1,8 @@
 Language: [English](./README.md) / [Japanese](./README-ja.md)
 
+> [!IMPORTANT]
+> Starting with v1.6.0, it is now possible to set tools for each agent. Agent prompts created in versions prior to v1.6.0 can still be used, but please note that you will need to set the tools available to each agent.
+
 # 🧙 Bedrock Engineer
 
 Bedrock Engineer is Autonomous software development agent apps using [Amazon Bedrock](https://aws.amazon.com/bedrock/), capable of customize to create/edit files, execute commands, search the web, use knowledge base, use multi-agents, generative images and more.
@@ -16,7 +19,7 @@ Bedrock Engineer is a native app, you can download the app or build the source c
 
 MacOS:
 
-[<img src="https://img.shields.io/badge/Download_FOR_MAC-Latest%20Release-blue?style=for-the-badge&logo=apple" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.5.1.dmg)
+[<img src="https://img.shields.io/badge/Download_FOR_MAC-Latest%20Release-blue?style=for-the-badge&logo=apple" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.6.0.dmg)
 
 It is optimized for MacOS, but can also be built and used on Windows and Linux OS. If you have any problems, please report an issue.
 
@@ -107,7 +110,7 @@ Enter the agent's name, description, and system prompt. The system prompt is a c
 
 ### Select Tools / Customize Tools
 
-Click the Tools icon in the bottom left to select the tools available to the agent.
+Click the Tools icon in the bottom left to select the tools available to the agent. Tools can be configured separately for each agent.
 
 ![select-tools](./assets/select-tools.png)
 
@@ -153,6 +156,37 @@ The supported tools are:
 You can get up and running quickly with Amazon Bedrock Agents by using the [Agent Preparation Toolkit](https://github.com/aws-samples/agent-preparation-toolkit).
 
 </details>
+
+## Agent Directory
+
+The Agent Directory is a content hub where you can discover and immediately use AI agents created by skilled contributors. It offers a curated collection of pre-configured agents designed for various tasks and specialties.
+
+![agent-directory](./assets/agent-directory.png)
+
+### Features
+
+- **Browse the Collection** - Explore a growing library of specialized agents created by the community
+- **Search & Filter** - Quickly find agents using the search function or filter by tags to discover agents that match your needs
+- **Detailed Information** - View comprehensive information about each agent including author, system prompt, supported tools, and usage scenarios
+- **One-Click Addition** - Add any agent to your personal collection with a single click and start using it immediately
+- **Contribute Your Agents** - Share your custom agents with the community by becoming a contributor
+
+### Using the Agent Directory
+
+1. **Browse and Search** - Use the search bar to find specific agents or browse the entire collection
+2. **Filter by Tags** - Click on tags to filter agents by categories, specialties, or capabilities
+3. **View Details** - Select any agent to view its complete system prompt, supported tools, and usage scenarios
+4. **Add to Your Collection** - Click "Add to My Agents" to add the agent to your personal collection
+
+### Contribute Your Agents
+
+Become a contributor and share your custom agents with the community:
+
+1. Export your custom agent as a shared file
+2. Add your GitHub username as the author
+3. Submit your agent via Pull Request or GitHub Issue
+
+By contributing to the Agent Directory, you help build a valuable resource of specialized AI agents that enhance the capabilities of Bedrock Engineer for everyone.
 
 ## Website Generator
 

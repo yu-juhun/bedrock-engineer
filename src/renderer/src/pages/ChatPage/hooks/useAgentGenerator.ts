@@ -34,14 +34,16 @@ ${SOFTWARE_AGENT_SYSTEM_PROMPT}
 
 export const useAgentGenerator = () => {
   const [result, setResult] = useState<string>()
-  const { currentLLM: llm, tools } = useSetting()
+  const { currentLLM: llm, selectedAgentId, getAgentTools } = useSetting()
 
-  const promptTemplate = getPromptTemplate(tools)
+  // 現在選択中のエージェントのツールを取得
+  const agentTools = getAgentTools(selectedAgentId)
+  const promptTemplate = getPromptTemplate(agentTools)
 
   const { messages, loading, handleSubmit } = useAgentChat(
     llm?.modelId,
     promptTemplate,
-    [],
+    undefined,
     undefined,
     { enableHistory: false }
   )

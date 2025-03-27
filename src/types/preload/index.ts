@@ -1,8 +1,8 @@
-import { FileHandler } from '../../preload/file'
+import { file } from '../../preload/file'
 
 declare global {
   interface Window {
-    file: FileHandler
+    file: typeof file
   }
 }
 

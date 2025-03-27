@@ -1,5 +1,8 @@
 Language: [English](./README.md) / [Japanese](./README-ja.md)
 
+> [!IMPORTANT]
+> v1.6.0 からエージェントごとにツールの設定が可能になりました。v1.6.0 以前のバージョンで作成していたエージェントのプロンプトはそのままご利用いただけますが、エージェントごとに利用できるツールを設定する必要がありますのでご注意ください。
+
 # 🧙 Bedrock Engineer
 
 Bedrock Engineer は、[Amazon Bedrock](https://aws.amazon.com/bedrock/) を活用したソフトウェア開発タスクのための AI アシスタントです。大規模な言語モデルと実際のファイルシステム操作、Web検索機能などを含む自律的な AI エージェントがあなたの開発を支援します。
@@ -16,7 +19,7 @@ Bedrock Engineer はネイティブアプリです。アプリをダウンロー
 
 MacOS:
 
-[<img src="https://img.shields.io/badge/Download_FOR_MAC-Latest%20Release-blue?style=for-the-badge&logo=apple" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.5.1.dmg)
+[<img src="https://img.shields.io/badge/Download_FOR_MAC-Latest%20Release-blue?style=for-the-badge&logo=apple" alt="Download Latest Release" height="40">](https://github.com/aws-samples/bedrock-engineer/releases/latest/download/bedrock-engineer-1.6.0.dmg)
 
 MacOS に最適化されていますが、Windows, Linux OS でもビルドして使用できます。不具合があるばあい、issue に起票ください。
 
@@ -107,7 +110,7 @@ npm run build:linux
 
 ### ツールを選択する／カスタマイズする
 
-左下の Tools アイコンをクリックして、エージェントが使用できるツールを選択します。
+左下の Tools アイコンをクリックして、エージェントが使用できるツールを選択します。ツールはエージェントごとに個別に設定できます。
 
 ![select-tools](./assets/select-tools.png)
 
@@ -154,6 +157,37 @@ npm run build:linux
 [Agent Preparation Toolkit](https://github.com/aws-samples/agent-preparation-toolkit) を使用することで、Amazon Bedrock Agents を使ってすぐに Agent を動かすことができます。
 
 </details>
+
+## Agent Directory
+
+Agent Directoryは、優れたコントリビューターによって作成されたAIエージェントを発見してすぐに使用できるコンテンツハブです。様々なタスクや専門分野向けに設計された厳選済みのエージェントコレクションを提供しています。
+
+![agent-directory](./assets/agent-directory.png)
+
+### 機能
+
+- **コレクションの閲覧** - コミュニティによって作成された専門的なエージェントの拡大するライブラリを探索
+- **検索とフィルタリング** - 検索機能またはタグによるフィルタリングを使用して、ニーズに合ったエージェントを素早く発見
+- **詳細情報の表示** - 各エージェントの作成者、システムプロンプト、対応ツール、使用シナリオなどの包括的な情報を確認
+- **ワンクリック追加** - ワンクリックで任意のエージェントを個人コレクションに追加し、すぐに使用開始
+- **エージェントの投稿** - コントリビューターになって、あなたのカスタムエージェントをコミュニティと共有
+
+### Agent Directoryの使い方
+
+1. **閲覧と検索** - 検索バーを使用して特定のエージェントを見つけるか、コレクション全体を閲覧
+2. **タグでフィルタリング** - タグをクリックしてカテゴリ、専門分野、機能によりエージェントをフィルタリング
+3. **詳細を表示** - 任意のエージェントを選択して、システムプロンプト全文、対応ツール、使用シナリオを確認
+4. **コレクションに追加** - 「マイエージェントに追加」をクリックして、個人コレクションにエージェントを追加
+
+### エージェントの追加方法
+
+コントリビューターになって、あなたのカスタムエージェントをコミュニティと共有しましょう：
+
+1. カスタムエージェントを共有ファイルとしてエクスポート
+2. 作者としてGitHubユーザー名を追加（推奨）
+3. プルリクエストまたはGitHub Issueでエージェントを提出
+
+Agent Directoryに貢献することで、Bedrock Engineerの機能を向上させる専門的なAIエージェントの貴重なリソース構築に協力できます。
 
 ## Website Generator
 
