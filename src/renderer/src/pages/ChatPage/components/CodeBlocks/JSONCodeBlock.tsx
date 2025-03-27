@@ -22,6 +22,16 @@ interface RetrieveResponse {
 }
 
 export const JSONCodeBlock: React.FC<{ json: any }> = ({ json }) => {
+  if (json.name === 'think') {
+    return (
+      <div className="max-h-[50vh] overflow-y-auto">
+        <p className="text-gray-500 dark:text-gray-400 whitespace-pre-wrap">
+          {json?.result?.reasoning}
+        </p>
+      </div>
+    )
+  }
+
   if (json.name === 'tavilySearch') {
     return (
       <div className="max-h-[50vh] overflow-y-auto">

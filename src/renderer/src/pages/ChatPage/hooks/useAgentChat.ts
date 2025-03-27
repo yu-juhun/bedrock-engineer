@@ -259,7 +259,6 @@ export const useAgentChat = (
             converseMetadata: message.metadata?.converseMetadata // メッセージ内のメタデータを使用
           }
         }
-        console.log({ chatMessage })
         await window.chatHistory.addMessage(currentSessionId, chatMessage)
       }
 

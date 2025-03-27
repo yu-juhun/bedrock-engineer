@@ -48,7 +48,6 @@ interface RetrieveResult extends ToolResult {
 interface ThinkResult extends ToolResult {
   name: 'think'
   result: {
-    thought: string
     reasoning: string
   }
 }
@@ -1181,8 +1180,7 @@ export class ToolService {
         name: 'think',
         message: 'Thinking process completed',
         result: {
-          thought,
-          reasoning: `I've thought through this problem step by step: ${thought}`
+          reasoning: thought
         }
       }
     } catch (error) {
