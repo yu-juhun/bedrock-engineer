@@ -3,7 +3,7 @@ import { Message } from '@aws-sdk/client-bedrock-runtime'
 import { IdentifiableMessage } from '@/types/chat/message'
 import { Modal } from 'flowbite-react'
 import { MetadataViewer } from '../MetadataViewer'
-import React, { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, memo, useCallback } from 'react'
 import { Avatar } from './Avatar'
 import { Accordion } from 'flowbite-react'
 import { JSONCodeBlock } from '../CodeBlocks/JSONCodeBlock'
@@ -58,12 +58,13 @@ function convertImageToDataUrl(imageData: any, format: string = 'png'): string {
   return ''
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({
+// ChatMessageをメモ化
+export const ChatMessage = memo(function ChatMessage({
   message,
   onDeleteMessage,
   reasoning,
   metadata
-}) => {
+}: ChatMessageProps) {
   const { t } = useTranslation()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [showMetadataModal, setShowMetadataModal] = useState(false)
@@ -97,7 +98,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       .join('\n\n')
   }
 
-  const handleCopyMessage = () => {
+  const handleCopyMessage = useCallback(() => {
     const textToCopy = extractMessageText(message)
     navigator.clipboard
       .writeText(textToCopy)
@@ -109,9 +110,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         console.error('Failed to copy text: ', err)
         toast.error(t('Failed to copy message'))
       })
-  }
+  }, [message, t])
 
-  const handleDeleteMessage = () => {
+  const handleDeleteMessage = useCallback(() => {
     if (onDeleteMessage) {
       if (window.confirm(t('Are you sure you want to delete this message?'))) {
         onDeleteMessage()
@@ -119,7 +120,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         setIsDropdownOpen(false)
       }
     }
-  }
+  }, [onDeleteMessage, t])
 
   // 外部クリック時にドロップダウンを閉じる
   useEffect(() => {
@@ -308,4 +309,4 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       </Modal>
     </div>
   )
-}
+})

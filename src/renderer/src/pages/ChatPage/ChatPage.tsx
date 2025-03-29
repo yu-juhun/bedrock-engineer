@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import AILogo from '../../assets/images/icons/ai.svg'
 import { MessageList } from './components/MessageList'
-import { InputForm } from './components/InputForm'
+import InputFormContainer from './components/InputFormContainer'
 import { ExampleScenarios } from './components/ExampleScenarios'
 import { useAgentChat } from './hooks/useAgentChat'
 import { AgentSelector } from './components/AgentSelector'
@@ -17,7 +17,7 @@ import { ChatHistory } from './components/ChatHistory'
 import { useSystemPromptModal } from './modals/useSystemPromptModal'
 
 export default function ChatPage() {
-  const [userInput, setUserInput] = useState('')
+  // userInputの状態を削除（InputFormContainerが管理するため）
   const { t } = useTranslation()
   const {
     currentLLM: llm,
@@ -45,10 +45,13 @@ export default function ChatPage() {
     stopGeneration
   } = useAgentChat(llm?.modelId, systemPrompt, selectedAgentId)
 
-  const onSubmit = (input: string, images: AttachedImage[]) => {
-    handleSubmit(input, images)
-    setUserInput('')
-  }
+  // 送信ハンドラをuseCallbackでメモ化
+  const onSubmit = useCallback(
+    (input: string, images: AttachedImage[]) => {
+      handleSubmit(input, images)
+    },
+    [handleSubmit]
+  )
 
   // ContentBlock単位での削除機能は不要になったため、handleUpdateMessageは削除
 
@@ -97,12 +100,12 @@ export default function ChatPage() {
     ToolSettingModal
   } = useToolSettingModal()
 
-  const handleClearChat = () => {
+  // クリアハンドラをuseCallbackでメモ化
+  const handleClearChat = useCallback(() => {
     if (window.confirm(t('confirmClearChat'))) {
       clearChat()
-      setUserInput('')
     }
-  }
+  }, [clearChat, t])
 
   useEffect(() => {
     scrollToBottom()
@@ -195,7 +198,10 @@ export default function ChatPage() {
                     {currentAgent && (
                       <ExampleScenarios
                         scenarios={currentScenarios}
-                        onSelectScenario={setUserInput}
+                        onSelectScenario={(scenario) => {
+                          // シナリオ選択時は直接handleSubmitを呼び出す
+                          handleSubmit(scenario, [])
+                        }}
                       />
                     )}
                   </div>
@@ -213,13 +219,11 @@ export default function ChatPage() {
 
               {/* 入力フォーム - 固定 */}
               <div className="mt-2 dark:border-gray-700 bg-white dark:bg-gray-800">
-                <InputForm
-                  userInput={userInput}
+                <InputFormContainer
                   loading={loading}
                   projectPath={projectPath}
                   sendMsgKey={sendMsgKey}
-                  onSubmit={(input, attachedImages) => onSubmit(input, attachedImages)}
-                  onChange={setUserInput}
+                  onSubmit={onSubmit}
                   onOpenToolSettings={handleOpenToolSettingModal}
                   onSelectDirectory={selectDirectory}
                   onOpenIgnoreModal={handleOpenIgnoreFileModal}

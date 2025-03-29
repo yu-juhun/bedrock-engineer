@@ -1,6 +1,7 @@
 import { jest, describe, test, expect, beforeEach, afterEach } from '@jest/globals'
 import { getMcpToolSpecs, tryExecuteMcpTool } from './index'
 import * as mcpClient from './mcp-client'
+import { McpServerConfig } from '../../types/agent-chat'
 
 // MCPClientをモック
 jest.mock('./mcp-client', () => {
@@ -31,6 +32,17 @@ jest.mock('./mcp-client', () => {
 })
 
 describe('MCP Module Tests', () => {
+  // テスト用のモックMCPサーバー設定
+  const mockMcpServers: McpServerConfig[] = [
+    {
+      name: 'mock-server',
+      description: 'Mock MCP server for testing',
+      command: 'mock-command',
+      args: ['arg1', 'arg2'],
+      env: { TEST_ENV: 'test_value' }
+    }
+  ]
+
   beforeEach(() => {
     jest.clearAllMocks()
     // Reset the module's state between tests
@@ -42,7 +54,8 @@ describe('MCP Module Tests', () => {
   })
 
   test('should get tool specs from MCP clients', async () => {
-    const tools = await getMcpToolSpecs()
+    // mcpServersパラメータを渡す
+    const tools = await getMcpToolSpecs(mockMcpServers)
 
     // MCPClient.fromCommandが呼ばれたことを確認
     expect(mcpClient.MCPClient.fromCommand).toHaveBeenCalled()
@@ -53,15 +66,15 @@ describe('MCP Module Tests', () => {
 
     const firstTool = tools[0]
     expect(firstTool).toHaveProperty('toolSpec')
-    expect(firstTool.toolSpec?.name).toBe('mockTool')
+    expect(firstTool.toolSpec?.name).toBe('mcp_mockTool') // 'mcp_'プレフィックスが追加されることを確認
   })
 
   test('should execute a valid MCP tool', async () => {
     // まずツール仕様を取得 (クライアント初期化)
-    await getMcpToolSpecs()
+    await getMcpToolSpecs(mockMcpServers)
 
-    // モックツールを実行
-    const result = await tryExecuteMcpTool('mockTool', { testParam: 'value' })
+    // モックツールを実行（mcpServersパラメータを渡す）
+    const result = await tryExecuteMcpTool('mockTool', { testParam: 'value' }, mockMcpServers)
 
     // 結果を検証
     expect(result.found).toBe(true)
@@ -72,10 +85,10 @@ describe('MCP Module Tests', () => {
 
   test('should return not found for invalid tool', async () => {
     // クライアント初期化
-    await getMcpToolSpecs()
+    await getMcpToolSpecs(mockMcpServers)
 
-    // 存在しないツール名でテスト
-    const result = await tryExecuteMcpTool('non_existent_tool', {})
+    // 存在しないツール名でテスト（mcpServersパラメータを渡す）
+    const result = await tryExecuteMcpTool('non_existent_tool', {}, mockMcpServers)
 
     // 見つからないはず
     expect(result.found).toBe(false)
