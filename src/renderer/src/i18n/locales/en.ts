@@ -171,7 +171,7 @@ const AgentFormTabs = {
   'Configure MCP servers for this agent to use MCP tools.':
     'Configure MCP servers for this agent to use MCP tools.',
   'Register MCP servers first, then you can enable MCP tools in the Available Tools tab.':
-    'Register MCP servers first, then you can enable MCP tools in the Available Tools tab.',
+    'Register MCP servers first, then you can enable MCP tools in the Tools tab.',
   'Add New MCP Server': 'Add New MCP Server',
   'Edit MCP Server': 'Edit MCP Server',
   'Server Configuration (JSON)': 'Server Configuration (JSON)',

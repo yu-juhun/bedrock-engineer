@@ -31,6 +31,19 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
   const [agentTools, setAgentTools] = useState<ToolState[]>([])
   const [agentCategory, setAgentCategory] = useState<AgentCategory>('all')
 
+  // MCPツール取得状態
+  const [isLoadingMcpTools, setIsLoadingMcpTools] = useState<boolean>(false)
+  const [tempMcpTools, setTempMcpTools] = useState<ToolState[]>([])
+
+  // MCPサーバーが0件になった場合のuseEffect
+  useEffect(() => {
+    // サーバーが0件になった場合、ツールをクリア
+    if (formData.mcpServers && formData.mcpServers.length === 0) {
+      console.log('MCP servers empty, clearing tempMcpTools')
+      setTempMcpTools([])
+    }
+  }, [formData.mcpServers])
+
   // システムプロンプト生成関連
   const { generateAgentSystemPrompt, generatedAgentSystemPrompt, isGenerating } =
     useAgentGenerator()
@@ -142,6 +155,63 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
     }
     await generateScenarios(formData.name, formData.description, formData.system)
   }, [formData.name, formData.description, formData.system, generateScenarios, t])
+
+  // タブ切り替え時のMCPツール取得関数
+  const fetchMcpTools = React.useCallback(async () => {
+    // MCPサーバーが設定されていない場合は明示的にツールをクリア
+    if (!formData.mcpServers || formData.mcpServers.length === 0) {
+      console.log('No MCP servers available in fetchMcpTools, clearing tools')
+      setTempMcpTools([])
+      return
+    }
+
+    setIsLoadingMcpTools(true)
+    try {
+      // コンソールログで現在のMCPサーバー状態を表示（デバッグ用）
+      console.log(
+        'Fetching MCP tools for tab switch:',
+        formData.mcpServers.length,
+        'servers:',
+        formData.mcpServers.map((s) => s.name).join(', ')
+      )
+
+      // サーバーがあるか念のため再確認（非同期処理中に変わる可能性があるため）
+      if (formData.mcpServers.length === 0) {
+        console.log('MCP servers became empty during async operation')
+        setTempMcpTools([])
+        return
+      }
+
+      const tools = await window.api.mcp.getToolSpecs(formData.mcpServers)
+
+      if (tools && tools.length > 0) {
+        console.log('Received MCP tools:', tools.length)
+        // APIから取得したツールをToolState形式に変換
+        const toolStates = tools.map((tool) => ({
+          toolSpec: tool.toolSpec,
+          // デフォルトで無効化
+          enabled: false
+        })) as ToolState[]
+
+        // 現在のサーバー状態を再確認（念のため）
+        if (formData.mcpServers && formData.mcpServers.length > 0) {
+          setTempMcpTools(toolStates)
+        } else {
+          console.log('MCP servers were removed during tool fetch, ignoring results')
+          setTempMcpTools([])
+        }
+      } else {
+        console.log('No MCP tools found from servers')
+        setTempMcpTools([])
+      }
+    } catch (error) {
+      console.error('Failed to fetch MCP tools:', error)
+      // エラー時は空のツールリスト
+      setTempMcpTools([])
+    } finally {
+      setIsLoadingMcpTools(false)
+    }
+  }, [formData.mcpServers])
 
   // 生成されたシステムプロンプトを適用
   useEffect(() => {
@@ -261,10 +331,21 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
                   ? 'text-blue-600 border-blue-600 dark:text-blue-400 dark:border-blue-400'
                   : 'text-gray-500 border-transparent hover:text-gray-600 hover:border-gray-300'
               }`}
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.preventDefault()
                 e.stopPropagation()
+                // ツールタブへの切り替え
                 setActiveTab('tools')
+
+                // MCPサーバーの状態に応じた処理
+                if (!formData.mcpServers || formData.mcpServers.length === 0) {
+                  // サーバーが0件の場合は必ずツールもクリア
+                  console.log('No MCP servers when switching to tools tab, clearing tools')
+                  setTempMcpTools([])
+                } else {
+                  // MCPサーバーがある場合はツールを取得
+                  await fetchMcpTools()
+                }
               }}
             >
               <FiTool className="w-4 h-4" />
@@ -327,7 +408,11 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
         >
           <McpServerSection
             mcpServers={formData.mcpServers || []}
-            onChange={(servers) => updateField('mcpServers', servers)}
+            onChange={async (servers) => {
+              updateField('mcpServers', servers)
+              // サーバー設定が変更されたら、タブに関わらずtempMcpToolsをクリア
+              setTempMcpTools([])
+            }}
           />
         </div>
       )}
@@ -335,20 +420,32 @@ export const AgentForm: React.FC<AgentFormProps> = ({ agent, onSave, onCancel })
       {/* Tools タブコンテンツ */}
       {activeTab === 'tools' && (
         <div className="overflow-y-auto max-h-[900px] pb-4">
-          <ToolsSection
-            tools={agentTools}
-            onChange={handleToolsChange}
-            agentCategory={agentCategory}
-            onCategoryChange={handleCategoryChange}
-            // 統合された設定を渡す
-            knowledgeBases={formData.knowledgeBases || []}
-            onKnowledgeBasesChange={(kbs) => updateField('knowledgeBases', kbs)}
-            allowedCommands={formData.allowedCommands || []}
-            onAllowedCommandsChange={(commands) => updateField('allowedCommands', commands)}
-            bedrockAgents={formData.bedrockAgents || []}
-            onBedrockAgentsChange={(agents) => updateField('bedrockAgents', agents)}
-            mcpServers={formData.mcpServers || []}
-          />
+          {isLoadingMcpTools ? (
+            <div className="flex flex-col items-center justify-center p-8">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                <div className="bg-blue-600 dark:bg-blue-500 h-2.5 rounded-full w-3/4 animate-pulse"></div>
+              </div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">
+                {t('MCPサーバーからツールを取得中...')}
+              </p>
+            </div>
+          ) : (
+            <ToolsSection
+              tools={agentTools}
+              onChange={handleToolsChange}
+              agentCategory={agentCategory}
+              onCategoryChange={handleCategoryChange}
+              // 統合された設定を渡す
+              knowledgeBases={formData.knowledgeBases || []}
+              onKnowledgeBasesChange={(kbs) => updateField('knowledgeBases', kbs)}
+              allowedCommands={formData.allowedCommands || []}
+              onAllowedCommandsChange={(commands) => updateField('allowedCommands', commands)}
+              bedrockAgents={formData.bedrockAgents || []}
+              onBedrockAgentsChange={(agents) => updateField('bedrockAgents', agents)}
+              mcpServers={formData.mcpServers || []}
+              tempMcpTools={tempMcpTools}
+            />
+          )}
         </div>
       )}
 

@@ -1,6 +1,6 @@
 import { useSettings } from '@renderer/contexts/SettingsContext'
 import toast from 'react-hot-toast'
-import { ToolName } from '@/types/tools'
+import { ToolName, isMcpTool } from '@/types/tools'
 import { toolIcons } from '../../components/Tool/ToolIcons'
 import { KnowledgeBaseSettingForm } from './KnowledgeBaseSettingForm'
 import { CommandForm } from './CommandForm'
@@ -31,6 +31,7 @@ interface ToolCategory {
   name: string
   description: string
   tools: string[]
+  isMcpCategory?: boolean // MCP ツールカテゴリかどうかを示すフラグ
 }
 
 const TOOL_CATEGORIES: ToolCategory[] = [
@@ -71,6 +72,13 @@ const TOOL_CATEGORIES: ToolCategory[] = [
     name: 'Thinking',
     description: 'Tools for enhanced reasoning',
     tools: ['think']
+  },
+  {
+    id: 'mcp-tools',
+    name: 'MCP Tools',
+    description: 'Tools provided by MCP servers (always enabled)',
+    tools: [], // 動的に設定される
+    isMcpCategory: true
   }
 ]
 
@@ -98,12 +106,14 @@ const ToolItem: React.FC<ToolItemProps> = ({
   isSelected
 }) => {
   const { t } = useTranslation()
+  const isMcp = isMcpTool(toolName)
 
   return (
     <li
       className={`
         border-b border-gray-100 dark:border-gray-700 transition-colors duration-150
         ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 !border-l-blue-500' : 'border-l-2 border-l-transparent'}
+        ${isMcp ? 'bg-cyan-50 dark:bg-cyan-900/10' : ''} 
         cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 w-full
       `}
       onClick={() => onSelect()}
@@ -117,9 +127,18 @@ const ToolItem: React.FC<ToolItemProps> = ({
             {toolIcons[toolName as ToolName]}
           </div>
           <div className="lg:block hidden">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{toolName}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                {toolName}
+              </span>
+              {isMcp && (
+                <span className="bg-cyan-100 text-cyan-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-cyan-900 dark:text-cyan-300">
+                  MCP
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
-              {t(`tool descriptions.${toolName}`)}
+              {t(`tool descriptions.${toolName}`, isMcp ? 'MCP Tool' : '')}
             </p>
           </div>
         </div>
@@ -127,7 +146,14 @@ const ToolItem: React.FC<ToolItemProps> = ({
           onClick={(e) => e.stopPropagation()}
           className="flex-shrink-0 lg:pl-2 pl-0 lg:block hidden"
         >
-          <ToggleSwitch checked={enabled} onChange={() => onToggle()} label="" />
+          {isMcp ? (
+            <div className="flex items-center">
+              <span className="text-xs text-cyan-600 dark:text-cyan-400 mr-2">Always enabled</span>
+              <ToggleSwitch checked={true} onChange={() => {}} disabled={true} label="" />
+            </div>
+          ) : (
+            <ToggleSwitch checked={enabled} onChange={() => onToggle()} label="" />
+          )}
         </div>
       </div>
     </li>
@@ -197,6 +223,11 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
   }, [selectedAgentId, getAgentTools])
 
   const handleToggleTool = (toolName: string) => {
+    // MCP ツールの場合は何もしない（常に有効）
+    if (isMcpTool(toolName)) {
+      return
+    }
+
     if (!currentLLM.toolUse) {
       toast(`${currentLLM.modelName} does not support ToolUse.`)
       return
@@ -223,9 +254,24 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
   // 各カテゴリのツールを取得する
   const getToolsByCategory = () => {
     const toolsByCategory = TOOL_CATEGORIES.map((category) => {
+      // MCP カテゴリの場合は MCP ツールのみを含める
+      if (category.isMcpCategory) {
+        const mcpTools =
+          agentTools?.filter((tool) => tool.toolSpec?.name && isMcpTool(tool.toolSpec.name)) || []
+
+        return {
+          ...category,
+          toolsData: mcpTools
+        }
+      }
+
+      // 通常のカテゴリの場合は MCP ツール以外を含める
       const toolsInCategory =
         agentTools?.filter(
-          (tool) => tool.toolSpec?.name && category.tools.includes(tool.toolSpec.name)
+          (tool) =>
+            tool.toolSpec?.name &&
+            category.tools.includes(tool.toolSpec.name) &&
+            !isMcpTool(tool.toolSpec.name)
         ) || []
 
       return {
@@ -234,7 +280,8 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
       }
     })
 
-    return toolsByCategory
+    // ツールがないカテゴリは表示しない
+    return toolsByCategory.filter((category) => category.toolsData.length > 0)
   }
 
   const categorizedTools = getToolsByCategory()
@@ -310,7 +357,37 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
                   </h3>
                 </div>
 
-                {TOOLS_WITH_SETTINGS.includes(selectedTool) ? (
+                {isMcpTool(selectedTool) ? (
+                  // MCP ツールの詳細表示
+                  <div className="prose dark:prose-invert max-w-none">
+                    <div className="flex items-center gap-2 mb-4">
+                      <p className="text-gray-700 dark:text-gray-300 font-bold mb-0">
+                        {selectedTool}
+                      </p>
+                      <span className="bg-cyan-100 text-cyan-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-cyan-900 dark:text-cyan-300">
+                        MCP
+                      </span>
+                    </div>
+
+                    <p className="mb-4 text-gray-700 dark:text-gray-300">
+                      {t(
+                        `tool descriptions.${selectedTool}`,
+                        'This tool is provided by an MCP server.'
+                      )}
+                    </p>
+
+                    <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-md mt-4 border-l-4 border-cyan-500">
+                      <h5 className="font-medium mb-2 text-cyan-700 dark:text-cyan-300">
+                        {t('MCP Tool')}
+                      </h5>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {t(
+                          'This tool is provided by an MCP server and is always enabled. It cannot be disabled.'
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                ) : TOOLS_WITH_SETTINGS.includes(selectedTool) ? (
                   <>
                     {selectedTool === 'retrieve' && selectedAgentId && (
                       <KnowledgeBaseSettingForm

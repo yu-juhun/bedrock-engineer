@@ -3,7 +3,8 @@ import { ipcRenderer } from 'electron'
 import { executeTool } from './tools/tools'
 import { store } from './store'
 import { BedrockService } from '../main/api/bedrock'
-import { getMcpToolSpecs } from './mcp'
+import { getMcpToolSpecs, testMcpServerConnection, testAllMcpServerConnections } from './mcp'
+import { McpServerConfig } from '../types/agent-chat'
 
 export type CallConverseAPIProps = {
   modelId: string
@@ -34,6 +35,13 @@ export const api = {
   mcp: {
     getToolSpecs: async (mcpServers?: any) => {
       return getMcpToolSpecs(mcpServers)
+    },
+    // 接続テスト関連の関数を追加
+    testConnection: async (mcpServer: McpServerConfig) => {
+      return testMcpServerConnection(mcpServer)
+    },
+    testAllConnections: async (mcpServers: McpServerConfig[]) => {
+      return testAllMcpServerConnections(mcpServers)
     }
   }
 }

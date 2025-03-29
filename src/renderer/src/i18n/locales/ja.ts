@@ -182,7 +182,7 @@ const AgentFormTabs = {
   'Configure MCP servers for this agent to use MCP tools.':
     'このエージェントがMCPツールを使用するためのMCPサーバーを設定します。',
   'Register MCP servers first, then you can enable MCP tools in the Available Tools tab.':
-    'まずMCPサーバーを登録し、その後利用可能なツールタブでMCPツールを有効にできます。',
+    'まずMCPサーバーを登録し、その後ツールタブでMCPツールを有効にできます。',
   'Add New MCP Server': '新しいMCPサーバーを追加',
   'Edit MCP Server': 'MCPサーバーを編集',
   'Server Configuration (JSON)': 'サーバー設定（JSON）',
@@ -203,7 +203,21 @@ const AgentFormTabs = {
   'Invalid format: Must use claude_desktop_config.json format with mcpServers object':
     '無効な形式: mcpServersオブジェクトを含むclaude_desktop_config.json形式を使用してください',
   'When editing, please include exactly one server in mcpServers':
-    '編集時には、mcpServersに正確に1つのサーバーを含めてください'
+    '編集時には、mcpServersに正確に1つのサーバーを含めてください',
+  // MCPサーバー接続テスト関連
+  'Test Connection': '接続テスト',
+  'Test All Servers': '全サーバーをテスト',
+  'Testing...': 'テスト中...',
+  'Connection Status': '接続状態',
+  success: '成功',
+  failed: '失敗',
+  total: '合計',
+  'Clear Results': '結果をクリア',
+  'Connection Successful': '接続成功',
+  'Connection Failed': '接続失敗',
+  'tools available': 'ツールが利用可能',
+  'Startup time': '起動時間',
+  Solution: '解決策'
 }
 
 const ja = {

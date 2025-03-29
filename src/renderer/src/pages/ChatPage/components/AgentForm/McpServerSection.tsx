@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { McpServerConfig } from '@/types/agent-chat'
 import toast from 'react-hot-toast'
-import { FiEdit, FiTrash2 } from 'react-icons/fi'
+import { FiEdit, FiTrash2, FiZap } from 'react-icons/fi'
 
 interface McpServerSectionProps {
   mcpServers: McpServerConfig[]
@@ -15,22 +15,29 @@ export const McpServerSection: React.FC<McpServerSectionProps> = ({ mcpServers, 
   const [jsonError, setJsonError] = useState<string | null>(null)
   const [editMode, setEditMode] = useState<string | null>(null)
 
-  // JSON入力欄の初期値を設定（常にclaude_desktop_config.json形式）
-  const getInitialJson = () => {
-    const sampleConfig = {
-      mcpServers: {
-        fetch: {
-          command: 'uvx',
-          args: ['mcp-server-fetch']
+  // 接続テスト用の状態
+  const [testingConnection, setTestingConnection] = useState<string | null>(null)
+  const [testingAll, setTestingAll] = useState(false)
+  const [connectionResults, setConnectionResults] = useState<
+    Record<
+      string,
+      {
+        success: boolean
+        message: string
+        testedAt: number
+        details?: {
+          toolCount?: number
+          toolNames?: string[]
+          error?: string
+          errorDetails?: string
+          startupTime?: number
         }
       }
-    }
-    return JSON.stringify(sampleConfig, null, 2)
-  }
+    >
+  >({})
 
-  React.useEffect(() => {
-    setJsonInput(getInitialJson())
-  }, [])
+  // 新しいサーバーの追加後に自動テストするかどうか
+  const [autoTestOnAdd] = useState(true)
 
   // 編集モードに切り替え
   const handleEdit = (serverName: string) => {
@@ -53,11 +60,81 @@ export const McpServerSection: React.FC<McpServerSectionProps> = ({ mcpServers, 
     onChange(mcpServers.filter((server) => server.name !== serverName))
   }
 
+  /**
+   * 単一のMCPサーバーに対して接続テストを実行
+   */
+  const testServerConnection = async (serverName: string, serverList = mcpServers) => {
+    const serverConfig = serverList.find((server) => server.name === serverName)
+    if (!serverConfig) {
+      toast.error(`Server "${serverName}" not found`)
+      return
+    }
+
+    setTestingConnection(serverName)
+
+    try {
+      const result = await window.api.mcp.testConnection(serverConfig)
+
+      // 結果を保存
+      setConnectionResults((prev) => ({
+        ...prev,
+        [serverName]: {
+          ...result,
+          testedAt: Date.now()
+        }
+      }))
+
+      // 簡易なトースト通知
+      if (result.success) {
+        toast.success(`${result.message}`)
+      } else {
+        toast.error(`${result.message}`)
+      }
+    } catch (error) {
+      console.error(`Error testing connection to ${serverName}:`, error)
+      toast.error(`Error testing connection to ${serverName}`)
+    } finally {
+      setTestingConnection(null)
+    }
+  }
+
+  /**
+   * すべてのMCPサーバーに対して接続テストを実行（直列処理）
+   */
+  const testAllConnections = async () => {
+    if (mcpServers.length === 0) {
+      toast(`No MCP servers configured`)
+      return
+    }
+
+    setTestingAll(true)
+
+    try {
+      const startTime = Date.now()
+      toast(`Testing ${mcpServers.length} MCP servers...`)
+
+      // 各サーバーを順番にテスト
+      for (const server of mcpServers) {
+        await testServerConnection(server.name)
+      }
+
+      const totalTime = Date.now() - startTime
+      toast.success(`Completed testing ${mcpServers.length} servers in ${totalTime}ms`)
+    } catch (error) {
+      console.error('Error testing all connections:', error)
+      toast.error(`Failed to test all connections: ${error}`)
+    } finally {
+      setTestingAll(false)
+    }
+  }
+
   // 追加ボタンクリック時に入力されたJSONを解析して追加
-  const handleAddServer = () => {
+  const handleAddServer = async () => {
     try {
       // JSONパース
       const parsedConfig = JSON.parse(jsonInput)
+      let updatedServers = [...mcpServers]
+      let newlyAddedServer: McpServerConfig | null = null
 
       // claude_desktop_config.json互換形式かどうかをチェック
       if (parsedConfig.mcpServers && typeof parsedConfig.mcpServers === 'object') {
@@ -89,13 +166,20 @@ export const McpServerSection: React.FC<McpServerSectionProps> = ({ mcpServers, 
           }
 
           // この形式では名前はキー、説明がない場合は名前を使用
-          newServers.push({
+          const newServer = {
             name,
             description: name, // デフォルトでは名前と同じ
             command: serverConfig.command,
             args: serverConfig.args,
             env: serverConfig.env || {}
-          })
+          }
+
+          newServers.push(newServer)
+
+          // 最後に追加したサーバーを記録（接続テスト用）
+          if (!newlyAddedServer) {
+            newlyAddedServer = newServer
+          }
         })
 
         if (errorMessages.length > 0) {
@@ -109,10 +193,11 @@ export const McpServerSection: React.FC<McpServerSectionProps> = ({ mcpServers, 
         }
 
         // サーバー設定を追加
-        onChange([...mcpServers, ...newServers])
+        updatedServers = [...mcpServers, ...newServers]
+        onChange(updatedServers)
 
         // 入力欄をクリア
-        setJsonInput(getInitialJson())
+        setJsonInput('')
         setJsonError(null)
 
         // 成功メッセージ
@@ -147,11 +232,21 @@ export const McpServerSection: React.FC<McpServerSectionProps> = ({ mcpServers, 
         }
 
         // サーバー設定を追加
-        onChange([...mcpServers, serverConfig])
+        updatedServers = [...mcpServers, serverConfig]
+        onChange(updatedServers)
+        newlyAddedServer = serverConfig
 
         // 入力欄をクリア
-        setJsonInput(getInitialJson())
+        setJsonInput('')
         setJsonError(null)
+      }
+
+      // 自動接続テストが有効で、新しいサーバーが追加された場合はテスト実行
+      if (autoTestOnAdd && newlyAddedServer) {
+        // 少し待ってからテストを実行（UIの更新が完了するのを待つ）
+        setTimeout(() => {
+          testServerConnection(newlyAddedServer!.name, updatedServers)
+        }, 500)
       }
     } catch (error) {
       setJsonError(t('Invalid JSON format.'))
@@ -202,7 +297,7 @@ export const McpServerSection: React.FC<McpServerSectionProps> = ({ mcpServers, 
 
       // 編集モード終了
       setEditMode(null)
-      setJsonInput(getInitialJson())
+      setJsonInput('')
       setJsonError(null)
     } catch (error) {
       setJsonError(t('Invalid JSON format.'))
@@ -212,7 +307,7 @@ export const McpServerSection: React.FC<McpServerSectionProps> = ({ mcpServers, 
   // 編集キャンセル
   const handleCancelEdit = () => {
     setEditMode(null)
-    setJsonInput(getInitialJson())
+    setJsonInput('')
     setJsonError(null)
   }
 
@@ -233,53 +328,208 @@ export const McpServerSection: React.FC<McpServerSectionProps> = ({ mcpServers, 
           {t('Configure MCP servers for this agent to use MCP tools.')}
         </p>
         <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-          {t('Register MCP servers first, then you can enable MCP tools in the Tools tab.')}
+          {t(
+            'Register MCP servers first, then you can enable MCP tools in the Available Tools tab.'
+          )}
         </p>
       </div>
 
       {/* MCP Server リスト */}
       {mcpServers.length > 0 ? (
         <div className="space-y-2">
-          <h4 className="font-medium text-sm">{t('Registered MCP Servers')}</h4>
+          <div className="flex justify-between items-center">
+            <h4 className="font-medium text-sm">{t('Registered MCP Servers')}</h4>
+
+            {/* 全サーバーテストボタン - 新規追加 */}
+            {mcpServers.length > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  testAllConnections()
+                }}
+                disabled={testingAll || testingConnection !== null}
+                className="text-xs px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 flex items-center gap-1 disabled:opacity-50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/40"
+              >
+                {testingAll ? (
+                  <div className="w-3 h-3 border-2 border-t-transparent border-blue-500 rounded-full animate-spin mr-1"></div>
+                ) : (
+                  <FiZap className="w-3 h-3 mr-1" />
+                )}
+                {testingAll ? t('Testing...') : t('Test All Servers')}
+              </button>
+            )}
+          </div>
+
+          {/* テスト結果の概要ステータスを表示 */}
+          {mcpServers.length > 0 && Object.keys(connectionResults).length > 0 && (
+            <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded mb-2 flex items-center justify-between">
+              <div className="text-xs">
+                <span className="font-medium">{t('Connection Status')}:</span>{' '}
+                {(() => {
+                  const total = Object.keys(connectionResults).length
+                  const success = Object.values(connectionResults).filter((r) => r.success).length
+                  return (
+                    <>
+                      <span className="text-green-600 dark:text-green-400">
+                        {success} {t('success')}
+                      </span>
+                      {total - success > 0 && (
+                        <>
+                          {' / '}
+                          <span className="text-red-600 dark:text-red-400">
+                            {total - success} {t('failed')}
+                          </span>
+                        </>
+                      )}
+                      {' / '}
+                      <span>
+                        {mcpServers.length} {t('total')}
+                      </span>
+                    </>
+                  )
+                })()}
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setConnectionResults({})
+                }}
+                className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
+                {t('Clear Results')}
+              </button>
+            </div>
+          )}
+
           <div className="border border-gray-200 dark:border-gray-700 rounded-md divide-y divide-gray-200 dark:divide-gray-700">
             {mcpServers.map((server) => (
               <div
                 key={server.name}
-                className="p-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="p-3 hover:bg-gray-50 dark:hover:bg-gray-800"
                 onClick={preventCloseHandler}
               >
-                <div>
-                  <h5 className="font-medium text-sm">{server.name}</h5>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{server.description}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    <code>
-                      {server.command} {server.args.join(' ')}
-                    </code>
-                  </p>
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      handleEdit(server.name)
-                    }}
-                    className="p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
-                  >
-                    <FiEdit size={18} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      handleDelete(server.name)
-                    }}
-                    className="p-1 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
-                  >
-                    <FiTrash2 size={18} />
-                  </button>
+                {/* サーバー情報表示 */}
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h5 className="font-medium text-sm flex items-center">
+                      {server.name}
+                      {testingConnection === server.name && (
+                        <div className="ml-2 w-3 h-3 border-2 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
+                      )}
+                    </h5>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{server.description}</p>
+                    <p className="text-xs font-mono text-gray-500 dark:text-gray-400 mt-1">
+                      <code>
+                        {server.command} {server.args.join(' ')}
+                      </code>
+                    </p>
+
+                    {/* 接続テスト結果表示 - 詳細表示 */}
+                    {connectionResults[server.name] && (
+                      <div
+                        className={`mt-2 p-2 rounded text-xs ${
+                          connectionResults[server.name].success
+                            ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                            : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                        }`}
+                      >
+                        <div
+                          className={`font-medium mb-1 flex items-center ${
+                            connectionResults[server.name].success
+                              ? 'text-green-700 dark:text-green-400'
+                              : 'text-red-700 dark:text-red-400'
+                          }`}
+                        >
+                          <span
+                            className={`inline-block w-2 h-2 mr-1 rounded-full ${
+                              connectionResults[server.name].success ? 'bg-green-500' : 'bg-red-500'
+                            }`}
+                          ></span>
+                          {connectionResults[server.name].success
+                            ? t('Connection Successful')
+                            : t('Connection Failed')}
+                          <span className="ml-2 font-normal text-gray-500">
+                            {new Date(connectionResults[server.name].testedAt).toLocaleTimeString()}
+                          </span>
+                        </div>
+
+                        {connectionResults[server.name].success ? (
+                          // 成功時の詳細表示
+                          <div>
+                            <div className="text-green-700 dark:text-green-400">
+                              {connectionResults[server.name].details?.toolCount || 0}{' '}
+                              {t('tools available')}
+                            </div>
+                            {connectionResults[server.name].details?.startupTime !== undefined && (
+                              <div className="text-gray-600 dark:text-gray-400 mt-1">
+                                {t('Startup time')}:{' '}
+                                {connectionResults[server.name].details?.startupTime}ms
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          // 失敗時の詳細表示
+                          <div>
+                            <div className="text-red-700 dark:text-red-400">
+                              {connectionResults[server.name].details?.error}
+                            </div>
+                            {connectionResults[server.name].details?.errorDetails && (
+                              <div className="mt-1 text-gray-700 dark:text-gray-300 p-1 bg-gray-100 dark:bg-gray-800 rounded">
+                                <strong>{t('Solution')}:</strong>{' '}
+                                {connectionResults[server.name].details?.errorDetails}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* アクションボタン */}
+                  <div className="flex space-x-2">
+                    {/* テストボタン - 新規追加 */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        testServerConnection(server.name)
+                      }}
+                      disabled={testingConnection !== null || testingAll}
+                      className="p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                      title={t('Test Connection')}
+                    >
+                      <FiZap size={18} />
+                    </button>
+
+                    {/* 既存の編集・削除ボタン */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleEdit(server.name)
+                      }}
+                      className="p-1 text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400"
+                    >
+                      <FiEdit size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleDelete(server.name)
+                      }}
+                      className="p-1 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
+                    >
+                      <FiTrash2 size={18} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -314,10 +564,18 @@ export const McpServerSection: React.FC<McpServerSectionProps> = ({ mcpServers, 
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                setJsonInput(getInitialJson())
+                setJsonInput(`{
+  "mcpServers": {
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"]
+    }
+  }
+}
+`)
               }}
             >
-              {t('Reset to Example')}
+              {t('Set example mcp server')}
             </button>
           </div>
           <textarea

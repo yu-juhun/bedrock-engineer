@@ -289,3 +289,130 @@ export const tryExecuteMcpTool = async (
     }
   }
 }
+
+/**
+ * MCPサーバーに接続テストを行う関数
+ * @param mcpServer テスト対象のサーバー設定
+ * @return テスト結果のオブジェクト
+ */
+export const testMcpServerConnection = async (
+  mcpServer: McpServerConfig
+): Promise<{
+  success: boolean
+  message: string
+  details?: {
+    toolCount?: number
+    toolNames?: string[]
+    error?: string
+    errorDetails?: string
+    startupTime?: number
+  }
+}> => {
+  console.log(`Testing connection to MCP server: ${mcpServer.name}`)
+  const startTime = Date.now()
+
+  try {
+    // 単一サーバー用の一時的なクライアントを作成
+    const client = await MCPClient.fromCommand(mcpServer.command, mcpServer.args, mcpServer.env)
+
+    // ツール情報を取得
+    const tools = client.tools || []
+    // 型エラー修正: undefined を除外して string[] に変換
+    const toolNames = tools
+      .map((t) => t.toolSpec?.name)
+      .filter((name): name is string => Boolean(name))
+
+    // クライアントのクリーンアップ
+    await client.cleanup()
+
+    const endTime = Date.now()
+    return {
+      success: true,
+      message: `Successfully connected to MCP server "${mcpServer.name}"`,
+      details: {
+        toolCount: tools.length,
+        toolNames,
+        startupTime: endTime - startTime
+      }
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    // 未使用変数を削除
+    // const errorStack = error instanceof Error ? error.stack : undefined
+
+    // 詳細なエラー分析
+    const errorAnalysis = analyzeServerError(errorMessage)
+
+    return {
+      success: false,
+      message: `Failed to connect to MCP server "${mcpServer.name}"`,
+      details: {
+        error: errorMessage,
+        errorDetails: errorAnalysis
+      }
+    }
+  }
+}
+
+/**
+ * 複数のMCPサーバーに対して接続テストを行う関数
+ * @param mcpServers テスト対象のサーバー設定配列
+ * @return サーバー名をキーとしたテスト結果のオブジェクト
+ */
+export const testAllMcpServerConnections = async (
+  mcpServers: McpServerConfig[]
+): Promise<
+  Record<
+    string,
+    {
+      success: boolean
+      message: string
+      details?: {
+        toolCount?: number
+        toolNames?: string[]
+        error?: string
+        errorDetails?: string
+        startupTime?: number
+      }
+    }
+  >
+> => {
+  // MCPサーバー設定がない場合は空オブジェクトを返す
+  if (!mcpServers || mcpServers.length === 0) {
+    return {}
+  }
+
+  const results: Record<string, any> = {}
+
+  // 逐次処理（直列）でテスト実行
+  for (const server of mcpServers) {
+    results[server.name] = await testMcpServerConnection(server)
+  }
+
+  return results
+}
+
+/**
+ * エラーメッセージを分析して原因と対策を提示する
+ */
+function analyzeServerError(errorMessage: string): string {
+  const lowerError = errorMessage.toLowerCase()
+
+  if (lowerError.includes('enoent') || lowerError.includes('command not found')) {
+    return 'Command not found. Please make sure the command is installed and the path is correct.'
+  }
+
+  if (lowerError.includes('timeout')) {
+    return 'The response from the server timed out. Please check if the server is running properly.'
+  }
+
+  if (lowerError.includes('permission denied') || lowerError.includes('eacces')) {
+    return 'A permission error occurred. Please make sure you have the execution permissions.'
+  }
+
+  if (lowerError.includes('port') && lowerError.includes('use')) {
+    return 'The port is already in use. Please make sure that no other process is using the same port.'
+  }
+
+  return 'Please make sure your command and arguments are correct.'
+}

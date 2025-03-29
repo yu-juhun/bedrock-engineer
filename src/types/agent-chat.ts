@@ -216,6 +216,7 @@ export type CustomAgent = Agent & {
   bedrockAgents?: BedrockAgent[] // エージェント固有のBedrock Agents
   knowledgeBases?: KnowledgeBase[] // エージェント固有のKnowledge Base
   mcpServers?: McpServerConfig[] // エージェント固有のMCPサーバー設定
+  mcpTools?: ToolState[] // エージェント固有のMCPツール設定
 }
 
 export type AgentSettings = {

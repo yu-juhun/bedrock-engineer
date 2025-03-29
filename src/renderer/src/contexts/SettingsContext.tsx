@@ -127,8 +127,9 @@ export interface SettingsContextType {
   currentAgentSystemPrompt: string
 
   // MCP Tool Settings
-  mcpTools: ToolState[]
   fetchMcpTools: (mcpServers?: McpServerConfig[]) => Promise<Tool[]>
+  getAgentMcpTools: (agentId: string) => ToolState[]
+  updateAgentMcpTools: (agentId: string, tools: ToolState[]) => void
 
   // エージェント固有のツール設定
   getAgentTools: (agentId: string) => ToolState[]
@@ -155,6 +156,7 @@ export interface SettingsContextType {
       allowedCommands: CommandConfig[]
       bedrockAgents: BedrockAgent[]
       knowledgeBases: KnowledgeBase[]
+      mcpTools: ToolState[]
     }>
   ) => void
 
@@ -193,8 +195,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [inferenceParams, setInferenceParams] =
     useState<InferenceParameters>(DEFAULT_INFERENCE_PARAMS)
 
-  // MCP Tools Settings
-  const [mcpTools, setMcpTools] = useState<ToolState[]>([])
+  // MCP Tools Settings - グローバル状態は削除
 
   const [thinkingMode, setThinkingMode] = useState<ThinkingMode>()
 
@@ -435,18 +436,13 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     fetchModels()
   }, [awsRegion, awsAccessKeyId, awsSecretAccessKey, awsProfile, useAwsProfile])
 
-  // MCPツールをロードする - エージェント固有のMCPサーバー設定を受け付けるように拡張
+  // MCPツールをロードする - 状態を更新せずツールのみを返すように修正
   const fetchMcpTools = useCallback(async (mcpServers?: McpServerConfig[]) => {
     try {
       if (window.api?.mcp?.getToolSpecs) {
         console.log('Fetching MCP tools with servers:', mcpServers?.length || 'none')
         const fetchedTools = await window.api.mcp.getToolSpecs(mcpServers)
-        // Tool[] から ToolState[] に変換
-        const toolStates = fetchedTools.map((tool) => ({
-          toolSpec: tool.toolSpec,
-          enabled: false
-        })) as ToolState[]
-        setMcpTools(toolStates || [])
+        // 取得したツールの生データを返す（状態管理は呼び出し側で行う）
         return fetchedTools || []
       }
       return []
@@ -455,6 +451,20 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return []
     }
   }, [])
+
+  // エージェント固有のMCPツールを更新する関数
+  const updateAgentMcpTools = useCallback(
+    (agentId: string, tools: ToolState[]) => {
+      // カスタムエージェントの場合のみ更新可能
+      const updatedAgents = customAgents.map((agent) =>
+        agent.id === agentId ? { ...agent, mcpTools: tools } : agent
+      )
+
+      setCustomAgents(updatedAgents)
+      window.store.set('customAgents', updatedAgents)
+    },
+    [customAgents]
+  )
 
   // Load MCP tools when component mounts and when current agent changes
   useEffect(() => {
@@ -815,6 +825,17 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     return result
   }, [customAgents, sharedAgents])
+
+  // エージェント固有のMCPツールを取得する関数
+  const getAgentMcpTools = useCallback(
+    (agentId: string): ToolState[] => {
+      // 現在選択されているエージェントを見つける
+      const agent = allAgents.find((a) => a.id === agentId)
+      // エージェント固有のMCPツール設定を返す（なければ空配列）
+      return agent?.mcpTools || []
+    },
+    [allAgents]
+  )
   const currentAgent = useMemo(() => {
     return allAgents.find((a) => a.id === selectedAgentId)
   }, [allAgents, selectedAgentId])
@@ -833,17 +854,48 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // 現在選択中のエージェントが変更されたらMCPツールを再読み込み
   useEffect(() => {
+    if (!currentAgent) return
+
+    // エージェントにMCPサーバー設定があり、かつmcpToolsがまだ設定されていない場合
     if (currentAgent?.mcpServers && currentAgent.mcpServers.length > 0) {
-      console.log(
-        `Reloading MCP tools for agent: ${currentAgent.name} (${currentAgent.mcpServers.length} servers)`
-      )
-      fetchMcpTools(currentAgent.mcpServers)
+      // すでにMCPツールがあるか確認
+      const hasMcpTools = currentAgent.mcpTools && currentAgent.mcpTools.length > 0
+
+      if (!hasMcpTools) {
+        console.log(
+          `Fetching MCP tools for agent: ${currentAgent.name} (${currentAgent.mcpServers.length} servers)`
+        )
+
+        // 非同期で実行
+        ;(async () => {
+          const fetchedTools = await fetchMcpTools(currentAgent.mcpServers)
+          if (fetchedTools && fetchedTools.length > 0) {
+            // Tool[] から ToolState[] に変換（MCP ツールは常に有効）
+            const toolStates = fetchedTools.map((tool) => ({
+              toolSpec: tool.toolSpec,
+              enabled: true
+            })) as ToolState[]
+
+            // カスタムエージェントの場合のみ更新（sharedやdirectoryエージェントは読み取り専用）
+            if (currentAgent.isCustom !== false) {
+              // 取得したツールをエージェント固有のMCPツールとして保存
+              updateAgentMcpTools(currentAgent.id, toolStates)
+              console.log(`Saved ${toolStates.length} MCP tools for agent: ${currentAgent.name}`)
+            }
+          } else {
+            console.log(`No MCP tools found for agent: ${currentAgent.name}`)
+          }
+        })()
+      } else {
+        console.log(
+          `Agent ${currentAgent.name} already has ${currentAgent.mcpTools?.length} MCP tools`
+        )
+      }
     } else if (currentAgent) {
-      // 現在のエージェントにMCPサーバー設定がない場合は空のリストに
-      console.log(`Current agent has no MCP servers: ${currentAgent.name}`)
-      setMcpTools([])
+      // 現在のエージェントにMCPサーバー設定がない場合
+      console.log(`Agent ${currentAgent.name} has no MCP servers configured`)
     }
-  }, [currentAgent, fetchMcpTools])
+  }, [currentAgent, fetchMcpTools, updateAgentMcpTools])
 
   const enabledTavilySearch = tavilySearchApiKey.length > 0
 
@@ -872,16 +924,21 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // 現在選択されているエージェントを見つける
       const agent = allAgents.find((a) => a.id === agentId)
 
-      // 標準ツールとMCPツールを結合してすべてのツール一覧を作成
-      const allAvailableTools = [...tools, ...mcpTools]
+      // MCP ツールを取得（常に有効）
+      const mcpTools = agent?.mcpTools || []
+      const agentMcpTools = mcpTools.map((tool) => ({
+        ...tool,
+        enabled: true // MCP ツールは常に有効
+      }))
 
+      // 標準ツールのみを処理（MCP ツールは別途管理）
       // エージェント固有のツール設定がある場合
       if (agent && agent.tools && agent.tools.length > 0) {
-        // Tool[] から ToolState[] を生成（デフォルトは無効）
-        const allToolStates = allAvailableTools.map((tool) => ({ ...tool, enabled: false }))
+        // 標準ツールの ToolState[] を生成（デフォルトは無効）
+        const standardToolStates = tools.map((tool) => ({ ...tool, enabled: false }))
 
-        // エージェントのツール名リストに含まれるツールを有効化
-        return allToolStates.map((toolState) => {
+        // エージェントのツール名リストに含まれる標準ツールを有効化
+        const enabledStandardTools = standardToolStates.map((toolState) => {
           // ツール名を取得
           const toolName = toolState.toolSpec?.name as ToolName
 
@@ -891,15 +948,21 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const isEnabled = agent.tools?.includes(toolName) || false
           return { ...toolState, enabled: isEnabled }
         })
+
+        // 標準ツールと MCP ツールを結合して返す
+        return [...enabledStandardTools, ...agentMcpTools]
       }
 
-      // エージェント固有の設定がない場合は標準ツールセットを返す
-      return getToolsForCategory(
+      // エージェント固有の設定がない場合は標準ツールセットを返す（MCP ツールは常に有効）
+      const defaultStandardTools = getToolsForCategory(
         'all',
         tools.map((tool) => ({ ...tool, enabled: true }))
       )
+
+      // 標準ツールと MCP ツールを結合して返す
+      return [...defaultStandardTools, ...agentMcpTools]
     },
-    [allAgents, tools, mcpTools]
+    [allAgents, tools]
   )
 
   // エージェント固有の許可コマンドを取得する関数
@@ -948,9 +1011,18 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // エージェントツール設定を更新する関数
   const updateAgentTools = useCallback(
     (agentId: string, updatedTools: ToolState[]) => {
-      // 有効なツールの名前のみを抽出
+      // MCP ツールを取得
+      const agent = customAgents.find((a) => a.id === agentId)
+      const mcpTools = agent?.mcpTools || []
+      const mcpToolNames = mcpTools.map((tool) => tool.toolSpec?.name).filter(Boolean)
+
+      // 有効な標準ツールの名前のみを抽出（MCP ツールは除外）
       const enabledToolNames = updatedTools
-        .filter((tool) => tool.enabled)
+        .filter((tool) => {
+          // MCP ツールは除外し、有効な標準ツールのみを含める
+          const toolName = tool.toolSpec?.name
+          return tool.enabled && toolName && !mcpToolNames.includes(toolName)
+        })
         .map((tool) => tool.toolSpec?.name as ToolName)
         .filter(Boolean)
 
@@ -1016,6 +1088,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         allowedCommands?: CommandConfig[]
         bedrockAgents?: BedrockAgent[]
         knowledgeBases?: KnowledgeBase[]
+        mcpTools?: ToolState[]
       }
     ) => {
       // 更新用の設定オブジェクトを作成
@@ -1034,12 +1107,28 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         processedSettings.knowledgeBases = settings.knowledgeBases
       }
 
-      // tools が含まれている場合、ToolState[] から ToolName[] に変換
+      // MCPツールが含まれている場合、そのまま設定
+      if (settings.mcpTools) {
+        processedSettings.mcpTools = settings.mcpTools
+      }
+
+      // tools が含まれている場合、ToolState[] から ToolName[] に変換（MCP ツールは除外）
       if (settings.tools) {
+        // MCP ツールを取得
+        const agent = customAgents.find((a) => a.id === agentId)
+        const mcpTools = agent?.mcpTools || []
+        const mcpToolNames = mcpTools.map((tool) => tool.toolSpec?.name).filter(Boolean)
+
+        // 有効な標準ツールの名前のみを抽出（MCP ツールは除外）
         const enabledToolNames = settings.tools
-          .filter((tool) => tool.enabled)
+          .filter((tool) => {
+            // MCP ツールは除外し、有効な標準ツールのみを含める
+            const toolName = tool.toolSpec?.name
+            return tool.enabled && toolName && !mcpToolNames.includes(toolName)
+          })
           .map((tool) => tool.toolSpec?.name as ToolName)
           .filter(Boolean) as ToolName[]
+
         processedSettings.tools = enabledToolNames
       }
 
@@ -1147,8 +1236,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     getDefaultToolsForCategory,
 
     // MCP Tool Settings
-    mcpTools,
     fetchMcpTools,
+    getAgentMcpTools,
+    updateAgentMcpTools,
 
     // エージェント固有の設定
     getAgentAllowedCommands,

@@ -85,6 +85,91 @@ type ToolsSectionProps = {
   bedrockAgents?: BedrockAgent[]
   onBedrockAgentsChange?: (agents: BedrockAgent[]) => void
   mcpServers?: McpServerConfig[]
+  tempMcpTools?: ToolState[] // 一時的なMCPツール（タブ切替時に取得したもの）
+}
+
+// ツール詳細情報モーダルコンポーネント
+interface ToolInfoModalProps {
+  toolName: string | null
+  toolDescription: string
+  onClose: () => void
+  mcpServerInfo?: string
+  isMcp?: boolean
+}
+
+const ToolInfoModal: React.FC<ToolInfoModalProps> = ({
+  toolName,
+  toolDescription,
+  onClose,
+  mcpServerInfo,
+  isMcp
+}) => {
+  const { t } = useTranslation()
+
+  // 非MCPツールや無効なツール名の場合は表示しない
+  if (!toolName || !isMcp) return null
+
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg max-w-md w-full max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold">{getOriginalMcpToolName(toolName)}</h3>
+            <span className="bg-cyan-100 text-cyan-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-cyan-900 dark:text-cyan-300">
+              MCP
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div className="prose dark:prose-invert max-w-none text-sm">
+          <p className="mb-4">{toolDescription}</p>
+
+          {mcpServerInfo && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+              <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
+                {t('Server Information')}
+              </h4>
+              <p className="text-xs">{mcpServerInfo}</p>
+            </div>
+          )}
+
+          <div className="mt-4 p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-md border-l-4 border-cyan-500">
+            <h4 className="text-sm font-medium text-cyan-700 dark:text-cyan-300 mb-1">
+              {t('MCP Tool')}
+            </h4>
+            <p className="text-xs">
+              {t(
+                'This tool is provided by an MCP server and is always enabled. It cannot be disabled.'
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export const ToolsSection: React.FC<ToolsSectionProps> = ({
@@ -98,14 +183,17 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
   onAllowedCommandsChange,
   bedrockAgents = [],
   onBedrockAgentsChange,
-  mcpServers = []
+  mcpServers = [],
+  // onMcpServersChange, // 未使用のため削除
+  tempMcpTools = []
 }) => {
   const { t } = useTranslation()
   const { getDefaultToolsForCategory } = useSetting()
-  const { mcpTools } = useSettings() // MCPツールをSettingsContextから取得
+  const { getAgentMcpTools, selectedAgentId } = useSettings() // エージェント固有のMCPツールを取得する関数
   const [agentTools, setAgentTools] = useState<ToolState[]>(initialTools || [])
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory)
   const [activeTab, setActiveTab] = useState<string>('available-tools')
+  const [toolInfoToShow, setToolInfoToShow] = useState<string | null>(null)
 
   // ツール設定の展開状態を管理するstate
   const [expandedTools, setExpandedTools] = useState<Record<string, boolean>>({})
@@ -117,24 +205,34 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
     }
   }, [initialTools])
 
+  // エージェント固有のMCPツールを取得
+  // サーバーが0件の場合は常に空配列を返す（整合性保証のため）
+  // それ以外の場合：一時的なMCPツールが提供されている場合はそちらを優先し、なければエージェント固有のツールを使用
+  const agentMcpTools = React.useMemo(() => {
+    // MCPサーバーがない場合は常に空配列
+    if (!mcpServers || mcpServers.length === 0) {
+      return []
+    }
+
+    // 一時的なツールがあればそちらを優先
+    return tempMcpTools.length > 0 ? tempMcpTools : getAgentMcpTools(selectedAgentId)
+  }, [mcpServers, tempMcpTools, getAgentMcpTools, selectedAgentId])
+
   // MCPツールとエージェントツールの統合
   useEffect(() => {
-    if (mcpTools && mcpTools.length > 0) {
-      console.log('Integrating MCP tools into agent tools:', mcpTools.length)
+    if (agentMcpTools && agentMcpTools.length > 0) {
+      console.log('Integrating MCP tools into agent tools:', agentMcpTools.length)
 
       // 既存のツールからMCPツール(mcp:のプレフィックスを持つツール)を除外
       const nonMcpTools = agentTools.filter(
         (tool) => !tool.toolSpec?.name || !isMcpTool(tool.toolSpec.name)
       )
 
-      // 統合したツールセット（MCPツールは初期状態では無効）
-      const mcpToolsWithState = mcpTools.map((tool) => ({
+      // 統合したツールセット（MCPツールは常に有効）
+      const mcpToolsWithState = agentMcpTools.map((tool) => ({
         ...tool,
-        // 既存のエージェントツール設定でMCPツールが有効になっている場合はその状態を維持
-        enabled: agentTools.some(
-          (existingTool) =>
-            existingTool.toolSpec?.name === tool.toolSpec?.name && existingTool.enabled
-        )
+        // MCP ツールは常に有効
+        enabled: true
       }))
 
       const mergedTools = [...nonMcpTools, ...mcpToolsWithState]
@@ -146,10 +244,15 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
         onChange(mergedTools)
       }, 0)
     }
-  }, [mcpTools, onChange])
+  }, [agentMcpTools, onChange])
 
   // ツール設定変更のハンドラ
   const handleToggleTool = (toolName: string) => {
+    // MCP ツールの場合は常に有効なので変更しない
+    if (isMcpTool(toolName)) {
+      return
+    }
+
     const updatedTools = agentTools.map((tool) => {
       if (tool.toolSpec?.name === toolName) {
         return { ...tool, enabled: !tool.enabled }
@@ -181,7 +284,7 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
     // まず全ツールのリストを確認
     console.log('Total tools available:', agentTools.map((t) => t.toolSpec?.name).filter(Boolean))
 
-    // MCPツールを抽出
+    // MCPツールを抽出 - エージェント固有のMCPツールを使用
     const availableMcpTools = agentTools.filter((tool) => {
       const toolName = tool.toolSpec?.name
       return toolName ? isMcpTool(toolName) : false
@@ -195,14 +298,24 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
       availableMcpTools.map((t) => t.toolSpec?.name).join(', ')
     )
 
-    const toolsByCategory = TOOL_CATEGORIES.map((category) => {
+    // MCPサーバー設定の有無を確認
+    const hasMcpServers = mcpServers && mcpServers.length > 0
+
+    // MCPサーバーがない場合は、MCPカテゴリを結果から除外するフィルタを適用
+    const filteredCategories = TOOL_CATEGORIES.filter((category) => {
+      // MCPカテゴリの場合、サーバーがない場合は除外
+      if (category.id === 'mcp') {
+        return hasMcpServers
+      }
+      // 他のカテゴリは常に含める
+      return true
+    })
+
+    const toolsByCategory = filteredCategories.map((category) => {
       // MCP カテゴリの場合は特別処理
       if (category.id === 'mcp') {
         // MCPツールのみをフィルタリング - 上で抽出済みのMCPツールを使用
         const mcpToolStates = availableMcpTools
-
-        // MCPサーバー設定の有無を確認
-        const hasMcpServers = mcpServers && mcpServers.length > 0
 
         // MCPサーバー情報の詳細をログ出力
         console.log('MCP tools found:', mcpToolStates.length, 'Servers configured:', hasMcpServers)
@@ -277,8 +390,8 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
     return (
       tool.toolSpec?.name === 'retrieve' ||
       tool.toolSpec?.name === 'invokeBedrockAgent' ||
-      tool.toolSpec?.name === 'executeCommand' ||
-      (tool.toolSpec?.name && isMcpTool(tool.toolSpec.name))
+      tool.toolSpec?.name === 'executeCommand'
+      // MCPツールはカウントしない（MCPツールは詳細設定のカウントに含めないよう修正）
     )
   })
 
@@ -306,6 +419,27 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
     }
   }
 
+  // 選択されたツールの詳細情報を取得 (MCPツールのみ詳細表示)
+  const getToolDescription = (toolName: string | null): string => {
+    if (!toolName || !isMcpTool(toolName)) return ''
+
+    // MCP ツールの場合のみ説明を返す
+    const tool = agentTools.find((t) => t.toolSpec?.name === toolName)
+    return tool?.toolSpec?.description || t('MCP tool from Model Context Protocol server')
+  }
+
+  // MCP ツールのサーバー情報を取得
+  const getMcpServerInfo = (toolName: string | null): string => {
+    if (!toolName || !isMcpTool(toolName) || !mcpServers || mcpServers.length === 0) return ''
+
+    const serverName = getOriginalMcpToolName(toolName)?.split('.')[0]
+    const server = mcpServers.find((s) => s.name === serverName)
+
+    return server
+      ? `${t('From')}: ${server.name} (${server.description || 'MCP Server'})`
+      : `${t('From')}: ${serverName || 'Unknown server'}`
+  }
+
   return (
     <div
       className="space-y-4"
@@ -318,6 +452,16 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
         e.stopPropagation()
       }}
     >
+      {/* ツール情報モーダル */}
+      {toolInfoToShow && (
+        <ToolInfoModal
+          toolName={toolInfoToShow}
+          toolDescription={getToolDescription(toolInfoToShow)}
+          mcpServerInfo={getMcpServerInfo(toolInfoToShow)}
+          isMcp={toolInfoToShow ? isMcpTool(toolInfoToShow) : false}
+          onClose={() => setToolInfoToShow(null)}
+        />
+      )}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Agent Tools</h3>
@@ -510,6 +654,12 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
                             {category.toolsData.length})
                           </span>
                         </div>
+                        <div className="mt-2 ml-7 text-sm flex items-center">
+                          <span className="bg-cyan-100 text-cyan-800 px-2 py-0.5 rounded dark:bg-cyan-900 dark:text-cyan-300 font-medium mr-2">
+                            {t('Note')}
+                          </span>
+                          <span>{t('MCP tools are always enabled and cannot be disabled')}</span>
+                        </div>
                       </div>
                     )
                   )}
@@ -526,7 +676,11 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
                     return (
                       <div
                         key={toolName}
-                        className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-md shadow-sm border border-gray-200 dark:border-gray-600"
+                        className={`flex items-center justify-between p-3 ${
+                          isMcpTool(toolName)
+                            ? 'bg-cyan-50 dark:bg-cyan-900/10 border border-cyan-200 dark:border-cyan-800'
+                            : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600'
+                        } rounded-md shadow-sm`}
                       >
                         <div className="flex items-center space-x-3">
                           <div className="text-gray-500 dark:text-gray-400 flex-shrink-0 w-7 h-7 flex items-center justify-center">
@@ -547,14 +701,22 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
                                 </span>
                               )}
                             </p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                            <div>
                               {toolName && isMcpTool(toolName) ? (
-                                <>
+                                <p
+                                  className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 overflow-hidden cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 underline decoration-dotted"
+                                  title={t('Click for more information')}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    setToolInfoToShow(toolName)
+                                  }}
+                                >
                                   {tool.toolSpec?.description ||
                                     t('MCP tool from Model Context Protocol server')}
                                   {/* サーバー情報が見つかれば表示 */}
                                   {mcpServers && mcpServers.length > 0 && (
-                                    <span className="block mt-0.5 text-blue-600 dark:text-blue-400">
+                                    <span className="block mt-0.5 text-blue-600 dark:text-blue-400 truncate">
                                       {t('From')}:{' '}
                                       {(() => {
                                         const serverName =
@@ -566,21 +728,35 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
                                       })()}
                                     </span>
                                   )}
-                                </>
-                              ) : toolName ? (
-                                t(`tool descriptions.${toolName}`)
+                                </p>
                               ) : (
-                                ''
+                                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 overflow-hidden">
+                                  {toolName ? t(`tool descriptions.${toolName}`) : ''}
+                                </p>
                               )}
-                            </p>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex-shrink-0">
-                          <ToggleSwitch
-                            checked={tool.enabled}
-                            onChange={() => handleToggleTool(toolName)}
-                            label=""
-                          />
+                        <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          {isMcpTool(toolName) ? (
+                            <div className="flex items-center">
+                              <span className="text-xs text-cyan-600 dark:text-cyan-400 mr-2">
+                                Always enabled
+                              </span>
+                              <ToggleSwitch
+                                checked={true}
+                                onChange={() => {}}
+                                disabled={true}
+                                label=""
+                              />
+                            </div>
+                          ) : (
+                            <ToggleSwitch
+                              checked={tool.enabled}
+                              onChange={() => handleToggleTool(toolName)}
+                              label=""
+                            />
+                          )}
                         </div>
                       </div>
                     )
