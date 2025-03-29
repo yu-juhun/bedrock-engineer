@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
-import { KnowledgeBase, SendMsgKey, ToolState } from 'src/types/agent-chat'
+import { KnowledgeBase, McpServerConfig, SendMsgKey, ToolState } from 'src/types/agent-chat'
 import { ToolName } from 'src/types/tools'
 import { listModels } from '@renderer/lib/api'
 import { CustomAgent } from '@/types/agent-chat'
@@ -12,6 +12,7 @@ import { AgentCategory } from '@/types/agent-chat'
 import { getToolsForCategory } from '../constants/defaultToolSets'
 import { tools } from '@/types/tools'
 import isEqual from 'lodash/isEqual'
+import { Tool } from '@aws-sdk/client-bedrock-runtime'
 
 const DEFAULT_INFERENCE_PARAMS: InferenceParameters = {
   maxTokens: 4096,
@@ -125,6 +126,10 @@ export interface SettingsContextType {
   currentAgent: CustomAgent | undefined
   currentAgentSystemPrompt: string
 
+  // MCP Tool Settings
+  mcpTools: ToolState[]
+  fetchMcpTools: (mcpServers?: McpServerConfig[]) => Promise<Tool[]>
+
   // エージェント固有のツール設定
   getAgentTools: (agentId: string) => ToolState[]
   updateAgentTools: (agentId: string, tools: ToolState[]) => void
@@ -187,6 +192,9 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [availableModels, setAvailableModels] = useState<LLM[]>([])
   const [inferenceParams, setInferenceParams] =
     useState<InferenceParameters>(DEFAULT_INFERENCE_PARAMS)
+
+  // MCP Tools Settings
+  const [mcpTools, setMcpTools] = useState<ToolState[]>([])
 
   const [thinkingMode, setThinkingMode] = useState<ThinkingMode>()
 
@@ -426,6 +434,36 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     fetchModels()
   }, [awsRegion, awsAccessKeyId, awsSecretAccessKey, awsProfile, useAwsProfile])
+
+  // MCPツールをロードする - エージェント固有のMCPサーバー設定を受け付けるように拡張
+  const fetchMcpTools = useCallback(async (mcpServers?: McpServerConfig[]) => {
+    try {
+      if (window.api?.mcp?.getToolSpecs) {
+        console.log('Fetching MCP tools with servers:', mcpServers?.length || 'none')
+        const fetchedTools = await window.api.mcp.getToolSpecs(mcpServers)
+        // Tool[] から ToolState[] に変換
+        const toolStates = fetchedTools.map((tool) => ({
+          toolSpec: tool.toolSpec,
+          enabled: false
+        })) as ToolState[]
+        setMcpTools(toolStates || [])
+        return fetchedTools || []
+      }
+      return []
+    } catch (error) {
+      console.error('Failed to fetch MCP tools:', error)
+      return []
+    }
+  }, [])
+
+  // Load MCP tools when component mounts and when current agent changes
+  useEffect(() => {
+    // 初期ロードではエージェント固有のMCPサーバー設定は使わない
+    // (アプリ起動直後はまだcurrentAgentが設定されていないため)
+    fetchMcpTools()
+  }, [fetchMcpTools])
+
+  //  この効果はallAgentsとcurrentAgentの定義後に移動
 
   // Load shared agents when component mounts or project path changes
   useEffect(() => {
@@ -777,7 +815,35 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     return result
   }, [customAgents, sharedAgents])
-  const currentAgent = allAgents.find((a) => a.id === selectedAgentId)
+  const currentAgent = useMemo(() => {
+    return allAgents.find((a) => a.id === selectedAgentId)
+  }, [allAgents, selectedAgentId])
+
+  // エージェント固有の設定を使用
+  const systemPrompt = useMemo(() => {
+    if (!currentAgent?.system) return ''
+
+    return replacePlaceholders(currentAgent.system, {
+      projectPath,
+      allowedCommands: allAgents.find((a) => a.id === selectedAgentId)?.allowedCommands || [],
+      knowledgeBases: allAgents.find((a) => a.id === selectedAgentId)?.knowledgeBases || [],
+      bedrockAgents: allAgents.find((a) => a.id === selectedAgentId)?.bedrockAgents || []
+    })
+  }, [currentAgent, selectedAgentId, projectPath, allAgents])
+
+  // 現在選択中のエージェントが変更されたらMCPツールを再読み込み
+  useEffect(() => {
+    if (currentAgent?.mcpServers && currentAgent.mcpServers.length > 0) {
+      console.log(
+        `Reloading MCP tools for agent: ${currentAgent.name} (${currentAgent.mcpServers.length} servers)`
+      )
+      fetchMcpTools(currentAgent.mcpServers)
+    } else if (currentAgent) {
+      // 現在のエージェントにMCPサーバー設定がない場合は空のリストに
+      console.log(`Current agent has no MCP servers: ${currentAgent.name}`)
+      setMcpTools([])
+    }
+  }, [currentAgent, fetchMcpTools])
 
   const enabledTavilySearch = tavilySearchApiKey.length > 0
 
@@ -806,26 +872,34 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // 現在選択されているエージェントを見つける
       const agent = allAgents.find((a) => a.id === agentId)
 
+      // 標準ツールとMCPツールを結合してすべてのツール一覧を作成
+      const allAvailableTools = [...tools, ...mcpTools]
+
       // エージェント固有のツール設定がある場合
       if (agent && agent.tools && agent.tools.length > 0) {
-        // ToolName[] から ToolState[] を生成
-        const allToolStates = tools.map((tool) => ({ ...tool, enabled: false }))
+        // Tool[] から ToolState[] を生成（デフォルトは無効）
+        const allToolStates = allAvailableTools.map((tool) => ({ ...tool, enabled: false }))
 
         // エージェントのツール名リストに含まれるツールを有効化
         return allToolStates.map((toolState) => {
+          // ツール名を取得
           const toolName = toolState.toolSpec?.name as ToolName
+
+          if (!toolName) return { ...toolState, enabled: false }
+
+          // エージェントのツールリストに含まれるかどうか確認
           const isEnabled = agent.tools?.includes(toolName) || false
           return { ...toolState, enabled: isEnabled }
         })
       }
 
-      // エージェント固有の設定がない場合は全てのツールセットを返す
+      // エージェント固有の設定がない場合は標準ツールセットを返す
       return getToolsForCategory(
         'all',
         tools.map((tool) => ({ ...tool, enabled: true }))
       )
     },
-    [allAgents, tools]
+    [allAgents, tools, mcpTools]
   )
 
   // エージェント固有の許可コマンドを取得する関数
@@ -986,25 +1060,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return getToolsForCategory(category as AgentCategory, allWindowTools)
   }, [])
 
-  const systemPrompt = useMemo(() => {
-    if (!currentAgent?.system) return ''
-
-    // エージェント固有の設定を使用
-    return replacePlaceholders(currentAgent.system, {
-      projectPath,
-      allowedCommands: getAgentAllowedCommands(selectedAgentId),
-      knowledgeBases: getAgentKnowledgeBases(selectedAgentId),
-      bedrockAgents: getAgentBedrockAgents(selectedAgentId)
-    })
-  }, [
-    currentAgent,
-    selectedAgentId,
-    projectPath,
-    getAgentAllowedCommands,
-    getAgentKnowledgeBases,
-    getAgentBedrockAgents
-  ])
-
   const value = {
     // Advanced Settings
     sendMsgKey,
@@ -1090,6 +1145,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     getAgentTools,
     updateAgentTools,
     getDefaultToolsForCategory,
+
+    // MCP Tool Settings
+    mcpTools,
+    fetchMcpTools,
 
     // エージェント固有の設定
     getAgentAllowedCommands,

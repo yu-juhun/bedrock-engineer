@@ -215,6 +215,7 @@ export type CustomAgent = Agent & {
   allowedCommands?: CommandConfig[] // エージェント固有の許可コマンド
   bedrockAgents?: BedrockAgent[] // エージェント固有のBedrock Agents
   knowledgeBases?: KnowledgeBase[] // エージェント固有のKnowledge Base
+  mcpServers?: McpServerConfig[] // エージェント固有のMCPサーバー設定
 }
 
 export type AgentSettings = {
@@ -224,4 +225,13 @@ export type AgentSettings = {
 export type KnowledgeBase = {
   knowledgeBaseId: string
   description: string
+}
+
+// MCPサーバー設定の型定義
+export interface McpServerConfig {
+  name: string
+  description: string
+  command: string
+  args: string[]
+  env?: Record<string, string>
 }

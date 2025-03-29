@@ -3,6 +3,7 @@ import { ipcRenderer } from 'electron'
 import { executeTool } from './tools/tools'
 import { store } from './store'
 import { BedrockService } from '../main/api/bedrock'
+import { getMcpToolSpecs } from './mcp'
 
 export type CallConverseAPIProps = {
   modelId: string
@@ -29,6 +30,11 @@ export const api = {
   },
   images: {
     getLocalImage: (path: string) => ipcRenderer.invoke('get-local-image', path)
+  },
+  mcp: {
+    getToolSpecs: async (mcpServers?: any) => {
+      return getMcpToolSpecs(mcpServers)
+    }
   }
 }
 

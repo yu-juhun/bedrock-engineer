@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AgentCategory, ToolState, KnowledgeBase, CommandConfig } from '@/types/agent-chat'
+import {
+  AgentCategory,
+  ToolState,
+  KnowledgeBase,
+  CommandConfig,
+  McpServerConfig
+} from '@/types/agent-chat'
 import useSetting from '@renderer/hooks/useSetting'
+import { useSettings } from '@renderer/contexts/SettingsContext'
 import { ToggleSwitch } from 'flowbite-react'
-import { toolIcons } from '../../../components/Tool/ToolIcons'
-import { ToolName } from '@/types/tools'
+import { toolIcons } from '../Tool/ToolIcons'
+import { ToolName, isMcpTool, getOriginalMcpToolName } from '@/types/tools'
 import { BedrockAgent } from '@/types/agent'
-import { FiChevronDown, FiChevronRight } from 'react-icons/fi'
+import { FiChevronDown, FiChevronRight, FiServer } from 'react-icons/fi'
 
 // ツールをカテゴリ分けするための定義
 interface ToolCategory {
@@ -14,6 +21,7 @@ interface ToolCategory {
   name: string
   description: string
   tools: string[]
+  hasMcpServers?: boolean // MCPサーバーが設定されているかどうかを示すフラグ
 }
 
 const TOOL_CATEGORIES: ToolCategory[] = [
@@ -54,6 +62,13 @@ const TOOL_CATEGORIES: ToolCategory[] = [
     name: 'Thinking',
     description: 'Tools for enhanced reasoning and complex problem solving',
     tools: ['think']
+  },
+  {
+    id: 'mcp',
+    name: 'MCP',
+    description: 'Model Context Protocol Tools',
+    // MCPツールは動的に取得するので空配列として定義
+    tools: []
   }
 ]
 
@@ -69,6 +84,7 @@ type ToolsSectionProps = {
   onAllowedCommandsChange?: (commands: CommandConfig[]) => void
   bedrockAgents?: BedrockAgent[]
   onBedrockAgentsChange?: (agents: BedrockAgent[]) => void
+  mcpServers?: McpServerConfig[]
 }
 
 export const ToolsSection: React.FC<ToolsSectionProps> = ({
@@ -81,10 +97,12 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
   allowedCommands = [],
   onAllowedCommandsChange,
   bedrockAgents = [],
-  onBedrockAgentsChange
+  onBedrockAgentsChange,
+  mcpServers = []
 }) => {
   const { t } = useTranslation()
   const { getDefaultToolsForCategory } = useSetting()
+  const { mcpTools } = useSettings() // MCPツールをSettingsContextから取得
   const [agentTools, setAgentTools] = useState<ToolState[]>(initialTools || [])
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory)
   const [activeTab, setActiveTab] = useState<string>('available-tools')
@@ -98,6 +116,37 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
       setAgentTools(initialTools)
     }
   }, [initialTools])
+
+  // MCPツールとエージェントツールの統合
+  useEffect(() => {
+    if (mcpTools && mcpTools.length > 0) {
+      console.log('Integrating MCP tools into agent tools:', mcpTools.length)
+
+      // 既存のツールからMCPツール(mcp:のプレフィックスを持つツール)を除外
+      const nonMcpTools = agentTools.filter(
+        (tool) => !tool.toolSpec?.name || !isMcpTool(tool.toolSpec.name)
+      )
+
+      // 統合したツールセット（MCPツールは初期状態では無効）
+      const mcpToolsWithState = mcpTools.map((tool) => ({
+        ...tool,
+        // 既存のエージェントツール設定でMCPツールが有効になっている場合はその状態を維持
+        enabled: agentTools.some(
+          (existingTool) =>
+            existingTool.toolSpec?.name === tool.toolSpec?.name && existingTool.enabled
+        )
+      }))
+
+      const mergedTools = [...nonMcpTools, ...mcpToolsWithState]
+      setAgentTools(mergedTools)
+
+      // 親コンポーネントに通知
+      // ただし初期化中に不要な更新が発生するのを防ぐためにタイムアウトを使用
+      setTimeout(() => {
+        onChange(mergedTools)
+      }, 0)
+    }
+  }, [mcpTools, onChange])
 
   // ツール設定変更のハンドラ
   const handleToggleTool = (toolName: string) => {
@@ -129,11 +178,55 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
 
   // 各カテゴリのツールを取得する
   const getToolsByCategory = () => {
+    // まず全ツールのリストを確認
+    console.log('Total tools available:', agentTools.map((t) => t.toolSpec?.name).filter(Boolean))
+
+    // MCPツールを抽出
+    const availableMcpTools = agentTools.filter((tool) => {
+      const toolName = tool.toolSpec?.name
+      return toolName ? isMcpTool(toolName) : false
+    })
+
+    // MCPツールの存在をログ出力
+    console.log(
+      'MCP tools available:',
+      availableMcpTools.length,
+      'names:',
+      availableMcpTools.map((t) => t.toolSpec?.name).join(', ')
+    )
+
     const toolsByCategory = TOOL_CATEGORIES.map((category) => {
+      // MCP カテゴリの場合は特別処理
+      if (category.id === 'mcp') {
+        // MCPツールのみをフィルタリング - 上で抽出済みのMCPツールを使用
+        const mcpToolStates = availableMcpTools
+
+        // MCPサーバー設定の有無を確認
+        const hasMcpServers = mcpServers && mcpServers.length > 0
+
+        // MCPサーバー情報の詳細をログ出力
+        console.log('MCP tools found:', mcpToolStates.length, 'Servers configured:', hasMcpServers)
+        if (hasMcpServers) {
+          console.log('MCP servers:', mcpServers.map((s) => s.name).join(', '))
+        }
+
+        return {
+          ...category,
+          toolsData: mcpToolStates,
+          hasMcpServers, // MCPサーバーがあるかどうかのフラグ
+          mcpServersInfo: mcpServers // サーバー情報も含める
+        }
+      }
+
+      // 通常のツールカテゴリの場合
+      // MCPツールは除外するが、他のすべての標準ツールはカテゴリに含める
       const toolsInCategory =
-        agentTools?.filter(
-          (tool) => tool.toolSpec?.name && category.tools.includes(tool.toolSpec.name)
-        ) || []
+        agentTools?.filter((tool) => {
+          const toolName = tool.toolSpec?.name
+          if (!toolName) return false
+          // MCPツールは除外し、カテゴリに含まれるツールを表示
+          return category.tools.includes(toolName) && !isMcpTool(toolName)
+        }) || []
 
       return {
         ...category,
@@ -184,7 +277,8 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
     return (
       tool.toolSpec?.name === 'retrieve' ||
       tool.toolSpec?.name === 'invokeBedrockAgent' ||
-      tool.toolSpec?.name === 'executeCommand'
+      tool.toolSpec?.name === 'executeCommand' ||
+      (tool.toolSpec?.name && isMcpTool(tool.toolSpec.name))
     )
   })
 
@@ -324,6 +418,104 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
                 </div>
               </div>
 
+              {/* MCPカテゴリの状態に応じたメッセージ表示 */}
+              {category.id === 'mcp' && (
+                <>
+                  {/* サーバーが設定されていない場合の警告表示 */}
+                  {category.hasMcpServers === false ? (
+                    <div className="p-3 mt-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 rounded-md">
+                      <div className="flex items-center mb-1">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 mr-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
+                        </svg>
+                        <span className="font-medium">{t('Warning')}</span>
+                      </div>
+                      <p className="text-sm ml-7">
+                        {t(
+                          'No MCP servers configured for this agent. Configure MCP servers in the MCP Servers tab to use MCP tools.'
+                        )}
+                      </p>
+                    </div>
+                  ) : category.toolsData.length === 0 ? (
+                    // サーバーがあってもツールがなければ情報表示
+                    <div className="p-3 mt-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md">
+                      <div className="flex items-center mb-1">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 mr-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span className="font-medium">{t('Information')}</span>
+                      </div>
+                      <p className="text-sm ml-7">
+                        {t(
+                          'MCP servers are configured, but no tools are available. Make sure MCP servers are running and providing tools.'
+                        )}
+                      </p>
+                      <div className="mt-2 ml-7 text-xs">
+                        <p className="font-medium mb-1">{t('Configured MCP Servers')}:</p>
+                        <ul className="list-disc pl-4">
+                          {mcpServers.map((server, idx) => (
+                            <li key={idx}>
+                              <span className="font-mono">{server.name}</span>
+                              {server.description && (
+                                <span className="ml-1">({server.description})</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    category.toolsData.length > 0 && (
+                      // サーバーとツールが両方ある場合は情報バナー表示
+                      <div className="p-3 mt-2 bg-green-50 dark:bg-green-900/10 text-green-700 dark:text-green-300 rounded-md">
+                        <div className="flex items-center">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <span className="font-medium">
+                            {t('MCP tools available from configured servers')} (
+                            {category.toolsData.length})
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </>
+              )}
+
               {/* ツールリスト */}
               {category.toolsData.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-3">
@@ -338,14 +530,48 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
                       >
                         <div className="flex items-center space-x-3">
                           <div className="text-gray-500 dark:text-gray-400 flex-shrink-0 w-7 h-7 flex items-center justify-center">
-                            {toolIcons[toolName as ToolName]}
+                            {toolName && isMcpTool(toolName) ? (
+                              <FiServer className="h-5 w-5" />
+                            ) : toolName ? (
+                              toolIcons[toolName as ToolName]
+                            ) : null}
                           </div>
                           <div>
                             <p className="font-medium text-gray-800 dark:text-gray-200">
-                              {toolName}
+                              {toolName && isMcpTool(toolName)
+                                ? getOriginalMcpToolName(toolName)
+                                : toolName}
+                              {toolName && isMcpTool(toolName) && (
+                                <span className="ml-1 text-xs font-normal bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 py-0.5 px-1 rounded">
+                                  MCP
+                                </span>
+                              )}
                             </p>
                             <p className="text-xs text-gray-600 dark:text-gray-400">
-                              {t(`tool descriptions.${toolName}`)}
+                              {toolName && isMcpTool(toolName) ? (
+                                <>
+                                  {tool.toolSpec?.description ||
+                                    t('MCP tool from Model Context Protocol server')}
+                                  {/* サーバー情報が見つかれば表示 */}
+                                  {mcpServers && mcpServers.length > 0 && (
+                                    <span className="block mt-0.5 text-blue-600 dark:text-blue-400">
+                                      {t('From')}:{' '}
+                                      {(() => {
+                                        const serverName =
+                                          getOriginalMcpToolName(toolName)?.split('.')[0]
+                                        const server = mcpServers.find((s) => s.name === serverName)
+                                        return server
+                                          ? `${server.name} (${server.description || 'MCP Server'})`
+                                          : serverName || 'Unknown server'
+                                      })()}
+                                    </span>
+                                  )}
+                                </>
+                              ) : toolName ? (
+                                t(`tool descriptions.${toolName}`)
+                              ) : (
+                                ''
+                              )}
                             </p>
                           </div>
                         </div>
