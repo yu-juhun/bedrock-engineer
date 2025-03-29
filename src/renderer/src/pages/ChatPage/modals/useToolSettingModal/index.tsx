@@ -12,6 +12,8 @@ import { memo, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 // ローカルで型定義
 import { ToolState } from '@/types/agent-chat'
+// JSONViewerコンポーネントのインポート
+import JSONViewer from '@renderer/components/JSONViewer'
 
 export interface CommandConfig {
   pattern: string
@@ -113,7 +115,7 @@ const ToolItem: React.FC<ToolItemProps> = ({
       className={`
         border-b border-gray-100 dark:border-gray-700 transition-colors duration-150
         ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 !border-l-blue-500' : 'border-l-2 border-l-transparent'}
-        ${isMcp ? 'bg-cyan-50 dark:bg-cyan-900/10' : ''} 
+        ${isMcp ? 'bg-cyan-50 dark:bg-cyan-900/10' : ''}
         cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 w-full
       `}
       onClick={() => onSelect()}
@@ -204,6 +206,7 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
 
   // 選択されたツールの状態管理
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
+  const [selectedToolBody, setSelectedToolBody] = useState<ToolState>()
 
   // エージェントのツール設定
   const [agentTools, setAgentTools] = useState<ToolState[]>([])
@@ -249,6 +252,7 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
 
   const selectTool = (toolName: string) => {
     setSelectedTool(toolName === selectedTool ? null : toolName)
+    setSelectedToolBody(agentTools.find((tool) => tool.toolSpec?.name === toolName))
   }
 
   // 各カテゴリのツールを取得する
@@ -370,22 +374,16 @@ const ToolSettingModal = memo(({ isOpen, onClose }: ToolSettingModalProps) => {
                     </div>
 
                     <p className="mb-4 text-gray-700 dark:text-gray-300">
-                      {t(
-                        `tool descriptions.${selectedTool}`,
-                        'This tool is provided by an MCP server.'
-                      )}
+                      {selectedToolBody?.toolSpec?.description ?? ''}
                     </p>
 
-                    <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-md mt-4 border-l-4 border-cyan-500">
-                      <h5 className="font-medium mb-2 text-cyan-700 dark:text-cyan-300">
-                        {t('MCP Tool')}
-                      </h5>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        {t(
-                          'This tool is provided by an MCP server and is always enabled. It cannot be disabled.'
-                        )}
-                      </p>
-                    </div>
+                    {/* JSONViewerコンポーネントを使用 */}
+                    <JSONViewer
+                      data={selectedToolBody?.toolSpec}
+                      title="Tool Specification (JSON)"
+                      maxHeight="400px"
+                      showCopyButton={true}
+                    />
                   </div>
                 ) : TOOLS_WITH_SETTINGS.includes(selectedTool) ? (
                   <>

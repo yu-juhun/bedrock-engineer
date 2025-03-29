@@ -31,7 +31,7 @@ export const agentToolsSettings = {
     'Tool Categories.Thinking Description':
       'Tools for enhanced reasoning and complex problem solving',
     'Tool Categories.MCP': 'MCP',
-    'Tool Categories.MCP Description': 'Model Context Protocol Tools',
+    'Tool Categories.MCP Tools Description': 'Model Context Protocol Tools',
     'Tool Categories.All Configuration': 'All',
     'tools.description': 'Select the tools this agent can use.',
     'Available Tools': 'Available Tools',
@@ -137,7 +137,7 @@ export const agentToolsSettings = {
     'Tool Categories.Thinking': '思考',
     'Tool Categories.Thinking Description': '高度な推論と複雑な問題解決のためのツール',
     'Tool Categories.MCP': 'MCP',
-    'Tool Categories.MCP Description': 'Model Context Protocol ツール',
+    'Tool Categories.MCP Tools Description': 'Model Context Protocol ツール',
     'Tool Categories.All Configuration': '全て',
     'tools.description': 'このエージェントが使用できるツールを選択します。',
     'Available Tools': '利用可能なツール',

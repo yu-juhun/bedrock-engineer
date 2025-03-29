@@ -923,7 +923,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     (agentId: string): ToolState[] => {
       // 現在選択されているエージェントを見つける
       const agent = allAgents.find((a) => a.id === agentId)
-
       // MCP ツールを取得（常に有効）
       const mcpTools = agent?.mcpTools || []
       const agentMcpTools = mcpTools.map((tool) => ({
@@ -953,14 +952,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return [...enabledStandardTools, ...agentMcpTools]
       }
 
-      // エージェント固有の設定がない場合は標準ツールセットを返す（MCP ツールは常に有効）
-      const defaultStandardTools = getToolsForCategory(
-        'all',
-        tools.map((tool) => ({ ...tool, enabled: true }))
-      )
-
-      // 標準ツールと MCP ツールを結合して返す
-      return [...defaultStandardTools, ...agentMcpTools]
+      // MCP ツールだけを返す
+      return agentMcpTools
     },
     [allAgents, tools]
   )
