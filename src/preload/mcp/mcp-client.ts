@@ -2,6 +2,7 @@ import { Tool } from '@aws-sdk/client-bedrock-runtime'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { z } from 'zod'
+import { resolveCommand } from './command-resolver'
 
 // https://github.com/modelcontextprotocol/quickstart-resources/blob/main/mcp-client-typescript/index.ts
 export class MCPClient {
@@ -22,7 +23,12 @@ export class MCPClient {
 
   static async fromCommand(command: string, args: string[], env?: Record<string, string>) {
     const client = new MCPClient()
-    await client.connectToServer(command, args, env ?? {})
+    // コマンドパスを解決
+    const resolvedCommand = resolveCommand(command)
+    if (resolvedCommand !== command) {
+      console.log(`Using resolved command path: ${resolvedCommand} (original: ${command})`)
+    }
+    await client.connectToServer(resolvedCommand, args, env ?? {})
     return client
   }
 
@@ -36,7 +42,12 @@ export class MCPClient {
       this.transport = new StdioClientTransport({
         command,
         args,
-        env: { ...env, ...(process.env as Record<string, string>) }
+        env: {
+          ...env,
+          ...(process.env as Record<string, string>),
+          // 明示的にPATHを設定して確実に現在の環境変数を使用
+          PATH: process.env.PATH || ''
+        }
       })
       await this.mcp.connect(this.transport)
 

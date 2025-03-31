@@ -204,9 +204,6 @@ export const initMcpFromAgentConfig = async (mcpServers: McpServerConfig[] = [])
   }
 }
 
-// デフォルト設定は必要なくなりました
-// デフォルト設定を使用する関数は削除
-
 export const getMcpToolSpecs = async (mcpServers?: McpServerConfig[]): Promise<Tool[]> => {
   // MCPサーバー設定がない場合は空配列を返す
   if (!mcpServers || mcpServers.length === 0) {
