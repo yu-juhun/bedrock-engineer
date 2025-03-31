@@ -11,6 +11,7 @@ export const en = {
   authorLabel: 'Author',
   systemPromptLabel: 'System Prompt',
   toolsLabel: 'Tools',
+  mcpServersLabel: 'MCP Servers',
   close: 'Close',
   scenariosLabel: 'Scenario',
   addToMyAgents: 'Add to My Agents',

@@ -12,6 +12,7 @@ export const ja = {
   authorLabel: '作成者',
   systemPromptLabel: 'System Prompt',
   toolsLabel: 'Tools',
+  mcpServersLabel: 'MCPサーバー',
   close: '閉じる',
   scenariosLabel: 'Scenario',
   addToMyAgents: 'マイエージェントに追加',
