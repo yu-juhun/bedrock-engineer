@@ -27,7 +27,8 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
   bedrockAgents = [],
   onBedrockAgentsChange,
   mcpServers = [],
-  tempMcpTools = []
+  tempMcpTools = [],
+  isLoadingMcpTools = false
 }) => {
   const { t } = useTranslation()
   const { getDefaultToolsForCategory } = useSetting()
@@ -164,6 +165,7 @@ export const ToolsSection: React.FC<ToolsSectionProps> = ({
           onCategoryChange={handleCategoryChange}
           onToggleTool={handleToggleTool}
           onShowToolInfo={(toolName: string) => setToolInfoToShow(toolName)}
+          isLoadingMcpTools={isLoadingMcpTools}
         />
       )}
 

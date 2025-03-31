@@ -221,7 +221,7 @@ export function generateSampleJson(type: 'simple' | 'multiple' = 'multiple'): st
         },
         filesystem: {
           command: 'npx',
-          args: ['-y', '@modelcontextprotocol/server-filesystem', './data']
+          args: ['-y', '@modelcontextprotocol/server-filesystem', '~/']
         }
       }
     },

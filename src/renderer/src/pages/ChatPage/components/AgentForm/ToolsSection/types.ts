@@ -35,6 +35,7 @@ export interface ToolsSectionProps {
   onBedrockAgentsChange?: (agents: BedrockAgent[]) => void
   mcpServers?: McpServerConfig[]
   tempMcpTools?: ToolState[] // 一時的なMCPツール（タブ切替時に取得したもの）
+  isLoadingMcpTools?: boolean // MCPツールを読み込み中かどうかを示すフラグ
 }
 
 /**
@@ -66,6 +67,7 @@ export interface AvailableToolsTabProps {
   onCategoryChange: (event: React.ChangeEvent<HTMLSelectElement>) => void
   onToggleTool: (toolName: string) => void
   onShowToolInfo: (toolName: string) => void
+  isLoadingMcpTools?: boolean // MCPツールを読み込み中かどうかを示すフラグ
 }
 
 /**
@@ -76,6 +78,7 @@ export interface ToolCategorySectionProps {
   mcpServers?: McpServerConfig[]
   onToggleTool: (toolName: string) => void
   onShowToolInfo: (toolName: string) => void
+  isLoadingMcpTools?: boolean // MCPツールを読み込み中かどうかを示すフラグ
 }
 
 /**

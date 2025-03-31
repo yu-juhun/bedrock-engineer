@@ -1,5 +1,4 @@
 import React from 'react'
-import { useTranslation } from 'react-i18next'
 import { formEventUtils } from '../utils/formEventUtils'
 import { BasicSection } from '../BasicSection'
 import { SystemPromptSection } from '../SystemPromptSection'
@@ -50,8 +49,6 @@ export const AgentFormContent: React.FC<{
   availableTags,
   fetchMcpTools
 }) => {
-  const { t } = useTranslation()
-
   switch (activeTab) {
     case 'basic':
       return (
@@ -128,31 +125,21 @@ export const AgentFormContent: React.FC<{
     case 'tools':
       return (
         <div className="overflow-y-auto max-h-[900px] pb-4">
-          {isLoadingMcpTools ? (
-            <div className="flex flex-col items-center justify-center p-8">
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                <div className="bg-blue-600 dark:bg-blue-500 h-2.5 rounded-full w-3/4 animate-pulse"></div>
-              </div>
-              <p className="mt-4 text-gray-600 dark:text-gray-400">
-                {t('MCPサーバーからツールを取得中...')}
-              </p>
-            </div>
-          ) : (
-            <ToolsSection
-              tools={agentTools}
-              onChange={handleToolsChange}
-              agentCategory={agentCategory}
-              onCategoryChange={handleCategoryChange}
-              knowledgeBases={formData.knowledgeBases || []}
-              onKnowledgeBasesChange={(kbs) => updateField('knowledgeBases', kbs)}
-              allowedCommands={formData.allowedCommands || []}
-              onAllowedCommandsChange={(commands) => updateField('allowedCommands', commands)}
-              bedrockAgents={formData.bedrockAgents || []}
-              onBedrockAgentsChange={(agents) => updateField('bedrockAgents', agents)}
-              mcpServers={formData.mcpServers || []}
-              tempMcpTools={tempMcpTools}
-            />
-          )}
+          <ToolsSection
+            tools={agentTools}
+            onChange={handleToolsChange}
+            agentCategory={agentCategory}
+            onCategoryChange={handleCategoryChange}
+            knowledgeBases={formData.knowledgeBases || []}
+            onKnowledgeBasesChange={(kbs) => updateField('knowledgeBases', kbs)}
+            allowedCommands={formData.allowedCommands || []}
+            onAllowedCommandsChange={(commands) => updateField('allowedCommands', commands)}
+            bedrockAgents={formData.bedrockAgents || []}
+            onBedrockAgentsChange={(agents) => updateField('bedrockAgents', agents)}
+            mcpServers={formData.mcpServers || []}
+            tempMcpTools={tempMcpTools}
+            isLoadingMcpTools={isLoadingMcpTools}
+          />
         </div>
       )
     default:

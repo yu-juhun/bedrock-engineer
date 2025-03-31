@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import AILogo from '../../assets/images/icons/ai.svg'
 import { MessageList } from './components/MessageList'
-import InputFormContainer from './components/InputFormContainer'
+import InputFormContainer, { InputFormContainerRef } from './components/InputFormContainer'
 import { ExampleScenarios } from './components/ExampleScenarios'
 import { useAgentChat } from './hooks/useAgentChat'
 import { AgentSelector } from './components/AgentSelector'
@@ -32,6 +32,7 @@ export default function ChatPage() {
   } = useSetting()
 
   const currentScenarios = currentAgent?.scenarios || []
+  const inputFormRef = useRef<InputFormContainerRef>(null)
 
   const {
     messages,
@@ -106,6 +107,14 @@ export default function ChatPage() {
       clearChat()
     }
   }, [clearChat, t])
+
+  // シナリオ選択ハンドラ
+  const handleSelectScenario = useCallback((scenario: string) => {
+    // テキストエリアに選択したシナリオを設定
+    if (inputFormRef.current) {
+      inputFormRef.current.setInputText(scenario)
+    }
+  }, [])
 
   useEffect(() => {
     scrollToBottom()
@@ -198,10 +207,7 @@ export default function ChatPage() {
                     {currentAgent && (
                       <ExampleScenarios
                         scenarios={currentScenarios}
-                        onSelectScenario={(scenario) => {
-                          // シナリオ選択時は直接handleSubmitを呼び出す
-                          handleSubmit(scenario, [])
-                        }}
+                        onSelectScenario={handleSelectScenario}
                       />
                     )}
                   </div>
@@ -220,6 +226,7 @@ export default function ChatPage() {
               {/* 入力フォーム - 固定 */}
               <div className="mt-2 dark:border-gray-700 bg-white dark:bg-gray-800">
                 <InputFormContainer
+                  ref={inputFormRef}
                   loading={loading}
                   projectPath={projectPath}
                   sendMsgKey={sendMsgKey}

@@ -11,7 +11,8 @@ export const ToolCategorySection: React.FC<ToolCategorySectionProps> = ({
   category,
   mcpServers = [],
   onToggleTool,
-  onShowToolInfo
+  onShowToolInfo,
+  isLoadingMcpTools = false
 }) => {
   const { t } = useTranslation()
 
@@ -42,8 +43,16 @@ export const ToolCategorySection: React.FC<ToolCategorySectionProps> = ({
       {/* MCPカテゴリの状態に応じたメッセージ表示 */}
       {category.id === 'mcp' && (
         <>
-          {/* サーバーが設定されていない場合の警告表示 */}
-          {category.hasMcpServers === false ? (
+          {isLoadingMcpTools ? (
+            // MCPツール取得中のローディング表示
+            <div className="p-3 mt-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md">
+              <div className="flex items-center">
+                <div className="w-5 h-5 mr-2 border-t-2 border-r-2 border-blue-500 rounded-full animate-spin"></div>
+                <span className="font-medium">{t('MCPサーバーからツールを取得中...')}</span>
+              </div>
+            </div>
+          ) : category.hasMcpServers === false ? (
+            // サーバーが設定されていない場合の警告表示
             <div className="p-3 mt-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 rounded-md">
               <div className="flex items-center mb-1">
                 <svg
