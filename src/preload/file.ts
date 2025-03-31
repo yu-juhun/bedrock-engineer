@@ -3,10 +3,12 @@ import { ipcRenderer } from 'electron'
 import { promisify } from 'util'
 import fs from 'fs'
 import path from 'path'
-import { CustomAgent } from '../types/agent-chat'
+import { CustomAgent, ToolState } from '../types/agent-chat'
 import yaml from 'js-yaml'
+import { Tool } from '@aws-sdk/client-bedrock-runtime'
 // 直接storeをインポート
 import { store } from './store'
+import { getMcpToolSpecs } from './mcp'
 
 // Function to create a folder if it doesn't exist
 const createFolderIfNotExists = async (folderPath: string): Promise<void> => {
@@ -60,6 +62,26 @@ async function readSharedAgents(): Promise<{ agents: CustomAgent[]; error?: Erro
           // Flag this agent as shared
           agent.isShared = true
           agent.isCustom = false
+
+          // mcpServersが存在する場合は、対応するmcpToolsを取得
+          if (agent.mcpServers && agent.mcpServers.length > 0) {
+            try {
+              // このエージェントのMCPサーバー構成からツールを取得
+              const mcpTools = await getMcpToolSpecs(agent.mcpServers)
+              if (mcpTools && mcpTools.length > 0) {
+                // mcpToolsをToolStateとして追加（有効状態）
+                agent.mcpTools = mcpTools.map((tool: Tool) => ({
+                  ...tool,
+                  enabled: true
+                })) as ToolState[]
+                console.log(
+                  `Loaded ${agent.mcpTools.length} MCP tools for shared agent: ${agent.name}`
+                )
+              }
+            } catch (error) {
+              console.error(`Failed to fetch MCP tools for agent ${agent.name}:`, error)
+            }
+          }
 
           // If we have an author but no authorImageUrl, authorImageUrl can be removed
           // as it will be derived from the author in the UI components
@@ -129,6 +151,26 @@ async function readDirectoryAgents(): Promise<{ agents: CustomAgent[]; error?: E
           agent.directoryOnly = true
           agent.isShared = false
           agent.isCustom = false
+
+          // mcpServersが存在する場合は、対応するmcpToolsを取得
+          if (agent.mcpServers && agent.mcpServers.length > 0) {
+            try {
+              // このエージェントのMCPサーバー構成からツールを取得
+              const mcpTools = await getMcpToolSpecs(agent.mcpServers)
+              if (mcpTools && mcpTools.length > 0) {
+                // mcpToolsをToolStateとして追加（有効状態）
+                agent.mcpTools = mcpTools.map((tool: Tool) => ({
+                  ...tool,
+                  enabled: true
+                })) as ToolState[]
+                console.log(
+                  `Loaded ${agent.mcpTools.length} MCP tools for directory agent: ${agent.name}`
+                )
+              }
+            } catch (error) {
+              console.error(`Failed to fetch MCP tools for agent ${agent.name}:`, error)
+            }
+          }
 
           // If we have an author but no authorImageUrl, authorImageUrl can be removed
           // as it will be derived from the author in the UI components

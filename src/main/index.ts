@@ -455,6 +455,11 @@ app.whenReady().then(() => {
 
           // Add a flag to indicate this is a shared agent
           agent.isShared = true
+
+          // mcpToolsは自動的に生成されるため、保存対象から除外（後でpreloadで復元される）
+          // ここではmcpToolsを削除することでファイルからの読み込み時にも整合性を保つ
+          delete agent.mcpTools
+
           return agent
         } catch (err) {
           agentsLogger.error(`Error reading agent file`, {
@@ -537,6 +542,9 @@ app.whenReady().then(() => {
         id: newId,
         isShared: true
       }
+
+      // mcpToolsは保存対象から除外（mcpServersのみを保存）
+      delete sharedAgent.mcpTools
 
       // Write the agent to file based on the format
       const filePath = resolve(agentsDir, fileName)
