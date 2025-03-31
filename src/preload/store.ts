@@ -121,6 +121,9 @@ type StoreScheme = {
 
   /** 使用可能なAmazon Bedrockエージェントの一覧 */
   bedrockAgents?: BedrockAgent[]
+
+  /** YAML形式から読み込まれた共有エージェントの一覧 */
+  sharedAgents?: CustomAgent[]
 }
 
 const electronStore = new Store<StoreScheme>()

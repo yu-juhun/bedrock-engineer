@@ -5,6 +5,7 @@ import { ToolInput, ToolResult, isMcpTool, getOriginalMcpToolName } from '../../
 import { createPreloadCategoryLogger } from '../logger'
 import { CommandPatternConfig } from '../../main/api/command/types'
 import { tryExecuteMcpTool } from '../mcp'
+import { findAgentById } from '../helpers/agent-helpers'
 
 // Create logger for tools module
 const logger = createPreloadCategoryLogger('tools')
@@ -121,9 +122,8 @@ export const executeTool = async (input: ToolInput): Promise<string | ToolResult
         // エージェント固有の許可コマンドを取得
         let allowedCommands: CommandPatternConfig[] = []
         if (selectedAgentId) {
-          // カスタムエージェントから許可コマンドを取得
-          const customAgents = store.get('customAgents') || []
-          const currentAgent = customAgents.find((agent) => agent.id === selectedAgentId)
+          // カスタムエージェントおよび共有エージェントから許可コマンドを取得
+          const currentAgent = findAgentById(selectedAgentId)
           if (currentAgent && currentAgent.allowedCommands) {
             allowedCommands = currentAgent.allowedCommands
           }

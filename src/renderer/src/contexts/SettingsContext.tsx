@@ -498,6 +498,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.error('Error loading shared agents:', error)
       } else {
         setSharedAgents(agents || [])
+        // store にも保存して、プリロードプロセスからアクセスできるようにする
+        window.store.set('sharedAgents', agents || [])
       }
     } catch (error) {
       console.error('Failed to load shared agents:', error)
