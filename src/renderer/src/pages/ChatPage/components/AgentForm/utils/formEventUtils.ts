@@ -5,9 +5,17 @@ import React from 'react'
  */
 export const formEventUtils = {
   /**
-   * イベント伝播を防止する関数
+   * イベント伝播を防止する関数 - 特定の要素は除外
    */
   preventPropagation: (e: React.SyntheticEvent) => {
+    // カラーピッカーなど特定の要素に対しては処理をスキップ
+    if (
+      (e.target instanceof HTMLInputElement && e.target.type === 'color') ||
+      (e.target instanceof Element && e.target.closest('.color-picker-container'))
+    ) {
+      return e
+    }
+
     e.preventDefault()
     e.stopPropagation()
     return e
