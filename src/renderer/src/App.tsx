@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage/HomePage'
 import { Toaster } from 'react-hot-toast'
 import ErrorPage from './pages/ErrorPage/ErrorPage'
 import { SettingsProvider } from './contexts/SettingsContext'
+import { AgentDirectoryProvider } from './contexts/AgentDirectoryContext'
 import { StepType, TourProvider } from '@reactour/tour'
 import { useTranslation } from 'react-i18next'
 
@@ -121,10 +122,12 @@ function App(): JSX.Element {
   return (
     <TourProvider steps={steps} styles={styles}>
       <SettingsProvider>
-        <div>
-          <Toaster position="top-right" />
-          <RouterProvider router={router} />
-        </div>
+        <AgentDirectoryProvider>
+          <div>
+            <Toaster position="top-right" />
+            <RouterProvider router={router} />
+          </div>
+        </AgentDirectoryProvider>
       </SettingsProvider>
     </TourProvider>
   )

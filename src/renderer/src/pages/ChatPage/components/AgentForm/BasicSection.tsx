@@ -218,17 +218,22 @@ export const BasicSection: React.FC<BasicSectionProps> = ({
                 border-gray-200 dark:border-gray-700 p-2 w-[320px]"
                 >
                   {/* Color Picker */}
-                  <div className="p-2 border-b border-gray-200 dark:border-gray-700 pb-6">
+                  <div className="p-2 border-b border-gray-200 dark:border-gray-700 pb-6 color-picker-container">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                       {t('iconColor')}
                     </label>
                     <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={iconColor || '#000000'}
-                        onChange={(e) => onChange('iconColor', e.target.value)}
-                        className="w-8 h-8 rounded cursor-pointer"
-                      />
+                      <div className="color-picker-wrapper">
+                        <input
+                          type="color"
+                          value={iconColor || '#FF0000'}
+                          onChange={(e) => {
+                            onChange('iconColor', e.target.value)
+                          }}
+                          className="w-8 h-8 rounded cursor-pointer"
+                          style={{ position: 'relative', zIndex: 60 }}
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={() => onChange('iconColor', undefined)}

@@ -6,7 +6,7 @@ import { AgentDetailModal } from './components/AgentDetailModal'
 import { AgentList } from './components/AgentList'
 import { TagFilter } from './components/TagFilter'
 import { useContributorModal } from './components/ContributorModal'
-import { useAgentDirectory } from './hooks/useAgentDirectory'
+import { useAgentDirectory } from '@renderer/contexts/AgentDirectoryContext'
 import { CustomAgent } from '@/types/agent-chat'
 
 export const AgentDirectoryPage: React.FC = () => {

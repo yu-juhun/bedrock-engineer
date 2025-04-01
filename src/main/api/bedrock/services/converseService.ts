@@ -223,6 +223,24 @@ export class ConverseService {
         // スペース1文字をプレースホルダーとして設定
         block.text = ' '
       }
+
+      // toolUseブロックの入力が空文字の場合、空のJSONオブジェクトに変換
+      if (
+        Object.prototype.hasOwnProperty.call(block, 'toolUse') &&
+        block.toolUse &&
+        Object.prototype.hasOwnProperty.call(block.toolUse, 'input') &&
+        block.toolUse.input === ''
+      ) {
+        // 空の文字列を空のJSONオブジェクトに置き換える
+        block.toolUse.input = {}
+        converseLogger.debug(
+          'Empty toolUse.input converted to empty JSON object in sanitizeContentBlocks',
+          {
+            toolName: block.toolUse.name
+          }
+        )
+      }
+
       return block
     }) as ContentBlock[]
   }
@@ -246,6 +264,22 @@ export class ConverseService {
               return Object.keys(block).length > 1
             }
             return true
+          })
+
+          // toolUseブロックの入力が空文字の場合、空のJSONオブジェクトに変換
+          validBlocks.forEach((block) => {
+            if (
+              Object.prototype.hasOwnProperty.call(block, 'toolUse') &&
+              block.toolUse &&
+              Object.prototype.hasOwnProperty.call(block.toolUse, 'input') &&
+              block.toolUse.input === ''
+            ) {
+              // 空の文字列を空のJSONオブジェクトに置き換える
+              block.toolUse.input = {}
+              converseLogger.debug('Empty toolUse.input converted to empty JSON object', {
+                toolName: block.toolUse.name
+              })
+            }
           })
 
           // 配列が空になってしまった場合は、最低1つの有効なブロックを確保

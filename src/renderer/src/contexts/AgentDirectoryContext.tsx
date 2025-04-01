@@ -1,11 +1,31 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useSettings } from '@renderer/contexts/SettingsContext'
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
+import { useSettings } from './SettingsContext'
 import { CustomAgent } from '@/types/agent-chat'
-// import { useTranslation } from 'react-i18next'
 
-export const useAgentDirectory = () => {
-  // Translation handled in the components
-  // const { t } = useTranslation('agentDirectory')
+// コンテキストの型を定義
+interface AgentDirectoryContextType {
+  // 状態
+  agents: CustomAgent[]
+  isLoading: boolean
+  searchQuery: string
+  selectedAgent: CustomAgent | null
+  allTags: string[]
+  selectedTags: string[]
+
+  // 操作関数
+  setSearchQuery: (query: string) => void
+  setSelectedAgent: (agent: CustomAgent | null) => void
+  addSelectedAgentToMyAgents: () => Promise<void>
+  handleTagToggle: (tag: string) => void
+  clearTags: () => void
+}
+
+// コンテキストを作成
+const AgentDirectoryContext = createContext<AgentDirectoryContextType | undefined>(undefined)
+
+// プロバイダーコンポーネント
+export const AgentDirectoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // SettingsContext から必要な関数とデータを取得
   const {
     directoryAgents,
     isDirectoryAgentLoading,
@@ -13,11 +33,12 @@ export const useAgentDirectory = () => {
     addDirectoryAgentToCustom
   } = useSettings()
 
+  // 状態
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [selectedAgent, setSelectedAgent] = useState<CustomAgent | null>(null)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
 
-  // Get all unique tags from all agents
+  // すべてのタグをエージェントから抽出
   const allTags = useMemo(() => {
     const tagSet = new Set<string>()
     directoryAgents.forEach((agent) => {
@@ -28,19 +49,19 @@ export const useAgentDirectory = () => {
     return Array.from(tagSet).sort()
   }, [directoryAgents])
 
-  // Handle tag selection toggle
-  const handleTagToggle = (tag: string) => {
+  // タグの選択・解除を処理
+  const handleTagToggle = useCallback((tag: string) => {
     setSelectedTags((prevTags) =>
       prevTags.includes(tag) ? prevTags.filter((t) => t !== tag) : [...prevTags, tag]
     )
-  }
+  }, [])
 
-  // Clear all selected tags
-  const clearTags = () => {
+  // すべてのタグをクリア
+  const clearTags = useCallback(() => {
     setSelectedTags([])
-  }
+  }, [])
 
-  // フィルタリングされたエージェントリスト
+  // フィルタリングされたエージェントのリスト
   const filteredAgents = useMemo(() => {
     return directoryAgents.filter((agent) => {
       // タグフィルタリング
@@ -60,8 +81,8 @@ export const useAgentDirectory = () => {
     })
   }, [directoryAgents, searchQuery, selectedTags])
 
-  // 現在選択されているエージェントをマイエージェントとして追加
-  const addSelectedAgentToMyAgents = async (): Promise<void> => {
+  // 選択したエージェントをマイエージェントに追加
+  const addSelectedAgentToMyAgents = useCallback(async (): Promise<void> => {
     if (!selectedAgent) {
       throw new Error('No agent selected')
     }
@@ -70,14 +91,15 @@ export const useAgentDirectory = () => {
     if (!success) {
       throw new Error('Failed to add agent')
     }
-  }
+  }, [selectedAgent, addDirectoryAgentToCustom])
 
+  // アプリケーション起動時にディレクトリエージェントを読み込み
   useEffect(() => {
-    // 初回レンダリング時にディレクトリエージェントをロード
     loadDirectoryAgents()
   }, [])
 
-  return {
+  // コンテキスト値の作成
+  const value: AgentDirectoryContextType = {
     agents: filteredAgents,
     isLoading: isDirectoryAgentLoading,
     searchQuery,
@@ -90,4 +112,15 @@ export const useAgentDirectory = () => {
     handleTagToggle,
     clearTags
   }
+
+  return <AgentDirectoryContext.Provider value={value}>{children}</AgentDirectoryContext.Provider>
+}
+
+// カスタムフック
+export const useAgentDirectory = () => {
+  const context = useContext(AgentDirectoryContext)
+  if (context === undefined) {
+    throw new Error('useAgentDirectory must be used within a AgentDirectoryProvider')
+  }
+  return context
 }
