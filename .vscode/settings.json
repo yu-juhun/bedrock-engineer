@@ -9,5 +9,9 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "CodeGPT.apiKey": "CodeGPT Plus Beta",
-  "CodeGPT.Autocomplete.enabled": true
+  "CodeGPT.Autocomplete.enabled": true,
+  "i18n-ally.localesPaths": [
+    "src/renderer/src/i18n",
+    "src/renderer/src/i18n/locales"
+  ]
 }

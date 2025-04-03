@@ -152,7 +152,7 @@ export const getToolsForCategory = (category: string, allTools: ToolState[]): To
   const currentRegion = awsConfig?.region || ''
 
   // カテゴリに基づいてツール設定を生成
-  return allTools.map((tool) => {
+  const result = allTools.map((tool) => {
     const toolName = tool.toolSpec?.name
     if (!toolName) return { ...tool, enabled: false }
 
@@ -167,9 +167,14 @@ export const getToolsForCategory = (category: string, allTools: ToolState[]): To
       }
     }
 
+    // このツールがカテゴリに含まれるかどうか
+    const isEnabled = categoryNames.includes(toolName)
+
     return {
       ...tool,
-      enabled: categoryNames.includes(toolName)
+      enabled: isEnabled
     }
   })
+
+  return result
 }
