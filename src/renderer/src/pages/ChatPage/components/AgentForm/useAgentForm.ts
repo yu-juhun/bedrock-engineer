@@ -238,16 +238,18 @@ export const useAgentForm = (initialAgent?: CustomAgent, onSave?: (agent: Custom
     async (tabId: AgentFormTabId) => {
       setActiveTab(tabId)
 
-      // ツールタブへの切り替え時にMCPツールを取得
+      // ツールタブへの切り替え時
       if (tabId === 'tools') {
         console.log(
           'Switching to tools tab, fetching MCP tools with current servers:',
           formData.mcpServers?.length || 0
         )
+
+        // MCPツールを取得
         await fetchMcpTools(formData.mcpServers)
       }
     },
-    [fetchMcpTools, formData.mcpServers]
+    [fetchMcpTools, formData.mcpServers, formData.tools, agentTools, updateField]
   )
 
   // サーバー設定変更時にツールをクリア
@@ -293,14 +295,41 @@ export const useAgentForm = (initialAgent?: CustomAgent, onSave?: (agent: Custom
     (e: React.FormEvent) => {
       e.preventDefault()
       console.log('Form submitted with data:', formData)
-      if (onSave) {
+      console.log(
+        'ツール情報:',
+        formData.tools ? `${formData.tools.length}件` : '未設定',
+        formData.tools
+      )
+
+      if (formData.tools && formData.tools.length === 0) {
+        console.warn('警告: ツールが設定されていません')
+        // ここで対処: ツールが設定されていない場合はデフォルトツール設定を適用
+        const defaultTools = getDefaultToolsForCategory('all')
+        const defaultToolNames = defaultTools
+          .filter((tool) => tool.enabled)
+          .map((tool) => tool.toolSpec?.name as ToolName)
+          .filter(Boolean)
+
+        // formDataを更新
+        const updatedFormData = {
+          ...formData,
+          tools: defaultToolNames
+        }
+
+        console.log('デフォルトツールを適用:', updatedFormData.tools)
+
+        if (onSave) {
+          console.log('修正したフォームデータで保存')
+          onSave(updatedFormData)
+        }
+      } else if (onSave) {
         console.log('Calling onSave callback')
         onSave(formData)
       } else {
         console.warn('onSave callback is not provided')
       }
     },
-    [formData, onSave]
+    [formData, onSave, getDefaultToolsForCategory]
   )
 
   return {
