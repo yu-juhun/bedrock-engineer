@@ -3,8 +3,7 @@ import {
   ContentBlock,
   Message,
   ToolUseBlockStart,
-  ImageFormat,
-  ToolConfiguration
+  ImageFormat
 } from '@aws-sdk/client-bedrock-runtime'
 import { ToolState } from '@/types/agent-chat'
 import { generateMessageId } from '@/types/chat/metadata'
@@ -20,6 +19,14 @@ import { ToolName, isMcpTool } from '@/types/tools'
 import { notificationService } from '@renderer/services/NotificationService'
 import { limitContextLength } from '@renderer/lib/contextLength'
 import { IdentifiableMessage } from '@/types/chat/message'
+import {
+  isPromptCacheSupported,
+  getCacheableFields,
+  addCachePointsToMessages,
+  addCachePointToSystem,
+  addCachePointToTools,
+  logCacheUsage
+} from '@renderer/lib/promptCacheUtils'
 
 // メッセージの送信時に、Trace を全て載せると InputToken が逼迫するので取り除く
 function removeTraces(messages) {
@@ -59,57 +66,6 @@ function removeTraces(messages) {
     }
     return message
   })
-}
-
-// メッセージにキャッシュポイントを追加する関数
-function addCachePointsToMessages(messages: Message[], firstCachePoint?: number): Message[] {
-  if (messages.length === 0) return messages
-
-  // メッセージのコピーを作成
-  const messagesWithCachePoints = [...messages]
-
-  // キャッシュポイントを設定するインデックスを決定
-  const secondCachePoint = messages.length - 1
-
-  // 両方のキャッシュポイントを設定（重複を排除）
-  const indicesToAddCache = [
-    ...new Set([...(firstCachePoint !== undefined ? [firstCachePoint] : []), secondCachePoint])
-  ]
-
-  // 選択したメッセージにだけキャッシュポイントを追加
-  const result = messagesWithCachePoints.map((message, index) => {
-    if (indicesToAddCache.includes(index) && message.content && Array.isArray(message.content)) {
-      // キャッシュポイントを追加（型を明示的に指定）
-      return {
-        ...message,
-        content: [...message.content, { cachePoint: { type: 'default' } } as ContentBlock]
-      }
-    }
-    return message
-  })
-
-  // 次の会話のために現在の secondCachePoint を返す
-  return result
-}
-
-// システムプロンプトにキャッシュポイントを追加
-function addCachePointToSystem(
-  system: { text: string }[] | undefined
-): { text: string }[] | undefined {
-  if (!system || !Array.isArray(system)) return system
-  // ContentBlock型に準拠したキャッシュポイントを追加
-  return [...system, { cachePoint: { type: 'default' } } as unknown as { text: string }]
-}
-
-// ツール設定にキャッシュポイントを追加
-function addCachePointToTools(
-  toolConfig: ToolConfiguration | undefined
-): ToolConfiguration | undefined {
-  if (!toolConfig || !toolConfig.tools || !Array.isArray(toolConfig.tools)) return toolConfig
-  return {
-    ...toolConfig,
-    tools: [...toolConfig.tools, { cachePoint: { type: 'default' } } as any]
-  }
 }
 
 export const useAgentChat = (
@@ -362,21 +318,28 @@ export const useAgentChat = (
     // キャッシュポイントを追加（前回のキャッシュポイントを引き継ぐ）
     const messagesWithCachePoints = addCachePointsToMessages(
       removeTraces(limitedMessages),
+      modelId,
       lastCachePoint.current
     )
     props.messages = messagesWithCachePoints
 
-    // 次回の会話のために現在のキャッシュポイントを更新
-    // 現在のメッセージ配列の最後のインデックスを次回の最初のキャッシュポイントとして設定
-    lastCachePoint.current = limitedMessages.length - 1
+    // モデルがPrompt Cacheをサポートしている場合のみ、次回のキャッシュポイントを更新
+    if (isPromptCacheSupported(modelId) && getCacheableFields(modelId).includes('messages')) {
+      // 次回の会話のために現在のキャッシュポイントを更新
+      // 現在のメッセージ配列の最後のインデックスを次回の最初のキャッシュポイントとして設定
+      lastCachePoint.current = limitedMessages.length - 1
+    } else {
+      // サポートされていないモデルの場合はキャッシュポイントをリセット
+      lastCachePoint.current = undefined
+    }
 
     // システムプロンプトとツール設定にもキャッシュポイントを追加
     if (props.system) {
-      props.system = addCachePointToSystem(props.system)
+      props.system = addCachePointToSystem(props.system, modelId)
     }
 
     if (props.toolConfig) {
-      props.toolConfig = addCachePointToTools(props.toolConfig)
+      props.toolConfig = addCachePointToTools(props.toolConfig, modelId)
     }
 
     const generator = streamChatCompletion(props, abortController.current.signal)
@@ -596,6 +559,9 @@ export const useAgentChat = (
         } else if (json.metadata) {
           // Metadataを処理
           const metadata = json.metadata
+
+          // Prompt Cacheの使用状況をログ出力
+          logCacheUsage(metadata, modelId)
 
           // 直近のアシスタントメッセージにメタデータを関連付ける
           if (lastAssistantMessageId.current) {
