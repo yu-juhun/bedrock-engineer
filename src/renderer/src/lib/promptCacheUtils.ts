@@ -96,7 +96,7 @@ export function addCachePointsToMessages(
         ...message,
         content: [
           ...message.content,
-          { cachePoint: { type: 'default' } } as unknown as ContentBlock
+          { cachePoint: { type: 'default' } } as ContentBlock.CachePointMember
         ]
       }
     }
@@ -127,7 +127,10 @@ export function addCachePointToSystem<T extends ContentBlock[] | { text: string 
   // システムプロンプトにcachePointを追加
   if (system.length > 0) {
     // キャッシュポイントを追加
-    const updatedSystem = [...system, { cachePoint: { type: 'default' } } as any]
+    const updatedSystem = [
+      ...system,
+      { cachePoint: { type: 'default' } } as ContentBlock.CachePointMember
+    ]
     return updatedSystem as T
   }
 
