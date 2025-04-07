@@ -27,6 +27,7 @@ import {
   addCachePointToTools,
   logCacheUsage
 } from '@renderer/lib/promptCacheUtils'
+import { calculateCost } from '@renderer/lib/pricing/modelPricing'
 
 // メッセージの送信時に、Trace を全て載せると InputToken が逼迫するので取り除く
 function removeTraces(messages) {
@@ -558,7 +559,33 @@ export const useAgentChat = (
           }
         } else if (json.metadata) {
           // Metadataを処理
-          const metadata = json.metadata
+          const metadata: IdentifiableMessage['metadata'] = {
+            converseMetadata: {},
+            sessionCost: undefined
+          }
+          metadata.converseMetadata = json.metadata
+
+          let sessionCost: number
+          // モデルIDがある場合、コストを計算
+          if (
+            modelId &&
+            metadata.converseMetadata.usage &&
+            metadata.converseMetadata.usage.inputTokens &&
+            metadata.converseMetadata.usage.outputTokens
+          ) {
+            try {
+              sessionCost = calculateCost(
+                modelId,
+                metadata.converseMetadata.usage.inputTokens,
+                metadata.converseMetadata.usage.outputTokens,
+                metadata.converseMetadata.usage.cacheReadInputTokens,
+                metadata.converseMetadata.usage.cacheWriteInputTokens
+              )
+              metadata.sessionCost = sessionCost
+            } catch (error) {
+              console.error('Error calculating cost:', error)
+            }
+          }
 
           // Prompt Cacheの使用状況をログ出力
           logCacheUsage(metadata, modelId)
@@ -573,7 +600,8 @@ export const useAgentChat = (
                     ...msg,
                     metadata: {
                       ...msg.metadata,
-                      converseMetadata: metadata
+                      converseMetadata: metadata.converseMetadata,
+                      sessionCost: metadata.sessionCost
                     }
                   }
                 }
@@ -595,7 +623,8 @@ export const useAgentChat = (
                 ...(lastMessage as IdentifiableMessage),
                 metadata: {
                   ...(lastMessage as any).metadata,
-                  converseMetadata: metadata
+                  converseMetadata: metadata.converseMetadata,
+                  sessionCost: metadata.sessionCost
                 }
               }
 

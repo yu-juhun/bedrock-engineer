@@ -12,6 +12,7 @@ export interface IdentifiableMessage extends BedrockMessage {
   status?: 'idle' | 'streaming' | 'complete' | 'error'
   metadata?: {
     converseMetadata?: ConverseStreamMetadataEvent | Record<string, any>
+    sessionCost?: number
     // 将来的に他のメタデータタイプも追加可能
   }
 }

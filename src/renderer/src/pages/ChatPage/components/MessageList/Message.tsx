@@ -22,7 +22,6 @@ type ChatMessageProps = {
   message: IdentifiableMessage
   onDeleteMessage?: () => void
   reasoning: boolean
-  metadata?: any // ConverseStreamMetadataEvent | Record<string, any>
 }
 
 // Helper function to convert various image data formats to data URL
@@ -62,8 +61,7 @@ function convertImageToDataUrl(imageData: any, format: string = 'png'): string {
 export const ChatMessage = memo(function ChatMessage({
   message,
   onDeleteMessage,
-  reasoning,
-  metadata
+  reasoning
 }: ChatMessageProps) {
   const { t } = useTranslation()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -168,7 +166,7 @@ export const ChatMessage = memo(function ChatMessage({
       <div className="flex flex-col gap-2 w-full">
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500 relative">{message.role}</span>
-          {metadata && (
+          {message.metadata && (
             <button
               onClick={() => setShowMetadataModal(true)}
               className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-500 px-2 py-0.5 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
@@ -296,7 +294,7 @@ export const ChatMessage = memo(function ChatMessage({
           <div className="text-lg font-medium">{t('Metadata')}</div>
         </Modal.Header>
         <Modal.Body className="max-h-[80vh] overflow-auto">
-          {metadata && <MetadataViewer metadata={metadata} />}
+          {message.metadata && <MetadataViewer metadata={message.metadata} />}
         </Modal.Body>
         <Modal.Footer>
           <button

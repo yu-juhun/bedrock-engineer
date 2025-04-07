@@ -58,7 +58,6 @@ const MessageListBase: React.FC<MessageListProps> = ({
           message={message}
           reasoning={reasoning}
           onDeleteMessage={deleteMessage ? handleDeleteMessage(index) : undefined}
-          metadata={message.metadata?.converseMetadata}
         />
       ))}
       {loading && <LoadingMessage />}

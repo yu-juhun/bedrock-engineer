@@ -36,7 +36,19 @@ export const messages = {
     'Cache Write': 'Write to Cache',
     'Cache hit detected!': 'Cache hit detected!',
     'New cache created': 'New cache created',
-    'Cache hit: {{percent}}% of tokens from cache': 'Cache hit: {{percent}}% of tokens from cache'
+    'Cache hit: {{percent}}% of tokens from cache': 'Cache hit: {{percent}}% of tokens from cache',
+    // コスト関連の翻訳
+    'Token Usage': 'Token Usage',
+    Cost: 'Cost',
+    'Session Cost': 'Session Cost',
+    'No metadata available': 'No metadata available',
+    Performance: 'Performance',
+    Latency: 'Latency',
+    Input: 'Input',
+    Output: 'Output',
+    Total: 'Total',
+    Trace: 'Trace',
+    'Performance Config': 'Performance Config'
   },
   ja: {
     'request error':
@@ -74,6 +86,18 @@ export const messages = {
     'Cache hit detected!': 'キャッシュヒットを検出!',
     'New cache created': '新しいキャッシュを作成',
     'Cache hit: {{percent}}% of tokens from cache':
-      'キャッシュヒット: トークンの{{percent}}%がキャッシュから取得されました'
+      'キャッシュヒット: トークンの{{percent}}%がキャッシュから取得されました',
+    // コスト関連の翻訳
+    'Token Usage': 'トークン使用量',
+    Cost: 'コスト',
+    'Session Cost': 'セッションコスト',
+    'No metadata available': 'メタデータがありません',
+    Performance: 'パフォーマンス',
+    Latency: 'レイテンシ',
+    Input: '入力',
+    Output: '出力',
+    Total: '合計',
+    Trace: 'トレース',
+    'Performance Config': 'パフォーマンス設定'
   }
 }
