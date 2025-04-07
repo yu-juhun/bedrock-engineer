@@ -15,7 +15,8 @@ import {
   LineElement,
   Title
 } from 'chart.js'
-import { calculateCost, formatCurrency } from '@renderer/lib/pricing/modelPricing'
+import { Modal } from 'flowbite-react'
+import { calculateCost, formatCurrency, modelPricing } from '@renderer/lib/pricing/modelPricing'
 
 // Chart.jsコンポーネントを登録
 ChartJS.register(
@@ -50,6 +51,7 @@ interface CostAnalysis {
   cacheReadCost: number
   cacheWriteCost: number
   totalCost: number
+  cacheSavings: number // プロンプトキャッシュによる削減額
 }
 
 interface TimeSeriesDataPoint {
@@ -88,7 +90,8 @@ const calculateAnalytics = (messages: IdentifiableMessage[], modelId: string): A
     outputCost: 0,
     cacheReadCost: 0,
     cacheWriteCost: 0,
-    totalCost: 0
+    totalCost: 0,
+    cacheSavings: 0
   }
 
   // 時系列データを格納する配列
@@ -157,6 +160,20 @@ const calculateAnalytics = (messages: IdentifiableMessage[], modelId: string): A
       costAnalysis.outputCost +
       costAnalysis.cacheReadCost +
       costAnalysis.cacheWriteCost
+
+    // キャッシュによる削減額の計算
+    if (tokenUsage.cacheReadTokens > 0) {
+      // モデルIDからモデルタイプを特定
+      const pricing = Object.entries(modelPricing).find(([key]) => modelId.includes(key))?.[1]
+      if (pricing) {
+        // キャッシュがなかった場合のコスト (通常の入力トークン価格で計算)
+        const costWithoutCache = (tokenUsage.cacheReadTokens * pricing.input) / 1000
+        // 実際のキャッシュコスト
+        const actualCacheCost = (tokenUsage.cacheReadTokens * pricing.cacheRead) / 1000
+        // 削減額を計算
+        costAnalysis.cacheSavings = costWithoutCache - actualCacheCost
+      }
+    }
   }
 
   return { tokenUsage, costAnalysis, timeSeriesData }
@@ -426,27 +443,12 @@ export const TokenAnalyticsModal: React.FC<TokenAnalyticsModalProps> = ({
     setActiveTab(tab)
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold dark:text-white">{t('Token Usage Analytics')}</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M6 18L18 6M6 6l12 12"
-              ></path>
-            </svg>
-          </button>
-        </div>
+    <Modal show={isOpen} onClose={onClose} size="6xl" dismissible>
+      <Modal.Header>
+        <h2 className="text-xl font-bold">{t('Token Usage Analytics')}</h2>
+      </Modal.Header>
+      <Modal.Body className="max-h-[80vh] overflow-y-auto">
 
         {/* セッション全体の統計 */}
         <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
@@ -575,6 +577,13 @@ export const TokenAnalyticsModal: React.FC<TokenAnalyticsModalProps> = ({
                     {formatCurrency(analytics.costAnalysis.cacheWriteCost)}
                   </span>
                 </p>
+                {analytics.costAnalysis.cacheSavings > 0 && (
+                  <p className="mt-3 text-sm text-green-600 dark:text-green-400 font-medium">
+                    {t('Saved approximately {{amount}} by using prompt cache', {
+                      amount: formatCurrency(analytics.costAnalysis.cacheSavings)
+                    })}
+                  </p>
+                )}
               </div>
               {/* コスト分析の円グラフ */}
               <div className="h-64">
@@ -694,6 +703,13 @@ export const TokenAnalyticsModal: React.FC<TokenAnalyticsModalProps> = ({
                         : '0%'}
                     </span>
                   </p>
+                  {analytics.costAnalysis.cacheSavings > 0 && (
+                    <p className="mt-3 text-sm text-green-600 dark:text-green-400 font-medium">
+                      {t('Saved approximately {{amount}} by using prompt cache', {
+                        amount: formatCurrency(analytics.costAnalysis.cacheSavings)
+                      })}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -708,8 +724,8 @@ export const TokenAnalyticsModal: React.FC<TokenAnalyticsModalProps> = ({
             )}
           </p>
         </div>
-      </div>
-    </div>
+      </Modal.Body>
+    </Modal>
   )
 }
 

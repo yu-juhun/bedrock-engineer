@@ -1,5 +1,6 @@
 /**
  * モデルごとの価格設定（1000トークンあたりのドル価格）
+ * バージニア北部
  */
 export const modelPricing = {
   // Claude 3 Sonnet
@@ -8,7 +9,12 @@ export const modelPricing = {
   // Claude 3 Haiku
   '3-5-haiku': { input: 0.0008, output: 0.004, cacheRead: 0.00008, cacheWrite: 0.001 },
   // Claude 3 Opus
-  '3-5-opus': { input: 0.015, output: 0.075, cacheRead: 0.0015, cacheWrite: 0.01875 }
+  '3-5-opus': { input: 0.015, output: 0.075, cacheRead: 0.0015, cacheWrite: 0.01875 },
+
+  // Nova
+  'nova-pro': { input: 0.0008, output: 0.0032, cacheRead: 0.0002, cacheWrite: 0 },
+  'nova-lite': { input: 0.00006, output: 0.00024, cacheRead: 0.000015, cacheWrite: 0 },
+  'nova-micro': { input: 0.000035, output: 0.00014, cacheRead: 0.00000875, cacheWrite: 0 }
 }
 
 /**
