@@ -29,7 +29,14 @@ export const messages = {
     'Click for options': 'Click for options',
     'Copy to clipboard': 'Copy to clipboard',
     'Delete message': 'Delete message',
-    'Toggle chat history': 'Toggle chat history'
+    'Toggle chat history': 'Toggle chat history',
+    // キャッシュ関連の翻訳
+    'Cache Usage': 'Cache Usage',
+    'Cache Read': 'Read from Cache',
+    'Cache Write': 'Write to Cache',
+    'Cache hit detected!': 'Cache hit detected!',
+    'New cache created': 'New cache created',
+    'Cache hit: {{percent}}% of tokens from cache': 'Cache hit: {{percent}}% of tokens from cache'
   },
   ja: {
     'request error':
@@ -59,6 +66,14 @@ export const messages = {
     'Click for options': 'オプションを表示',
     'Copy to clipboard': 'クリップボードにコピー',
     'Delete message': 'メッセージを削除',
-    'Toggle chat history': 'チャット履歴の表示/非表示'
+    'Toggle chat history': 'チャット履歴の表示/非表示',
+    // キャッシュ関連の翻訳
+    'Cache Usage': 'キャッシュ使用状況',
+    'Cache Read': 'キャッシュから読取',
+    'Cache Write': 'キャッシュへ書込',
+    'Cache hit detected!': 'キャッシュヒットを検出!',
+    'New cache created': '新しいキャッシュを作成',
+    'Cache hit: {{percent}}% of tokens from cache':
+      'キャッシュヒット: トークンの{{percent}}%がキャッシュから取得されました'
   }
 }

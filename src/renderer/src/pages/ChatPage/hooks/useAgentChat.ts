@@ -3,7 +3,8 @@ import {
   ContentBlock,
   Message,
   ToolUseBlockStart,
-  ImageFormat
+  ImageFormat,
+  ToolConfiguration
 } from '@aws-sdk/client-bedrock-runtime'
 import { ToolState } from '@/types/agent-chat'
 import { generateMessageId } from '@/types/chat/metadata'
@@ -60,6 +61,57 @@ function removeTraces(messages) {
   })
 }
 
+// メッセージにキャッシュポイントを追加する関数
+function addCachePointsToMessages(messages: Message[], firstCachePoint?: number): Message[] {
+  if (messages.length === 0) return messages
+
+  // メッセージのコピーを作成
+  const messagesWithCachePoints = [...messages]
+
+  // キャッシュポイントを設定するインデックスを決定
+  const secondCachePoint = messages.length - 1
+
+  // 両方のキャッシュポイントを設定（重複を排除）
+  const indicesToAddCache = [
+    ...new Set([...(firstCachePoint !== undefined ? [firstCachePoint] : []), secondCachePoint])
+  ]
+
+  // 選択したメッセージにだけキャッシュポイントを追加
+  const result = messagesWithCachePoints.map((message, index) => {
+    if (indicesToAddCache.includes(index) && message.content && Array.isArray(message.content)) {
+      // キャッシュポイントを追加（型を明示的に指定）
+      return {
+        ...message,
+        content: [...message.content, { cachePoint: { type: 'default' } } as ContentBlock]
+      }
+    }
+    return message
+  })
+
+  // 次の会話のために現在の secondCachePoint を返す
+  return result
+}
+
+// システムプロンプトにキャッシュポイントを追加
+function addCachePointToSystem(
+  system: { text: string }[] | undefined
+): { text: string }[] | undefined {
+  if (!system || !Array.isArray(system)) return system
+  // ContentBlock型に準拠したキャッシュポイントを追加
+  return [...system, { cachePoint: { type: 'default' } } as unknown as { text: string }]
+}
+
+// ツール設定にキャッシュポイントを追加
+function addCachePointToTools(
+  toolConfig: ToolConfiguration | undefined
+): ToolConfiguration | undefined {
+  if (!toolConfig || !toolConfig.tools || !Array.isArray(toolConfig.tools)) return toolConfig
+  return {
+    ...toolConfig,
+    tools: [...toolConfig.tools, { cachePoint: { type: 'default' } } as any]
+  }
+}
+
 export const useAgentChat = (
   modelId: string,
   systemPrompt?: string,
@@ -79,6 +131,8 @@ export const useAgentChat = (
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(sessionId)
   const lastAssistantMessageId = useRef<string | null>(null)
   const abortController = useRef<AbortController | null>(null)
+  // キャッシュポイントを保持するための状態
+  const lastCachePoint = useRef<number | undefined>(undefined)
   const { t } = useTranslation()
   const { notification, contextLength, guardrailSettings, getAgentTools, agents } = useSettings()
 
@@ -222,6 +276,8 @@ export const useAgentChat = (
           abortCurrentRequest()
           setMessages(session.messages as Message[])
           setCurrentSessionId(sessionId)
+          // 新しいセッションに切り替えた場合はキャッシュポイントをリセット
+          lastCachePoint.current = undefined
         }
       } else if (enableHistory) {
         // 履歴保存が有効な場合のみ新しいセッションを作成
@@ -231,6 +287,8 @@ export const useAgentChat = (
           systemPrompt
         )
         setCurrentSessionId(newSessionId)
+        // 新しいセッションを作成した場合はキャッシュポイントをリセット
+        lastCachePoint.current = undefined
       }
     }
 
@@ -253,6 +311,8 @@ export const useAgentChat = (
       if (session) {
         setMessages(session.messages as Message[])
         window.chatHistory.setActiveSession(currentSessionId)
+        // セッション切り替え時にキャッシュポイントをリセット
+        lastCachePoint.current = undefined
       }
     }
   }, [currentSessionId])
@@ -298,7 +358,26 @@ export const useAgentChat = (
 
     // Context長に基づいてメッセージを制限
     const limitedMessages = limitContextLength(currentMessages, contextLength)
-    props.messages = removeTraces(limitedMessages)
+
+    // キャッシュポイントを追加（前回のキャッシュポイントを引き継ぐ）
+    const messagesWithCachePoints = addCachePointsToMessages(
+      removeTraces(limitedMessages),
+      lastCachePoint.current
+    )
+    props.messages = messagesWithCachePoints
+
+    // 次回の会話のために現在のキャッシュポイントを更新
+    // 現在のメッセージ配列の最後のインデックスを次回の最初のキャッシュポイントとして設定
+    lastCachePoint.current = limitedMessages.length - 1
+
+    // システムプロンプトとツール設定にもキャッシュポイントを追加
+    if (props.system) {
+      props.system = addCachePointToSystem(props.system)
+    }
+
+    if (props.toolConfig) {
+      props.toolConfig = addCachePointToTools(props.toolConfig)
+    }
 
     const generator = streamChatCompletion(props, abortController.current.signal)
 
@@ -874,6 +953,9 @@ export const useAgentChat = (
 
     // メッセージをクリア
     setMessages([])
+
+    // キャッシュポイントもリセット
+    lastCachePoint.current = undefined
   }, [modelId, systemPrompt, abortCurrentRequest])
 
   const setSession = useCallback(
