@@ -25,6 +25,8 @@ export const SettingPage: React.FC = () => {
     updateSendMsgKey,
     contextLength,
     updateContextLength,
+    enablePromptCache,
+    setEnablePromptCache,
     tavilySearchApiKey,
     setTavilySearchApiKey,
     awsRegion,
@@ -79,6 +81,8 @@ export const SettingPage: React.FC = () => {
         onUpdateTavilySearchApiKey={setTavilySearchApiKey}
         contextLength={contextLength}
         onUpdateContextLength={updateContextLength}
+        enablePromptCache={enablePromptCache}
+        onUpdateEnablePromptCache={setEnablePromptCache}
       />
 
       <AWSSection

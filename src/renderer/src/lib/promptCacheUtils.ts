@@ -94,7 +94,10 @@ export function addCachePointsToMessages(
       // キャッシュポイントを追加（型を明示的に指定）
       return {
         ...message,
-        content: [...message.content, { cachePoint: { type: 'default' } } as ContentBlock]
+        content: [
+          ...message.content,
+          { cachePoint: { type: 'default' } } as unknown as ContentBlock
+        ]
       }
     }
     return message

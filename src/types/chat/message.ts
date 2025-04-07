@@ -10,6 +10,7 @@ import {
 export interface IdentifiableMessage extends BedrockMessage {
   id?: string
   status?: 'idle' | 'streaming' | 'complete' | 'error'
+  timestamp?: number
   metadata?: {
     converseMetadata?: ConverseStreamMetadataEvent | Record<string, any>
     sessionCost?: number

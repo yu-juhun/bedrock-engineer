@@ -33,6 +33,8 @@ export interface SettingsContextType {
   // Agent Chat Settings
   contextLength: number
   updateContextLength: (length: number) => void
+  enablePromptCache: boolean
+  setEnablePromptCache: (enabled: boolean) => void
 
   // Notification Settings
   notification: boolean
@@ -177,6 +179,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Agent Chat Settings
   const [contextLength, setContextLength] = useState<number>(60)
+  const [enablePromptCache, setStateEnablePromptCache] = useState<boolean>(true)
 
   // Notification Settings
   const [notification, setStateNotification] = useState<boolean>(true)
@@ -427,6 +430,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // contextLength の状態を更新
     setContextLength(agentChatConfig.contextLength || defaultContextLength)
+
+    // enablePromptCache の設定
+    if (agentChatConfig.enablePromptCache === undefined) {
+      agentChatConfig.enablePromptCache = true
+    }
+
+    // enablePromptCache の状態を更新
+    setStateEnablePromptCache(agentChatConfig.enablePromptCache)
 
     // 設定を保存
     window.store.set('agentChatConfig', agentChatConfig)
@@ -915,6 +926,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     })
   }, [])
 
+  const setEnablePromptCache = useCallback((enabled: boolean) => {
+    setStateEnablePromptCache(enabled)
+    const agentChatConfig = window.store.get('agentChatConfig') || {}
+    window.store.set('agentChatConfig', {
+      ...agentChatConfig,
+      enablePromptCache: enabled
+    })
+  }, [])
+
   const setNotification = useCallback((enabled: boolean) => {
     setStateNotification(enabled)
     window.store.set('notification', enabled)
@@ -1152,6 +1172,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Agent Chat Settings
     contextLength,
     updateContextLength,
+    enablePromptCache,
+    setEnablePromptCache,
 
     // Notification Settings
     notification,

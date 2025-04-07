@@ -11,6 +11,7 @@ export interface CommandConfig {
 export type AgentChatConfig = {
   ignoreFiles?: string[]
   contextLength?: number
+  enablePromptCache?: boolean
 }
 
 export type SendMsgKey = 'Enter' | 'Cmd+Enter'

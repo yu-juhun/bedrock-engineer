@@ -91,7 +91,14 @@ export const useAgentChat = (
   // キャッシュポイントを保持するための状態
   const lastCachePoint = useRef<number | undefined>(undefined)
   const { t } = useTranslation()
-  const { notification, contextLength, guardrailSettings, getAgentTools, agents } = useSettings()
+  const {
+    notification,
+    contextLength,
+    guardrailSettings,
+    getAgentTools,
+    agents,
+    enablePromptCache
+  } = useSettings()
 
   // エージェントIDからツール設定を取得
   const enabledTools = useMemo(() => {
@@ -317,29 +324,31 @@ export const useAgentChat = (
     const limitedMessages = limitContextLength(currentMessages, contextLength)
 
     // キャッシュポイントを追加（前回のキャッシュポイントを引き継ぐ）
-    const messagesWithCachePoints = addCachePointsToMessages(
-      removeTraces(limitedMessages),
-      modelId,
-      lastCachePoint.current
-    )
+    const messagesWithCachePoints = enablePromptCache
+      ? addCachePointsToMessages(removeTraces(limitedMessages), modelId, lastCachePoint.current)
+      : removeTraces(limitedMessages)
     props.messages = messagesWithCachePoints
 
     // モデルがPrompt Cacheをサポートしている場合のみ、次回のキャッシュポイントを更新
-    if (isPromptCacheSupported(modelId) && getCacheableFields(modelId).includes('messages')) {
+    if (
+      enablePromptCache &&
+      isPromptCacheSupported(modelId) &&
+      getCacheableFields(modelId).includes('messages')
+    ) {
       // 次回の会話のために現在のキャッシュポイントを更新
       // 現在のメッセージ配列の最後のインデックスを次回の最初のキャッシュポイントとして設定
       lastCachePoint.current = limitedMessages.length - 1
     } else {
-      // サポートされていないモデルの場合はキャッシュポイントをリセット
+      // サポートされていないモデルの場合またはキャッシュが無効な場合はキャッシュポイントをリセット
       lastCachePoint.current = undefined
     }
 
     // システムプロンプトとツール設定にもキャッシュポイントを追加
-    if (props.system) {
+    if (props.system && enablePromptCache) {
       props.system = addCachePointToSystem(props.system, modelId)
     }
 
-    if (props.toolConfig) {
+    if (props.toolConfig && enablePromptCache) {
       props.toolConfig = addCachePointToTools(props.toolConfig, modelId)
     }
 
