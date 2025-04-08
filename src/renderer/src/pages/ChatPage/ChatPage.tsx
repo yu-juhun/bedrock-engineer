@@ -10,11 +10,12 @@ import useScroll from '@renderer/hooks/useScroll'
 import { useIgnoreFileModal } from './modals/useIgnoreFileModal'
 import { useToolSettingModal } from './modals/useToolSettingModal'
 import { useAgentSettingsModal } from './modals/useAgentSettingsModal'
-import { FiChevronRight } from 'react-icons/fi'
+import { FiChevronRight, FiBarChart2 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { AttachedImage } from './components/InputForm/TextArea'
 import { ChatHistory } from './components/ChatHistory'
 import { useSystemPromptModal } from './modals/useSystemPromptModal'
+import { useTokenAnalyticsModal } from './modals/useTokenAnalyticsModal'
 
 export default function ChatPage() {
   // userInputの状態を削除（InputFormContainerが管理するため）
@@ -95,6 +96,13 @@ export default function ChatPage() {
   } = useSystemPromptModal()
 
   const {
+    show: showTokenAnalyticsModal,
+    handleClose: handleCloseTokenAnalyticsModal,
+    handleOpen: handleOpenTokenAnalyticsModal,
+    TokenAnalyticsModal
+  } = useTokenAnalyticsModal()
+
+  const {
     show: showToolSettingModal,
     handleClose: handleCloseToolSettingModal,
     handleOpen: handleOpenToolSettingModal,
@@ -139,6 +147,12 @@ export default function ChatPage() {
             />
 
             <div className="flex items-center gap-2">
+              <FiBarChart2
+                className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
+                onClick={handleOpenTokenAnalyticsModal}
+                title={t('View Token Analytics')}
+                size={16}
+              />
               <span
                 className="text-xs text-gray-400 font-thin cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
                 onClick={handleOpenSystemPromptModal}
@@ -153,6 +167,12 @@ export default function ChatPage() {
             isOpen={showSystemPromptModal}
             onClose={handleCloseSystemPromptModal}
             systemPrompt={systemPrompt}
+          />
+          <TokenAnalyticsModal
+            isOpen={showTokenAnalyticsModal}
+            onClose={handleCloseTokenAnalyticsModal}
+            messages={messages}
+            modelId={llm?.modelId || ''}
           />
           <AgentSettingsModal
             isOpen={showAgentSettingModal}

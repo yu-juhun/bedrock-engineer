@@ -1,13 +1,17 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { JSONCodeBlock } from '../CodeBlocks/JSONCodeBlock'
+import { CheckCircleIcon, ServerIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline'
+import { formatCurrency } from '@renderer/lib/pricing/modelPricing'
+import { IdentifiableMessage } from '@/types/chat/message'
 
 interface MetadataViewerProps {
-  metadata: any // ConverseStreamMetadataEvent | Record<string, any>
+  metadata: IdentifiableMessage['metadata']
 }
 
 export const MetadataViewer: React.FC<MetadataViewerProps> = ({ metadata }) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const currencyLocale = i18n.language === 'ja' ? 'ja-JP' : 'en-US'
 
   if (!metadata) {
     return <div className="text-gray-500">{t('No metadata available')}</div>
@@ -15,52 +19,118 @@ export const MetadataViewer: React.FC<MetadataViewerProps> = ({ metadata }) => {
 
   return (
     <div className="text-sm flex flex-col gap-6">
-      {metadata.usage && (
+      {metadata?.converseMetadata?.usage && (
         <div className="flex flex-col gap-3">
           <h3 className="font-medium text-base border-b pb-2">{t('Token Usage')}</h3>
           <div className="grid grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
             <div className="flex flex-col">
               <span className="text-gray-500">{t('Input')}</span>
-              <span className="font-medium text-lg">{metadata.usage.inputTokens}</span>
+              <span className="font-medium text-lg">
+                {metadata.converseMetadata.usage.inputTokens}
+              </span>
             </div>
             <div className="flex flex-col">
               <span className="text-gray-500">{t('Output')}</span>
-              <span className="font-medium text-lg">{metadata.usage.outputTokens}</span>
+              <span className="font-medium text-lg">
+                {metadata.converseMetadata.usage.outputTokens}
+              </span>
             </div>
             <div className="flex flex-col">
               <span className="text-gray-500">{t('Total')}</span>
-              <span className="font-medium text-lg">{metadata.usage.totalTokens}</span>
+              <span className="font-medium text-lg">
+                {metadata.converseMetadata.usage.totalTokens}
+              </span>
             </div>
           </div>
         </div>
       )}
 
-      {metadata.metrics && (
+      {/* コスト情報セクション - 使用量がある場合のみ表示 */}
+      {metadata.sessionCost && (
+        <div className="flex flex-col gap-3">
+          <h3 className="font-medium text-base border-b pb-2">{t('Cost')}</h3>
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+            <div className="flex items-center">
+              <CurrencyDollarIcon className="w-5 h-5 text-green-600 mr-2" />
+              <div className="flex flex-col">
+                <span className="text-gray-500">{t('Session Cost')}</span>
+                <span className="font-medium text-lg">
+                  {formatCurrency(metadata.sessionCost, 'USD', currencyLocale)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* キャッシュ情報セクション - キャッシュ情報がある場合のみ表示 */}
+      {metadata?.converseMetadata?.usage &&
+        (metadata.converseMetadata.usage.cacheReadInputTokens !== undefined ||
+          metadata.converseMetadata.usage.cacheWriteInputTokens !== undefined) && (
+          <div className="flex flex-col gap-3">
+            <h3 className="font-medium text-base border-b pb-2">{t('Cache Usage')}</h3>
+            <div className="grid grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="flex flex-col">
+                <span className="text-gray-500">{t('Cache Read')}</span>
+                <span className="font-medium text-lg">
+                  {metadata.converseMetadata.usage.cacheReadInputTokens || 0}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-gray-500">{t('Cache Write')}</span>
+                <span className="font-medium text-lg">
+                  {metadata.converseMetadata.usage.cacheWriteInputTokens || 0}
+                </span>
+              </div>
+            </div>
+
+            {/* キャッシュ状態インジケーター */}
+            <div className="mt-1">
+              {metadata.converseMetadata.usage.cacheReadInputTokens > 0 && (
+                <div className="flex items-center text-green-500 text-sm">
+                  <CheckCircleIcon className="w-4 h-4 mr-1" />
+                  <span>{t('Cache hit detected!')}</span>
+                </div>
+              )}
+              {metadata.converseMetadata.usage.cacheWriteInputTokens > 0 &&
+                metadata.converseMetadata.usage.cacheReadInputTokens === 0 && (
+                  <div className="flex items-center text-blue-500 text-sm">
+                    <ServerIcon className="w-4 h-4 mr-1" />
+                    <span>{t('New cache created')}</span>
+                  </div>
+                )}
+            </div>
+          </div>
+        )}
+
+      {metadata?.converseMetadata?.metrics && (
         <div className="flex flex-col gap-3">
           <h3 className="font-medium text-base border-b pb-2">{t('Performance')}</h3>
           <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
             <div className="flex flex-col">
               <span className="text-gray-500">{t('Latency')}</span>
-              <span className="font-medium text-lg">{metadata.metrics.latencyMs} ms</span>
+              <span className="font-medium text-lg">
+                {metadata.converseMetadata.metrics.latencyMs} ms
+              </span>
             </div>
           </div>
         </div>
       )}
 
-      {metadata.trace && (
+      {metadata?.converseMetadata?.trace && (
         <div className="flex flex-col gap-3">
           <h3 className="font-medium text-base border-b pb-2">{t('Trace')}</h3>
           <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg overflow-auto max-h-64">
-            <JSONCodeBlock json={metadata.trace} />
+            <JSONCodeBlock json={metadata.converseMetadata.trace} />
           </div>
         </div>
       )}
 
-      {metadata.performanceConfig && (
+      {metadata?.converseMetadata?.performanceConfig && (
         <div className="flex flex-col gap-3">
           <h3 className="font-medium text-base border-b pb-2">{t('Performance Config')}</h3>
           <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg overflow-auto max-h-64">
-            <JSONCodeBlock json={metadata.performanceConfig} />
+            <JSONCodeBlock json={metadata.converseMetadata.performanceConfig} />
           </div>
         </div>
       )}

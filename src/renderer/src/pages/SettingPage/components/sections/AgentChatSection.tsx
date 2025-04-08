@@ -8,13 +8,17 @@ interface AgentChatSectionProps {
   onUpdateTavilySearchApiKey: (value: string) => void
   contextLength: number
   onUpdateContextLength: (value: number) => void
+  enablePromptCache: boolean
+  onUpdateEnablePromptCache: (enabled: boolean) => void
 }
 
 export const AgentChatSection: React.FC<AgentChatSectionProps> = ({
   tavilySearchApiKey,
   onUpdateTavilySearchApiKey,
   contextLength,
-  onUpdateContextLength
+  onUpdateContextLength,
+  enablePromptCache,
+  onUpdateEnablePromptCache
 }) => {
   const { t } = useTranslation()
 
@@ -58,6 +62,27 @@ export const AgentChatSection: React.FC<AgentChatSectionProps> = ({
             {t(
               'Limiting context length reduces token usage but may affect conversation continuity'
             )}
+          </div>
+        </div>
+
+        <div className="pt-4">
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="enable-prompt-cache"
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800"
+              checked={enablePromptCache}
+              onChange={(e) => onUpdateEnablePromptCache(e.target.checked)}
+            />
+            <label
+              htmlFor="enable-prompt-cache"
+              className="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              {t('Enable Prompt Cache')}
+            </label>
+          </div>
+          <div className="mt-1 text-xs text-gray-600 dark:text-gray-400 ml-6">
+            {t('Prompt Cache reduces token usage by caching parts of the conversation')}
           </div>
         </div>
       </div>

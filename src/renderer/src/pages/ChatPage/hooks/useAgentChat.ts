@@ -19,6 +19,15 @@ import { ToolName, isMcpTool } from '@/types/tools'
 import { notificationService } from '@renderer/services/NotificationService'
 import { limitContextLength } from '@renderer/lib/contextLength'
 import { IdentifiableMessage } from '@/types/chat/message'
+import {
+  isPromptCacheSupported,
+  getCacheableFields,
+  addCachePointsToMessages,
+  addCachePointToSystem,
+  addCachePointToTools,
+  logCacheUsage
+} from '@renderer/lib/promptCacheUtils'
+import { calculateCost } from '@renderer/lib/pricing/modelPricing'
 
 // メッセージの送信時に、Trace を全て載せると InputToken が逼迫するので取り除く
 function removeTraces(messages) {
@@ -79,8 +88,17 @@ export const useAgentChat = (
   const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(sessionId)
   const lastAssistantMessageId = useRef<string | null>(null)
   const abortController = useRef<AbortController | null>(null)
+  // キャッシュポイントを保持するための状態
+  const lastCachePoint = useRef<number | undefined>(undefined)
   const { t } = useTranslation()
-  const { notification, contextLength, guardrailSettings, getAgentTools, agents } = useSettings()
+  const {
+    notification,
+    contextLength,
+    guardrailSettings,
+    getAgentTools,
+    agents,
+    enablePromptCache
+  } = useSettings()
 
   // エージェントIDからツール設定を取得
   const enabledTools = useMemo(() => {
@@ -222,6 +240,8 @@ export const useAgentChat = (
           abortCurrentRequest()
           setMessages(session.messages as Message[])
           setCurrentSessionId(sessionId)
+          // 新しいセッションに切り替えた場合はキャッシュポイントをリセット
+          lastCachePoint.current = undefined
         }
       } else if (enableHistory) {
         // 履歴保存が有効な場合のみ新しいセッションを作成
@@ -231,6 +251,8 @@ export const useAgentChat = (
           systemPrompt
         )
         setCurrentSessionId(newSessionId)
+        // 新しいセッションを作成した場合はキャッシュポイントをリセット
+        lastCachePoint.current = undefined
       }
     }
 
@@ -253,6 +275,8 @@ export const useAgentChat = (
       if (session) {
         setMessages(session.messages as Message[])
         window.chatHistory.setActiveSession(currentSessionId)
+        // セッション切り替え時にキャッシュポイントをリセット
+        lastCachePoint.current = undefined
       }
     }
   }, [currentSessionId])
@@ -298,7 +322,35 @@ export const useAgentChat = (
 
     // Context長に基づいてメッセージを制限
     const limitedMessages = limitContextLength(currentMessages, contextLength)
-    props.messages = removeTraces(limitedMessages)
+
+    // キャッシュポイントを追加（前回のキャッシュポイントを引き継ぐ）
+    const messagesWithCachePoints = enablePromptCache
+      ? addCachePointsToMessages(removeTraces(limitedMessages), modelId, lastCachePoint.current)
+      : removeTraces(limitedMessages)
+    props.messages = messagesWithCachePoints
+
+    // モデルがPrompt Cacheをサポートしている場合のみ、次回のキャッシュポイントを更新
+    if (
+      enablePromptCache &&
+      isPromptCacheSupported(modelId) &&
+      getCacheableFields(modelId).includes('messages')
+    ) {
+      // 次回の会話のために現在のキャッシュポイントを更新
+      // 現在のメッセージ配列の最後のインデックスを次回の最初のキャッシュポイントとして設定
+      lastCachePoint.current = limitedMessages.length - 1
+    } else {
+      // サポートされていないモデルの場合またはキャッシュが無効な場合はキャッシュポイントをリセット
+      lastCachePoint.current = undefined
+    }
+
+    // システムプロンプトとツール設定にもキャッシュポイントを追加
+    if (props.system && enablePromptCache) {
+      props.system = addCachePointToSystem(props.system, modelId)
+    }
+
+    if (props.toolConfig && enablePromptCache) {
+      props.toolConfig = addCachePointToTools(props.toolConfig, modelId)
+    }
 
     const generator = streamChatCompletion(props, abortController.current.signal)
 
@@ -516,7 +568,36 @@ export const useAgentChat = (
           }
         } else if (json.metadata) {
           // Metadataを処理
-          const metadata = json.metadata
+          const metadata: IdentifiableMessage['metadata'] = {
+            converseMetadata: {},
+            sessionCost: undefined
+          }
+          metadata.converseMetadata = json.metadata
+
+          let sessionCost: number
+          // モデルIDがある場合、コストを計算
+          if (
+            modelId &&
+            metadata.converseMetadata.usage &&
+            metadata.converseMetadata.usage.inputTokens &&
+            metadata.converseMetadata.usage.outputTokens
+          ) {
+            try {
+              sessionCost = calculateCost(
+                modelId,
+                metadata.converseMetadata.usage.inputTokens,
+                metadata.converseMetadata.usage.outputTokens,
+                metadata.converseMetadata.usage.cacheReadInputTokens,
+                metadata.converseMetadata.usage.cacheWriteInputTokens
+              )
+              metadata.sessionCost = sessionCost
+            } catch (error) {
+              console.error('Error calculating cost:', error)
+            }
+          }
+
+          // Prompt Cacheの使用状況をログ出力
+          logCacheUsage(metadata, modelId)
 
           // 直近のアシスタントメッセージにメタデータを関連付ける
           if (lastAssistantMessageId.current) {
@@ -528,7 +609,8 @@ export const useAgentChat = (
                     ...msg,
                     metadata: {
                       ...msg.metadata,
-                      converseMetadata: metadata
+                      converseMetadata: metadata.converseMetadata,
+                      sessionCost: metadata.sessionCost
                     }
                   }
                 }
@@ -550,7 +632,8 @@ export const useAgentChat = (
                 ...(lastMessage as IdentifiableMessage),
                 metadata: {
                   ...(lastMessage as any).metadata,
-                  converseMetadata: metadata
+                  converseMetadata: metadata.converseMetadata,
+                  sessionCost: metadata.sessionCost
                 }
               }
 
@@ -874,6 +957,9 @@ export const useAgentChat = (
 
     // メッセージをクリア
     setMessages([])
+
+    // キャッシュポイントもリセット
+    lastCachePoint.current = undefined
   }, [modelId, systemPrompt, abortCurrentRequest])
 
   const setSession = useCallback(

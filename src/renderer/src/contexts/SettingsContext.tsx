@@ -33,6 +33,8 @@ export interface SettingsContextType {
   // Agent Chat Settings
   contextLength: number
   updateContextLength: (length: number) => void
+  enablePromptCache: boolean
+  setEnablePromptCache: (enabled: boolean) => void
 
   // Notification Settings
   notification: boolean
@@ -177,6 +179,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Agent Chat Settings
   const [contextLength, setContextLength] = useState<number>(60)
+  const [enablePromptCache, setStateEnablePromptCache] = useState<boolean>(true)
 
   // Notification Settings
   const [notification, setStateNotification] = useState<boolean>(true)
@@ -194,8 +197,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [availableModels, setAvailableModels] = useState<LLM[]>([])
   const [inferenceParams, setInferenceParams] =
     useState<InferenceParameters>(DEFAULT_INFERENCE_PARAMS)
-
-  // MCP Tools Settings - グローバル状態は削除
 
   const [thinkingMode, setThinkingMode] = useState<ThinkingMode>()
 
@@ -428,6 +429,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // contextLength の状態を更新
     setContextLength(agentChatConfig.contextLength || defaultContextLength)
 
+    // enablePromptCache の設定
+    if (agentChatConfig.enablePromptCache === undefined) {
+      agentChatConfig.enablePromptCache = true
+    }
+
+    // enablePromptCache の状態を更新
+    setStateEnablePromptCache(agentChatConfig.enablePromptCache)
+
     // 設定を保存
     window.store.set('agentChatConfig', agentChatConfig)
   }, [])
@@ -440,7 +449,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const fetchMcpTools = useCallback(async (mcpServers?: McpServerConfig[]) => {
     try {
       if (window.api?.mcp?.getToolSpecs) {
-        console.log('Fetching MCP tools with servers:', mcpServers?.length || 'none')
         const fetchedTools = await window.api.mcp.getToolSpecs(mcpServers)
         // 取得したツールの生データを返す（状態管理は呼び出し側で行う）
         return fetchedTools || []
@@ -543,6 +551,18 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         id: newId,
         isCustom: true,
         directoryOnly: false
+      }
+
+      // MCPサーバー設定がある場合は、このタイミングでMCPツールを取得
+      if (newCustomAgent.mcpServers && newCustomAgent.mcpServers.length > 0) {
+        try {
+          const mcpTools = await fetchMcpTools(newCustomAgent.mcpServers)
+          if (mcpTools && mcpTools.length > 0) {
+            newCustomAgent.mcpTools = mcpTools.map((tool: Tool) => ({ ...tool, enabled: true }))
+          }
+        } catch (error) {
+          console.error(`Failed to fetch MCP tools for agent ${newCustomAgent.name}:`, error)
+        }
       }
 
       // Add to custom agents list
@@ -869,25 +889,37 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         )
 
         // 非同期で実行
-        ;(async () => {
+        const fetchAndSetMcpTools = async () => {
           const fetchedTools = await fetchMcpTools(currentAgent.mcpServers)
           if (fetchedTools && fetchedTools.length > 0) {
-            // Tool[] から ToolState[] に変換（MCP ツールは常に有効）
             const toolStates = fetchedTools.map((tool) => ({
               toolSpec: tool.toolSpec,
               enabled: true
             })) as ToolState[]
 
-            // カスタムエージェントの場合のみ更新（sharedやdirectoryエージェントは読み取り専用）
-            if (currentAgent.isCustom !== false) {
-              // 取得したツールをエージェント固有のMCPツールとして保存
+            // カスタムエージェントの場合はグローバル状態を更新して保存
+            if (currentAgent.isCustom) {
               updateAgentMcpTools(currentAgent.id, toolStates)
-              console.log(`Saved ${toolStates.length} MCP tools for agent: ${currentAgent.name}`)
+            } else if (currentAgent.isShared) {
+              // 共有エージェントやディレクトリエージェントの場合は一時的にメモリ上でのみ設定
+              // 既存の参照を変更せずに新しい配列を作成しmcpToolsプロパティを設定
+              // これによりオブジェクトの参照が変更され、UIが再レンダリングされる
+              const updatedAgentsArray = sharedAgents.map((agent) =>
+                agent.id === currentAgent.id ? { ...agent, mcpTools: toolStates } : agent
+              )
+
+              // 共有エージェントの場合
+              if (currentAgent.isShared) {
+                setSharedAgents(updatedAgentsArray)
+                // ここではwindow.store.setは呼ばない（再起動時に再度読み込まれるため）
+              }
             }
           } else {
             console.log(`No MCP tools found for agent: ${currentAgent.name}`)
           }
-        })()
+        }
+
+        fetchAndSetMcpTools()
       } else {
         console.log(
           `Agent ${currentAgent.name} already has ${currentAgent.mcpTools?.length} MCP tools`
@@ -897,7 +929,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // 現在のエージェントにMCPサーバー設定がない場合
       console.log(`Agent ${currentAgent.name} has no MCP servers configured`)
     }
-  }, [currentAgent, fetchMcpTools, updateAgentMcpTools])
+  }, [currentAgent, fetchMcpTools, updateAgentMcpTools, sharedAgents, directoryAgents])
 
   const enabledTavilySearch = tavilySearchApiKey.length > 0
 
@@ -912,6 +944,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     window.store.set('agentChatConfig', {
       ...agentChatConfig,
       ignoreFiles: files
+    })
+  }, [])
+
+  const setEnablePromptCache = useCallback((enabled: boolean) => {
+    setStateEnablePromptCache(enabled)
+    const agentChatConfig = window.store.get('agentChatConfig') || {}
+    window.store.set('agentChatConfig', {
+      ...agentChatConfig,
+      enablePromptCache: enabled
     })
   }, [])
 
@@ -1152,6 +1193,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Agent Chat Settings
     contextLength,
     updateContextLength,
+    enablePromptCache,
+    setEnablePromptCache,
 
     // Notification Settings
     notification,

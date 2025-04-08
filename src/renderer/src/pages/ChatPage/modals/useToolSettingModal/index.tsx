@@ -77,7 +77,7 @@ const TOOL_CATEGORIES: ToolCategory[] = [
   },
   {
     id: 'mcp-tools',
-    name: 'MCP Tools',
+    name: 'MCP',
     description: 'Tools provided by MCP servers (always enabled)',
     tools: [], // 動的に設定される
     isMcpCategory: true

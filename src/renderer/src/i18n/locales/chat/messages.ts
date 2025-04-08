@@ -29,7 +29,26 @@ export const messages = {
     'Click for options': 'Click for options',
     'Copy to clipboard': 'Copy to clipboard',
     'Delete message': 'Delete message',
-    'Toggle chat history': 'Toggle chat history'
+    'Toggle chat history': 'Toggle chat history',
+    // キャッシュ関連の翻訳
+    'Cache Usage': 'Cache Usage',
+    'Cache Read': 'Read from Cache',
+    'Cache Write': 'Write to Cache',
+    'Cache hit detected!': 'Cache hit detected!',
+    'New cache created': 'New cache created',
+    'Cache hit: {{percent}}% of tokens from cache': 'Cache hit: {{percent}}% of tokens from cache',
+    // コスト関連の翻訳
+    'Token Usage': 'Token Usage',
+    Cost: 'Cost',
+    'Session Cost': 'Session Cost',
+    'No metadata available': 'No metadata available',
+    Performance: 'Performance',
+    Latency: 'Latency',
+    Input: 'Input',
+    Output: 'Output',
+    Total: 'Total',
+    Trace: 'Trace',
+    'Performance Config': 'Performance Config'
   },
   ja: {
     'request error':
@@ -59,6 +78,26 @@ export const messages = {
     'Click for options': 'オプションを表示',
     'Copy to clipboard': 'クリップボードにコピー',
     'Delete message': 'メッセージを削除',
-    'Toggle chat history': 'チャット履歴の表示/非表示'
+    'Toggle chat history': 'チャット履歴の表示/非表示',
+    // キャッシュ関連の翻訳
+    'Cache Usage': 'キャッシュ使用状況',
+    'Cache Read': 'キャッシュから読取',
+    'Cache Write': 'キャッシュへ書込',
+    'Cache hit detected!': 'キャッシュヒットを検出!',
+    'New cache created': '新しいキャッシュを作成',
+    'Cache hit: {{percent}}% of tokens from cache':
+      'キャッシュヒット: トークンの{{percent}}%がキャッシュから取得されました',
+    // コスト関連の翻訳
+    'Token Usage': 'トークン使用量',
+    Cost: 'コスト',
+    'Session Cost': 'セッションコスト',
+    'No metadata available': 'メタデータがありません',
+    Performance: 'パフォーマンス',
+    Latency: 'レイテンシ',
+    Input: '入力',
+    Output: '出力',
+    Total: '合計',
+    Trace: 'トレース',
+    'Performance Config': 'パフォーマンス設定'
   }
 }

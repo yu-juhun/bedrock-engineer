@@ -5,7 +5,9 @@ import {
   notificationSettings,
   bedrockSettings,
   agentSettings,
-  agentToolsSettings
+  agentToolsSettings,
+  promptCacheSettings,
+  tokenAnalyticsSettings
 } from './settings'
 import { thinkingMode } from './thinkingMode'
 import { agentDirectory } from './agentDirectory'
@@ -231,6 +233,8 @@ const ja = {
   ...bedrockSettings.ja,
   ...agentSettings.ja,
   ...agentToolsSettings.ja,
+  ...promptCacheSettings.ja,
+  ...tokenAnalyticsSettings.ja,
   ...awsDiagramGenerator.ja,
   ...thinkingMode.ja,
   ...agentDirectory.ja,
