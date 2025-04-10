@@ -1,6 +1,6 @@
 {
   "name": "bedrock-engineer",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Autonomous software development agent apps using Amazon Bedrock, capable of customize to create/edit files, execute commands, search the web, use knowledge base, use multi-agents, generative images and more.",
   "main": "./out/main/index.js",
   "homepage": "https://github.com/daisuke-awaji/bedrock-engineer",
@@ -101,7 +101,7 @@
     "tailwindcss": "3.4.10",
     "ts-jest": "29.2.4",
     "typescript": "5.5.2",
-    "vite": "^6.2.4"
+    "vite": "^6.2.5"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "4.24.0",
