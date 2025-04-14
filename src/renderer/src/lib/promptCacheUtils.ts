@@ -14,9 +14,9 @@ const MODEL_CACHE_SUPPORT: Record<string, CacheableField[]> = {
   'anthropic.claude-3-7-sonnet-20250219-v1:0': ['messages', 'system', 'tools'],
   'anthropic.claude-3-5-haiku-20241022-v1:0': ['messages', 'system', 'tools'],
   'anthropic.claude-3-5-sonnet-20241022-v2:0': ['messages', 'system', 'tools'],
-  'amazon.nova-micro-v1:0': ['system'],
-  'amazon.nova-lite-v1:0': ['system'],
-  'amazon.nova-pro-v1:0': ['system']
+  'amazon.nova-micro-v1:0': ['messages', 'system'],
+  'amazon.nova-lite-v1:0': ['messages', 'system'],
+  'amazon.nova-pro-v1:0': ['messages', 'system']
 
   // 将来的にサポートされるモデルはここに追加
 }
