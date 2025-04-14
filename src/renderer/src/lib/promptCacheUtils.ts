@@ -1,4 +1,9 @@
-import type { Message, ContentBlock, ToolConfiguration } from '@aws-sdk/client-bedrock-runtime'
+import type {
+  Message,
+  ContentBlock,
+  ToolConfiguration,
+  ConverseStreamMetadataEvent
+} from '@aws-sdk/client-bedrock-runtime'
 
 /**
  * キャッシュ可能なフィールドの型定義
@@ -179,16 +184,20 @@ export function addCachePointToTools(
  * @param metadata メタデータ
  * @param modelId モデルID
  */
-export function logCacheUsage(metadata: any, modelId: string): void {
+export function logCacheUsage(
+  metadata: ConverseStreamMetadataEvent | Record<string, any>,
+  modelId: string
+): void {
   // メタデータからキャッシュ関連の情報を抽出
-  const inputTokens = metadata.usage?.inputTokens
-  const outputTokens = metadata.usage?.outputTokens
-  const cacheReadInputTokens = metadata.usage?.cacheReadInputTokens
-  const cacheWriteInputTokens = metadata.usage?.cacheWriteInputTokens
+  const inputTokens = metadata.usage?.inputTokens ?? 0
+  const outputTokens = metadata.usage?.outputTokens ?? 0
+  const cacheReadInputTokens = metadata.usage?.cacheReadInputTokens ?? 0
+  const cacheWriteInputTokens = metadata.usage?.cacheWriteInputTokens ?? 0
 
   // キャッシュヒット率を計算
+  const totalInputTokens = cacheReadInputTokens + cacheWriteInputTokens + inputTokens
   const cacheHitRatio =
-    cacheReadInputTokens && inputTokens ? (cacheReadInputTokens / inputTokens).toFixed(2) : '0.00'
+    totalInputTokens > 0 ? (cacheReadInputTokens / totalInputTokens).toFixed(2) : '0.00'
 
   // キャッシュ使用状況をログ出力
   console.debug('Converse API cache usage', {

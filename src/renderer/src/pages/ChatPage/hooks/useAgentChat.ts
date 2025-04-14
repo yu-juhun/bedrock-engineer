@@ -597,7 +597,7 @@ export const useAgentChat = (
           }
 
           // Prompt Cacheの使用状況をログ出力
-          logCacheUsage(metadata, modelId)
+          logCacheUsage(metadata.converseMetadata, modelId)
 
           // 直近のアシスタントメッセージにメタデータを関連付ける
           if (lastAssistantMessageId.current) {
