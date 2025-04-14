@@ -26,10 +26,10 @@ export class ModelService {
 
     if (
       cachedData &&
-      cachedData._timestamp &&
-      Date.now() - cachedData._timestamp < ModelService.CACHE_LIFETIME
+      cachedData.timestamp &&
+      Date.now() - cachedData.timestamp < ModelService.CACHE_LIFETIME
     ) {
-      return cachedData.filter((model) => !model._timestamp)
+      return cachedData.models
     }
 
     try {
@@ -38,7 +38,10 @@ export class ModelService {
       const accountId = await getAccountId(awsCredentials)
       const promptRouterModels = accountId ? getDefaultPromptRouter(accountId, region) : []
       const result = [...models, ...promptRouterModels]
-      this.modelCache[cacheKey] = [...result, { _timestamp: Date.now() } as any]
+      this.modelCache[cacheKey] = {
+        models: models,
+        timestamp: Date.now()
+      }
 
       return result
     } catch (error) {
