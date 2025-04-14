@@ -1,18 +1,17 @@
-import { Message } from '@aws-sdk/client-bedrock-runtime'
+import {
+  GuardrailConfiguration,
+  Message,
+  SystemContentBlock,
+  ToolConfiguration
+} from '@aws-sdk/client-bedrock-runtime'
 import { ConfigStore } from '../../../preload/store'
-
-export interface GuardrailConfig {
-  guardrailIdentifier: string
-  guardrailVersion: string
-  trace?: 'enabled' | 'disabled'
-}
 
 export type CallConverseAPIProps = {
   modelId: string
   messages: Message[]
-  system: [{ text: string }]
-  toolConfig?: any
-  guardrailConfig?: GuardrailConfig
+  system: SystemContentBlock[]
+  toolConfig?: ToolConfiguration
+  guardrailConfig?: GuardrailConfiguration
 }
 
 export type AWSCredentials = {
