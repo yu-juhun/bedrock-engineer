@@ -163,7 +163,7 @@ export const AWSSection: React.FC<AWSSectionProps> = ({
             {useAwsProfile ? (
               <div className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-md">
                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {t('Use credentials from ~/.aws/credentials')}
+                  {t('Use credentials from ~/.aws')}
                 </p>
 
                 <SettingInput
