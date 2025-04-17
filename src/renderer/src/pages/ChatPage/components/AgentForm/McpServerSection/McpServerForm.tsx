@@ -149,7 +149,7 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
       className="flex flex-col gap-2 mt-4 border border-gray-200 dark:border-gray-700 p-4 rounded-md"
       onClick={preventModalClose}
     >
-      <h4 className="font-medium text-sm mb-2">
+      <h4 className="font-medium text-sm mb-2 dark:text-gray-300">
         {editMode ? t('Edit MCP Server') : t('Add New MCP Server')}
       </h4>
 
@@ -181,7 +181,7 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
             if (jsonError) setJsonError(null)
           }}
           onClick={preventModalClose}
-          className="mt-1 block w-full h-64 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono"
+          className="mt-1 block w-full h-64 px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono"
           placeholder={`{
   "mcpServers": {
     "my-mcp-server": {

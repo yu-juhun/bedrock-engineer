@@ -15,7 +15,7 @@ export const FormActionButtons: React.FC<{
 
   return (
     <div
-      className="flex justify-end pt-4 pb-4 space-x-2 border-t border-gray-200 dark:border-gray-700 mt-6 sticky bottom-0 bg-white dark:bg-gray-900"
+      className="flex justify-end pt-4 pb-4 space-x-2 border-t border-gray-200 dark:border-gray-600 mt-6 sticky bottom-0 bg-white dark:bg-gray-700"
       onClick={formEventUtils.preventPropagation}
     >
       <button
