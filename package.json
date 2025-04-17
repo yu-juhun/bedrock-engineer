@@ -49,6 +49,7 @@
     "electron-store": "8.2.0",
     "electron-updater": "^6.3.9",
     "express": "^4.21.2",
+    "fix-path": "^4.0.0",
     "flowbite-react": "0.10.1",
     "framer-motion": "11.3.29",
     "i18next": "23.15.0",

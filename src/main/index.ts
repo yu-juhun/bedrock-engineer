@@ -17,7 +17,14 @@ import {
   createCategoryLogger
 } from '../common/logger'
 import { handleFileOpen } from '../preload/file'
-
+// 動的インポートを使用してfix-pathパッケージを読み込む
+import('fix-path')
+  .then((fixPathModule) => {
+    fixPathModule.default()
+  })
+  .catch((err) => {
+    console.error('Failed to load fix-path module:', err)
+  })
 // No need to track project path anymore as we always read from disk
 Store.initRenderer()
 
