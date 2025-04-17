@@ -20,8 +20,6 @@ import { notificationService } from '@renderer/services/NotificationService'
 import { limitContextLength } from '@renderer/lib/contextLength'
 import { IdentifiableMessage } from '@/types/chat/message'
 import {
-  isPromptCacheSupported,
-  getCacheableFields,
   addCachePointsToMessages,
   addCachePointToSystem,
   addCachePointToTools,
@@ -321,26 +319,18 @@ export const useAgentChat = (
     abortController.current = new AbortController()
 
     // Context長に基づいてメッセージを制限
-    const limitedMessages = limitContextLength(currentMessages, contextLength)
+    const limitedMessages = removeTraces(limitContextLength(currentMessages, contextLength))
 
     // キャッシュポイントを追加（前回のキャッシュポイントを引き継ぐ）
-    const messagesWithCachePoints = enablePromptCache
-      ? addCachePointsToMessages(removeTraces(limitedMessages), modelId, lastCachePoint.current)
-      : removeTraces(limitedMessages)
-    props.messages = messagesWithCachePoints
+    props.messages = enablePromptCache
+      ? addCachePointsToMessages(limitedMessages, modelId, lastCachePoint.current)
+      : limitedMessages
 
-    // モデルがPrompt Cacheをサポートしている場合のみ、次回のキャッシュポイントを更新
-    if (
-      enablePromptCache &&
-      isPromptCacheSupported(modelId) &&
-      getCacheableFields(modelId).includes('messages')
-    ) {
+    // キャッシュポイントが更新された場合、次回の会話ためにキャッシュポイントのインデックスを更新
+    if (props.messages[props.messages.length - 1].content?.some((b) => b.cachePoint?.type)) {
       // 次回の会話のために現在のキャッシュポイントを更新
       // 現在のメッセージ配列の最後のインデックスを次回の最初のキャッシュポイントとして設定
-      lastCachePoint.current = limitedMessages.length - 1
-    } else {
-      // サポートされていないモデルの場合またはキャッシュが無効な場合はキャッシュポイントをリセット
-      lastCachePoint.current = undefined
+      lastCachePoint.current = props.messages.length - 1
     }
 
     // システムプロンプトとツール設定にもキャッシュポイントを追加
