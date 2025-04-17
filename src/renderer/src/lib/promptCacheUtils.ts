@@ -80,14 +80,6 @@ export function addCachePointsToMessages(
     return messages
   }
 
-  // Assistant メッセージに toolUse が含まれる場合、Amazon Nova モデルで cachePoint を追加するとエラーが発生する
-  if (
-    !getCacheableFields(modelId).includes('tools') &&
-    messages.some((msg) => Array.isArray(msg.content) && msg.content.some((b) => b.toolUse))
-  ) {
-    return messages
-  }
-
   if (messages.length === 0) return messages
 
   // メッセージのコピーを作成
@@ -99,7 +91,12 @@ export function addCachePointsToMessages(
   // 両方のキャッシュポイントを設定（重複を排除）
   const indicesToAddCache = [
     ...new Set([...(firstCachePoint !== undefined ? [firstCachePoint] : []), secondCachePoint])
-  ]
+  ].filter(
+    (index) =>
+      // Amazon Nova の場合、toolResult 直後に cachePoint を置くとエラーになる
+      getCacheableFields(modelId).includes('tools') ||
+      !messages[index].content?.some((b) => b.toolResult)
+  )
 
   // 選択したメッセージにだけキャッシュポイントを追加
   const result = messagesWithCachePoints.map((message, index) => {
