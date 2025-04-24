@@ -1,5 +1,4 @@
 import {
-  BedrockAgentRuntimeClient,
   RetrieveAndGenerateCommand,
   RetrieveAndGenerateCommandInput,
   RetrieveCommand,
@@ -47,20 +46,19 @@ export type InvokeAgentInput = RequiredAgentParams &
   >
 
 export class AgentService {
-  private agentClient: BedrockAgentRuntimeClient
-  constructor(private context: ServiceContext) {
-    this.agentClient = createAgentRuntimeClient(this.context.store.get('aws'))
-  }
+  constructor(private context: ServiceContext) {}
 
   async retrieveAndGenerate(props: RetrieveAndGenerateCommandInput) {
+    const agentClient = createAgentRuntimeClient(this.context.store.get('aws'))
     const command = new RetrieveAndGenerateCommand(props)
-    const res = await this.agentClient.send(command)
+    const res = await agentClient.send(command)
     return res
   }
 
   async retrieve(props: RetrieveCommandInput) {
+    const agentClient = createAgentRuntimeClient(this.context.store.get('aws'))
     const command = new RetrieveCommand(props)
-    const res = await this.agentClient.send(command)
+    const res = await agentClient.send(command)
     return res
   }
 
@@ -70,7 +68,7 @@ export class AgentService {
    * @returns Agent からのレスポンス
    */
   async invokeAgent(params: InvokeAgentInput): Promise<InvokeAgentResult> {
-    console.log(params)
+    const agentClient = createAgentRuntimeClient(this.context.store.get('aws'))
     const { agentId, agentAliasId, sessionId, inputText, enableTrace = false, ...rest } = params
 
     // セッションIDが指定されていない場合は新規生成
@@ -86,7 +84,7 @@ export class AgentService {
     })
 
     try {
-      const response = await this.agentClient.send(command)
+      const response = await agentClient.send(command)
       console.log({ response })
       return {
         $metadata: response.$metadata,
